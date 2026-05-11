@@ -35,7 +35,14 @@ uv run python src/deploy/deploy_all.py
 
 ## Workshop Guide
 
-See [docs/workshop_guide.md](docs/workshop_guide.md) for the full 14-section walkthrough covering every GEAP feature.
+See [docs/workshop_guide.md](docs/workshop_guide.md) for the full workshop organized into 4 sessions:
+
+| Session | Topic | Duration |
+|---------|-------|----------|
+| **Session 1** | AI Gateway / MCP Gateway | ~90 min |
+| **Session 2** | AI Gateway / MCP Gateway (continued) | ~75 min |
+| **Session 3** | Agent Registry | ~15 min |
+| **Session 4** | Model Security / Model Armor | ~15 min |
 
 ## Architecture
 

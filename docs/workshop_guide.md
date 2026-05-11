@@ -1,6 +1,6 @@
 # GEAP Workshop Guide
 
-A hands-on walkthrough of the Gemini Enterprise Agent Platform — from building agents to production governance. Estimated time: ~3 hours.
+A hands-on walkthrough of the Gemini Enterprise Agent Platform — from building agents to production governance. Organized into 4 focused sessions with breaks. Estimated time: ~3.5 hours (including lunch and break).
 
 ---
 
@@ -22,7 +22,38 @@ gcloud services enable \
 
 ---
 
-## Section 1: Architecture Overview (~10 min)
+## Agenda Overview
+
+| Session | Topic | Duration | Key Activities |
+|---------|-------|----------|----------------|
+| **Session 1** | AI Gateway / MCP Gateway | ~90 min | Architecture, MCP servers, ADK agents, deployment, identity |
+| | *Lunch Break* | ~45 min | |
+| **Session 2** | AI Gateway / MCP Gateway (continued) | ~75 min | Agent Gateway, evaluation pipeline, observability, optimization |
+| **Session 3** | Agent Registry | ~15 min | Agent registration, discovery, governance |
+| **Session 4** | Model Security / Model Armor | ~15 min | Input/output screening, guardrails, content safety |
+| | *Break* | ~15 min | |
+
+---
+
+# Session 1: AI Gateway / MCP Gateway
+
+**Duration:** ~90 min | **Theme:** Build, connect, and deploy agents with MCP tool servers
+
+**Learning Objectives:**
+- Understand the GEAP multi-agent architecture and MCP connectivity model
+- Build FastMCP tool servers and ADK agents that consume them
+- Deploy MCP servers to Cloud Run and agents to Agent Runtime
+- Configure agent identity with SPIFFE for secure workload authentication
+
+**Key Diagrams:** `01_multi_agent_topology.png`, `02_deployment_architecture.png`, `04_agent_identity_gateway.png`
+
+**Console Tours:** Vertex AI Agent Builder, Cloud Run Services, IAM Workload Identity Pools
+
+**Screenshot:** `docs/screenshots/session1_cloud_run_services.png`, `docs/screenshots/session1_agent_builder.png`, `docs/screenshots/session1_workload_identity.png`
+
+---
+
+### 1.1 Architecture Overview (~10 min)
 
 **Concept**: The GEAP provides a complete lifecycle for enterprise AI agents — build, deploy, govern, evaluate, and optimize.
 
@@ -33,44 +64,11 @@ Our workshop system has three ADK agents sharing three MCP tool servers:
 - **Travel Agent** — searches flights/hotels, makes bookings
 - **Expense Agent** — submits expenses, enforces policy limits
 
-**Key insight**: Multiple agents can share the same MCP server (e.g., both Travel Agent and Coordinator use the Search MCP), demonstrating the 1→many topology.
+**Key insight**: Multiple agents can share the same MCP server (e.g., both Travel Agent and Coordinator use the Search MCP), demonstrating the 1-to-many topology.
 
 ---
 
-## Section 2: Building ADK Agents (~15 min)
-
-**Code**: `src/agents/travel_agent.py`
-
-ADK agents are defined with `LlmAgent` — a model, a name, instructions, and tools:
-
-```python
-from google.adk.agents import LlmAgent
-from google.adk.tools.mcp import McpToolset, StreamableHTTPConnectionParams
-
-travel_agent = LlmAgent(
-    model='gemini-2.0-flash',
-    name='travel_agent',
-    instruction='You help users search and book flights...',
-    tools=[
-        McpToolset(connection_params=StreamableHTTPConnectionParams(url=SEARCH_URL)),
-        McpToolset(connection_params=StreamableHTTPConnectionParams(url=BOOKING_URL)),
-    ],
-)
-```
-
-**Multi-agent orchestration** (`src/agents/coordinator_agent.py`):
-```python
-coordinator_agent = LlmAgent(
-    ...
-    sub_agents=[travel_agent, expense_agent],
-)
-```
-
-**Console tour**: Navigate to Vertex AI → Agent Builder in the Cloud Console.
-
----
-
-## Section 3: MCP Server Development (~15 min)
+### 1.2 MCP Server Development (~15 min)
 
 **Code**: `src/mcp_servers/search/server.py`
 
@@ -101,13 +99,47 @@ uv run python -m src.mcp_servers.search.server
 
 ---
 
-## Section 4: Multi-Agent + MCP Topology (~10 min)
+### 1.3 Building ADK Agents with MCP Tools (~15 min)
+
+**Code**: `src/agents/travel_agent.py`
+
+ADK agents are defined with `LlmAgent` — a model, a name, instructions, and tools:
+
+```python
+from google.adk.agents import LlmAgent
+from google.adk.tools import McpToolset
+from google.adk.tools.mcp_tool.mcp_toolset import StreamableHTTPConnectionParams
+
+travel_agent = LlmAgent(
+    model='gemini-2.0-flash',
+    name='travel_agent',
+    instruction='You help users search and book flights...',
+    tools=[
+        McpToolset(connection_params=StreamableHTTPConnectionParams(url=SEARCH_URL)),
+        McpToolset(connection_params=StreamableHTTPConnectionParams(url=BOOKING_URL)),
+    ],
+)
+```
+
+**Multi-agent orchestration** (`src/agents/coordinator_agent.py`):
+```python
+coordinator_agent = LlmAgent(
+    ...
+    sub_agents=[travel_agent, expense_agent],
+)
+```
+
+**Console tour**: Navigate to Vertex AI -> Agent Builder in the Cloud Console.
+
+---
+
+### 1.4 Multi-Agent + MCP Topology (~10 min)
 
 **Diagram**: `diagrams/outputs/01_multi_agent_topology.png`
 
 The topology demonstrates key GEAP patterns:
-- **Agent → MCP**: Each agent connects to MCP servers via `StreamableHTTPConnectionParams`
-- **1→many**: The Search MCP is shared by Travel Agent and Coordinator
+- **Agent -> MCP**: Each agent connects to MCP servers via `StreamableHTTPConnectionParams`
+- **1-to-many**: The Search MCP is shared by Travel Agent and Coordinator
 - **Sub-agents**: Coordinator delegates to Travel and Expense agents
 - **Separation of concerns**: Tools are isolated in MCP servers, agents focus on reasoning
 
@@ -115,7 +147,7 @@ The topology demonstrates key GEAP patterns:
 
 ---
 
-## Section 5: Deploying MCP Servers to Cloud Run (~15 min)
+### 1.5 Deploying MCP Servers to Cloud Run (~15 min)
 
 **Code**: `src/deploy/deploy_mcp_servers.py`
 
@@ -127,13 +159,15 @@ uv run python src/deploy/deploy_mcp_servers.py
 
 This runs `gcloud run deploy` for each server with its Dockerfile.
 
-**Console tour**: Navigate to Cloud Run → Services. Show the three deployed MCP servers, their URLs, and logs.
+**Console tour**: Navigate to Cloud Run -> Services. Show the three deployed MCP servers, their URLs, and logs.
+
+**Screenshot**: `docs/screenshots/session1_cloud_run_services.png`
 
 **Diagram**: `diagrams/outputs/02_deployment_architecture.png`
 
 ---
 
-## Section 6: Deploying Agents to Agent Runtime (~15 min)
+### 1.6 Deploying Agents to Agent Runtime (~15 min)
 
 **Code**: `src/deploy/deploy_agents.py`
 
@@ -160,11 +194,13 @@ Key deployment options:
 - `requirements` — Python packages the agent needs at runtime
 - `env_vars` — OTel configuration for Cloud Trace integration
 
-**Console tour**: Navigate to Vertex AI → Agents. Show the deployed agents, their configurations, and the "Test" panel.
+**Console tour**: Navigate to Vertex AI -> Agents. Show the deployed agents, their configurations, and the "Test" panel.
+
+**Screenshot**: `docs/screenshots/session1_agent_builder.png`
 
 ---
 
-## Section 7: Agent Identity (SPIFFE) (~10 min)
+### 1.7 Agent Identity (SPIFFE) (~10 min)
 
 **Script**: `scripts/setup_agent_identity.sh`
 
@@ -183,13 +219,46 @@ This enables:
 config = {"identity_type": types.IdentityType.AGENT_IDENTITY}
 ```
 
-**Console tour**: Navigate to IAM & Admin → Workload Identity Pools. Show the agent pool and bound principals.
+**Console tour**: Navigate to IAM & Admin -> Workload Identity Pools. Show the agent pool and bound principals.
+
+**Screenshot**: `docs/screenshots/session1_workload_identity.png`
 
 **Diagram**: `diagrams/outputs/04_agent_identity_gateway.png`
 
 ---
 
-## Section 8: Agent Gateway (~10 min)
+> **Suggested 5-minute stretch break** before lunch if running ahead of schedule.
+
+---
+
+# Lunch Break
+
+*~45-60 minutes. Morning MCP servers and agents remain deployed for the afternoon sessions.*
+
+---
+
+# Session 2: AI Gateway / MCP Gateway (continued)
+
+**Duration:** ~75 min | **Theme:** Govern, evaluate, and optimize deployed agents
+
+**Learning Objectives:**
+- Configure Agent Gateway egress/ingress policies for network governance
+- Run one-time, continuous, and simulated evaluations against deployed agents
+- Set up CI/CD quality gates using simulated evaluation
+- Analyze failure clusters and configure quality alerts
+- Optimize agent instructions using the GEPA algorithm
+
+**Prerequisite:** Session 1 agents and MCP servers must be deployed.
+
+**Key Diagrams:** `03_eval_pipeline.png`, `04_agent_identity_gateway.png`, `05_observability_stack.png`, `06_ci_cd_flow.png`
+
+**Console Tours:** Agent Gateway, Vertex AI Evaluation, Online Monitors, Cloud Monitoring Alerting, Cloud Trace, BigQuery, GitHub Actions
+
+**Screenshots:** `docs/screenshots/session2_agent_gateway.png`, `docs/screenshots/session2_evaluation.png`, `docs/screenshots/session2_online_monitors.png`, `docs/screenshots/session2_monitoring_alerts.png`, `docs/screenshots/session2_cloud_trace.png`, `docs/screenshots/session2_bigquery.png`, `docs/screenshots/session2_cloud_logging.png`
+
+---
+
+### 2.1 Agent Gateway (~10 min)
 
 **Script**: `scripts/setup_agent_gateway.sh`
 
@@ -210,22 +279,20 @@ config = {
 
 **Console tour**: Navigate to Agent Gateway in the console. Show egress/ingress rules and audit logs.
 
+**Screenshot**: `docs/screenshots/session2_agent_gateway.png`
+
 ---
 
-## Section 9: One-Time Evaluation (~15 min)
+### 2.2 One-Time Evaluation (~15 min)
 
 **Code**: `src/eval/one_time_eval.py`
 
-One-time evaluation uses `PointwiseMetricPromptTemplate` for custom rubric-based scoring:
+One-time evaluation uses custom metrics with prompt templates for rubric-based scoring:
 
 ```python
-HELPFULNESS_METRIC = types.PointwiseMetricPromptTemplate(
+HELPFULNESS_METRIC = types.Metric(
     name="helpfulness",
-    criteria="Does the response provide helpful information?",
-    rating_rubric={
-        "1": "Not helpful",
-        "5": "Very helpful — exceeds expectations",
-    },
+    prompt_template=HELPFULNESS_TEMPLATE,
 )
 ```
 
@@ -238,21 +305,23 @@ Three custom metrics:
 uv run python -m src.eval.one_time_eval <agent-resource-name>
 ```
 
-**Console tour**: Navigate to Vertex AI → Evaluation. Show eval results, per-metric scores, and individual sample breakdowns.
+**Console tour**: Navigate to Vertex AI -> Evaluation. Show eval results, per-metric scores, and individual sample breakdowns.
+
+**Screenshot**: `docs/screenshots/session2_evaluation.png`
 
 **Diagram**: `diagrams/outputs/03_eval_pipeline.png`
 
 ---
 
-## Section 10: Online Monitors (Continuous Eval) (~15 min)
+### 2.3 Online Monitors (Continuous Eval) (~15 min)
 
 **Code**: `src/eval/setup_online_monitors.py`
 
 Online monitors evaluate live agent traffic on a 10-minute cycle:
 
-1. Agent handles user requests → OTel traces flow to Cloud Trace
+1. Agent handles user requests -> OTel traces flow to Cloud Trace
 2. Every 10 minutes, the monitor samples recent traces
-3. Runs the same `PointwiseMetricPromptTemplate` rubrics
+3. Runs the same metric rubrics
 4. Results flow to BigQuery for analysis
 
 ```bash
@@ -273,11 +342,13 @@ uv run python -m src.eval.manage_monitors pause <monitor-name>
 uv run python -m src.eval.manage_monitors resume <monitor-name>
 ```
 
-**Console tour**: Navigate to Vertex AI → Evaluation → Online Monitors. Show active monitors, their schedules, and recent results.
+**Console tour**: Navigate to Vertex AI -> Evaluation -> Online Monitors. Show active monitors, their schedules, and recent results.
+
+**Screenshot**: `docs/screenshots/session2_online_monitors.png`
 
 ---
 
-## Section 11: Simulated Evaluation for CI/CD (~15 min)
+### 2.4 Simulated Evaluation for CI/CD (~15 min)
 
 **Code**: `src/eval/simulated_eval.py`
 
@@ -303,7 +374,7 @@ eval_result = client.evals.evaluate(
 ```
 
 **CI/CD integration** (`.github/workflows/eval_ci.yaml`):
-- On every PR that changes agent code → deploy temp agent → run simulated eval → block if score < 3.0 → cleanup
+- On every PR that changes agent code -> deploy temp agent -> run simulated eval -> block if score < 3.0 -> cleanup
 
 ```bash
 uv run python -m src.eval.simulated_eval <agent-resource-name> 3.0
@@ -315,9 +386,9 @@ uv run python -m src.eval.simulated_eval <agent-resource-name> 3.0
 
 ---
 
-## Section 12: Failure Clusters & Quality Alerts (~10 min)
+### 2.5 Failure Clusters & Quality Alerts (~10 min)
 
-### Failure Clusters
+#### Failure Clusters
 
 **Code**: `src/eval/failure_clusters.py`
 
@@ -329,7 +400,7 @@ uv run python -m src.eval.failure_clusters <eval-result-name>
 
 Output shows clusters with titles, descriptions, sample counts, and average scores — enabling targeted improvements.
 
-### Quality Alerts
+#### Quality Alerts
 
 **Code**: `src/eval/quality_alerts.py`
 
@@ -343,19 +414,123 @@ uv run python -m src.eval.quality_alerts helpfulness 3.0
 uv run python -m src.eval.quality_alerts list
 ```
 
-**Console tour**: Navigate to Cloud Monitoring → Alerting. Show the alert policy, condition, and notification channel configuration.
+**Console tour**: Navigate to Cloud Monitoring -> Alerting. Show the alert policy, condition, and notification channel configuration.
+
+**Screenshot**: `docs/screenshots/session2_monitoring_alerts.png`
 
 **Diagram**: `diagrams/outputs/05_observability_stack.png`
 
 ---
 
-## Section 13: Agent Armor (Model Armor) (~15 min)
+### 2.6 Agent Optimization (GEPA) (~10 min)
+
+**Code**: `src/optimize/run_optimize.py`
+
+The `adk optimize` command uses the GEPA algorithm to iteratively improve agent system instructions:
+
+1. Evaluate the current instruction against test scenarios
+2. Analyze failure patterns
+3. Generate instruction variants
+4. Evaluate variants and select the best performer
+
+```bash
+uv run python -m src.optimize.run_optimize src.agents.travel_agent
+```
+
+This produces optimized system instructions that can be compared to the original.
+
+**Console tour**: Show the optimization results — original vs. optimized instructions, and score improvements.
+
+---
+
+# Session 3: Agent Registry
+
+**Duration:** ~15 min | **Theme:** Agent discovery, registration, and governance
+
+**Learning Objectives:**
+- Understand how agents are registered and discovered in the Agent Registry
+- View registered agents and their tool specifications in the console
+- Understand agent governance policies and metadata management
+
+**Key Diagrams:** `02_deployment_architecture.png` (registry as part of the deployment flow)
+
+**Console Tours:** Vertex AI -> Agents (registry view)
+
+**Screenshots:** `docs/screenshots/session3_agent_registry.png`
+
+---
+
+### 3.1 Agent Registration & Discovery (~10 min)
+
+**Script**: `scripts/register_agent_registry.sh`
+
+When agents are deployed to Agent Runtime via `client.agent_engines.create()`, they are automatically registered in the Agent Registry. The registry serves as the central catalog for discovering, governing, and auditing all deployed agents.
+
+```bash
+# List all registered agents
+gcloud ai agent-engines list \
+    --project="$PROJECT_ID" \
+    --region="$REGION"
+```
+
+Each registered agent includes:
+- **Resource name** — unique identifier for API access
+- **Display name** — human-readable agent name
+- **Create/update timestamps** — lifecycle tracking
+- **Configuration** — model, tools, identity, gateway settings
+
+**Console tour**: Navigate to Vertex AI -> Agents. Show the list of registered agents, click into one to view its configuration, test panel, and deployment details.
+
+**Screenshot**: `docs/screenshots/session3_agent_registry.png`
+
+---
+
+### 3.2 Agent Governance via Registry (~5 min)
+
+**Code**: `scripts/toolspecs/`
+
+The Agent Registry integrates with GEAP governance features:
+
+- **Tool Specifications** — OpenAPI specs (`scripts/toolspecs/search_toolspec.json`, `booking_toolspec.json`, `expense_toolspec.json`) document what each MCP server exposes, enabling discovery and compliance review
+- **Identity Binding** — each registered agent's SPIFFE identity (from Session 1.7) is visible in the registry, enabling per-agent IAM policies
+- **Gateway Association** — the Agent Gateway config (from Session 2.1) is attached to each agent's registry entry
+- **Audit Trail** — all agent interactions are logged with the agent's identity, enabling governance teams to track which agent did what
+
+```bash
+# View a registered agent's full configuration
+gcloud ai agent-engines describe <AGENT_RESOURCE_NAME> \
+    --project="$PROJECT_ID" \
+    --region="$REGION"
+```
+
+**Key insight**: The Agent Registry ties together identity, gateway, and observability — it's the single pane of glass for agent governance.
+
+---
+
+# Session 4: Model Security / Model Armor
+
+**Duration:** ~15 min | **Theme:** Protecting agents with input/output screening and guardrails
+
+**Learning Objectives:**
+- Configure Model Armor templates for prompt/response screening (injection detection, content safety, sensitive data protection)
+- Implement client-side input guardrails using `before_agent_callback`
+- Test the complete armor pipeline end-to-end
+
+**Key Diagrams:** `07_agent_armor.png`
+
+**Console Tours:** Security -> Model Armor (templates, filter configurations, enforcement logs)
+
+**Screenshots:** `docs/screenshots/session4_model_armor.png`
+
+---
+
+### 4.1 Agent Armor (Model Armor) (~15 min)
 
 **Code**: `src/armor/config.py` | **Script**: `scripts/setup_model_armor.sh`
 
 Agent Armor protects agents at two layers:
 
-### Layer 1: Server-side — Model Armor Templates
+#### Layer 1: Server-side — Model Armor Templates
 
 Model Armor templates screen every prompt and response for:
 - **Prompt injection / jailbreak detection** (confidence: MEDIUM_AND_ABOVE)
@@ -387,7 +562,7 @@ travel_agent = LlmAgent(
 )
 ```
 
-### Layer 2: Client-side — Input Guardrail Callback
+#### Layer 2: Client-side — Input Guardrail Callback
 
 A `before_agent_callback` runs before any request reaches the model:
 
@@ -410,30 +585,17 @@ The callback blocks:
 uv run pytest tests/test_armor.py -v
 ```
 
-**Console tour**: Navigate to Security → Model Armor in the Cloud Console. Show templates, filter configurations, and enforcement logs.
+**Console tour**: Navigate to Security -> Model Armor in the Cloud Console. Show templates, filter configurations, and enforcement logs.
+
+**Screenshot**: `docs/screenshots/session4_model_armor.png`
 
 **Diagram**: `diagrams/outputs/07_agent_armor.png`
 
 ---
 
-## Section 14: Agent Optimization (GEPA) (~10 min)
+# Break
 
-**Code**: `src/optimize/run_optimize.py`
-
-The `adk optimize` command uses the GEPA algorithm to iteratively improve agent system instructions:
-
-1. Evaluate the current instruction against test scenarios
-2. Analyze failure patterns
-3. Generate instruction variants
-4. Evaluate variants and select the best performer
-
-```bash
-uv run python -m src.optimize.run_optimize src.agents.travel_agent
-```
-
-This produces optimized system instructions that can be compared to the original.
-
-**Console tour**: Show the optimization results — original vs. optimized instructions, and score improvements.
+*~15 minutes.*
 
 ---
 
