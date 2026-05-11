@@ -37,7 +37,7 @@ echo "╚═══════════════════════�
 echo -e "${NC}"
 
 # ─── Step 1: Enable APIs ────────────────────────────────────────────
-step "1/9" "Enabling required APIs"
+step "1/11" "Enabling required APIs"
 gcloud services enable \
     run.googleapis.com \
     aiplatform.googleapis.com \
@@ -50,13 +50,13 @@ gcloud services enable \
 ok "APIs enabled"
 
 # ─── Step 2: Create staging bucket ──────────────────────────────────
-step "2/9" "Creating staging bucket"
+step "2/11" "Creating staging bucket"
 gcloud storage buckets create "gs://${STAGING_BUCKET}" \
     --project="$PROJECT_ID" --location="$REGION" \
     --uniform-bucket-level-access 2>/dev/null && ok "Bucket created" || ok "Bucket already exists"
 
 # ─── Step 3: Deploy MCP servers to Cloud Run ────────────────────────
-step "3/9" "Deploying MCP servers to Cloud Run"
+step "3/11" "Deploying MCP servers to Cloud Run"
 
 deploy_mcp() {
     local name=$1 port=$2
@@ -100,19 +100,19 @@ for url in "$SEARCH_URL" "$BOOKING_URL" "$EXPENSE_URL"; do
 done
 
 # ─── Step 4: Setup Model Armor ──────────────────────────────────────
-step "4/9" "Setting up Model Armor templates"
+step "4/11" "Setting up Model Armor templates"
 bash scripts/setup_model_armor.sh 2>&1 | grep -E "(✓|Template|already)" || warn "Model Armor setup had warnings"
 
 # ─── Step 5: Setup Logging Sink ─────────────────────────────────────
-step "5/9" "Setting up BigQuery logging sink"
+step "5/11" "Setting up BigQuery logging sink"
 bash scripts/setup_logging_sink.sh 2>&1 | grep -E "(✓|Dataset|Sink|already)" || warn "Logging sink setup had warnings"
 
 # ─── Step 6: Setup Agent Gateway ────────────────────────────────────
-step "6/9" "Setting up Agent Gateway"
+step "6/11" "Setting up Agent Gateway"
 bash scripts/setup_agent_gateway.sh 2>&1 | grep -E "(✓|Gateway|already)" || warn "Agent Gateway setup had warnings"
 
 # ─── Step 7: Write .env and deploy agents ───────────────────────────
-step "7/9" "Configuring environment and deploying agents"
+step "7/11" "Configuring environment and deploying agents"
 
 cat > .env << ENVEOF
 GCP_PROJECT_ID=${PROJECT_ID}
@@ -139,7 +139,7 @@ print(name)
 ok "travel_agent deployed: $AGENT_RESOURCE"
 
 # ─── Step 8: Generate traffic and run evaluations ───────────────────
-step "8/9" "Generating traffic and running evaluations"
+step "8/11" "Generating traffic and running evaluations"
 echo "  Sending test queries to generate OTel traces..."
 uv run python -m src.traffic.generate_traffic "$AGENT_RESOURCE" 2>&1 | tail -5 || warn "Some traffic queries had errors"
 ok "Traffic generated"
@@ -148,8 +148,22 @@ echo "  Running one-time evaluation..."
 uv run python -m src.eval.one_time_eval "$AGENT_RESOURCE" 2>&1 | tail -10 || warn "Eval had issues"
 ok "One-time eval complete"
 
-# ─── Step 9: Verify CI/CD ──────────────────────────────────────────
-step "9/9" "Verifying CI/CD configuration"
+# ─── Step 9: Register in Agent Registry ────────────────────────────
+step "9/11" "Registering agents and MCP servers in Agent Registry"
+if [[ -f scripts/register_agent_registry.sh ]]; then
+    bash scripts/register_agent_registry.sh 2>&1 | grep -E "(Registered|already|skipping|Done)" || warn "Agent Registry registration had warnings"
+    ok "Agent Registry configured"
+else
+    warn "No register_agent_registry.sh found — skipping"
+fi
+
+# ─── Step 10: Setup Governance Policies ────────────────────────────
+step "10/11" "Setting up governance policies (IAM Allow + SGP + Model Armor)"
+bash scripts/setup_governance_policies.sh 2>&1 | grep -E "(Layer|IAM|SGP|policy|Done)" || warn "Governance policy setup had warnings"
+ok "Governance policies configured"
+
+# ─── Step 11: Verify CI/CD ─────────────────────────────────────────
+step "11/11" "Verifying CI/CD configuration"
 if [[ -f .github/workflows/eval_ci.yaml ]]; then
     ok "GitHub Actions workflow found: .github/workflows/eval_ci.yaml"
     echo "  Triggers on: pull_request to main (src/agents/** or src/mcp_servers/**)"
@@ -170,7 +184,11 @@ echo ""
 echo "Agent Resource: $AGENT_RESOURCE"
 echo ""
 echo "Next steps:"
-echo "  • View Cloud Trace:     https://console.cloud.google.com/traces?project=${PROJECT_ID}"
-echo "  • View Cloud Logging:   https://console.cloud.google.com/logs?project=${PROJECT_ID}"
-echo "  • View Agent Registry:  https://console.cloud.google.com/vertex-ai/agents?project=${PROJECT_ID}"
+echo "  • View Cloud Trace:      https://console.cloud.google.com/traces?project=${PROJECT_ID}"
+echo "  • View Cloud Logging:    https://console.cloud.google.com/logs?project=${PROJECT_ID}"
+echo "  • View Agent Platform:   https://console.cloud.google.com/agent-platform/runtimes?project=${PROJECT_ID}"
+echo "  • View Agent Registry:   https://console.cloud.google.com/agent-platform/agent-registry?project=${PROJECT_ID}"
+echo "  • View Agent Gateway:    https://console.cloud.google.com/agent-platform/gateways?project=${PROJECT_ID}"
+echo "  • View Policies:         https://console.cloud.google.com/agent-platform/policies?project=${PROJECT_ID}"
+echo "  • View Model Armor:      https://console.cloud.google.com/security/modelarmor?project=${PROJECT_ID}"
 echo "  • Setup online monitors: uv run python -m src.eval.setup_online_monitors"
