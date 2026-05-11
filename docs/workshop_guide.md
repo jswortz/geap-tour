@@ -269,26 +269,53 @@ config = {"identity_type": types.IdentityType.AGENT_IDENTITY}
 
 **Script**: `scripts/setup_agent_gateway.sh`
 
-The Agent Gateway controls what agents can communicate with:
+The Agent Gateway is the central networking and security component for all agentic interactions. It provides secure, governed connectivity for:
 
-- **Egress policies**: What external services agents can call (e.g., allow `*.run.app`)
-- **Ingress policies**: What can call your agents
+- **Client-to-Agent (ingress)**: Controls what external clients can call your agents
+- **Agent-to-Anywhere (egress)**: Controls what agents can communicate with (MCP servers, APIs, other agents)
 
-```python
-config = {
-    "agent_gateway_config": {
-        "agent_to_anywhere_config": {
-            "agent_gateway": "projects/.../agentGateways/..."
-        }
+The gateway is created via the Network Services REST API (v1alpha1):
+
+```bash
+# Create Agent Gateway via REST API
+curl -X POST \
+  "https://networkservices.googleapis.com/v1alpha1/projects/${PROJECT_ID}/locations/${REGION}/agentGateways?agentGatewayId=geap-workshop-gateway" \
+  -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "protocols": ["MCP"],
+    "googleManaged": {
+      "governedAccessPath": "CLIENT_TO_AGENT"
     }
-}
+  }'
 ```
 
-**Console tour**: Navigate to Agent Gateway in the console. Show egress/ingress rules and audit logs.
+Or use the setup script:
+
+```bash
+bash scripts/setup_agent_gateway.sh
+```
+
+**Console tour**: Navigate to Agent Platform -> Gateways in the console. Show the gateway resource, governed access path, and protocol configuration.
 
 **Screenshot**: `docs/screenshots/session2_agent_gateway.png`
 
 ![Agent Gateway](screenshots/session2_agent_gateway.png)
+
+#### Semantic Governance Policies (Business Policies)
+
+Agent Gateway integrates with **Semantic Governance Policies (SGP)** — natural language rules that govern agent behavior at the platform level without embedding logic in agent code.
+
+Navigate to Agent Platform -> Policies -> Business Policies to:
+- Define constraints in plain English (e.g., "Only book economy class flights unless explicitly approved")
+- Scope policies to specific agents, MCP servers, or individual tools
+- Enforce compliance without redeploying agents
+
+> **Note**: SGP requires the policy engine to be provisioned (~15-20 min setup with VPC networking and DNS peering). See the [SGP documentation](https://docs.cloud.google.com/gemini-enterprise-agent-platform/govern/policies/configure-semantic-governance) for full setup.
+
+**Screenshot**: `docs/screenshots/session3_policies.png`
+
+![Business Policies](screenshots/session3_policies.png)
 
 ---
 
@@ -516,9 +543,11 @@ Each registered agent includes:
 
 **Console tour**: Navigate to Agent Platform -> Agent Registry -> MCP Servers. Show the registered servers, their tools, and endpoint URLs.
 
-**Screenshot**: `docs/screenshots/session3_agent_registry.png`
+**Screenshots**: `docs/screenshots/session3_agent_registry.png`, `docs/screenshots/session3_agent_registry_mcp.png`
 
-![Agent Registry MCP Servers](screenshots/session3_agent_registry.png)
+![Agent Registry](screenshots/session3_agent_registry.png)
+
+![Agent Registry MCP Servers](screenshots/session3_agent_registry_mcp.png)
 
 ---
 

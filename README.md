@@ -39,11 +39,13 @@ All screenshots are captured from real deployed GCP resources:
 
 | Screenshot | Feature |
 |-----------|---------|
-| ![Architecture](docs/screenshots/session1_architecture_overview.png) | GEAP architecture overview |
+| ![Architecture](docs/screenshots/session1_architecture_overview.png) | GEAP architecture overview (Topology) |
 | ![Cloud Run](docs/screenshots/session1_cloud_run_services.png) | MCP servers on Cloud Run |
 | ![Agent Engine](docs/screenshots/session1_agent_engine.png) | Multi-agent deployment |
+| ![Agent Gateway](docs/screenshots/session2_agent_gateway.png) | Agent Gateway (ingress/egress) |
 | ![Model Armor](docs/screenshots/session4_model_armor.png) | Input/output screening |
 | ![Evaluation](docs/screenshots/session2_evaluation_pipeline.png) | Three-tier eval pipeline |
+| ![Agent Registry](docs/screenshots/session3_agent_registry_mcp.png) | MCP servers in Agent Registry |
 | ![BigQuery](docs/screenshots/session2_bigquery_sink.png) | Observability data pipeline |
 
 ## Workshop Guide
