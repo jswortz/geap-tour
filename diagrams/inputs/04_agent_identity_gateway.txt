@@ -1,17 +1,35 @@
-Create a security architecture diagram showing Agent Identity and Agent Gateway.
+Create a security architecture diagram showing Agent Identity with dual Ingress and Egress Gateways.
 
-Layout:
-- Center: A large box labeled "Agent Runtime" containing an agent icon
-- Left side "Identity":
-  - A shield icon labeled "SPIFFE Identity"
+Layout (left to right flow):
+- Far left "Users / Clients":
+  - User icon and API client icon
+  - Arrow pointing right labeled "User Requests"
+
+- Left gateway "Ingress Gateway (Client-to-Agent)":
+  - A gateway/firewall icon labeled "Ingress Gateway"
+  - Sub-label: "Client-to-Agent"
+  - Policy box: "Ingress Policy" listing: AuthN (OAuth / API Key), Rate Limiting, Request Validation
+  - Arrow from Users through Ingress Gateway into Agent Runtime
+
+- Center "Agent Runtime":
+  - A large box labeled "Agent Runtime" containing an agent icon
+  - Above agent: Shield icon labeled "SPIFFE Identity"
   - Text showing the principal format: "principal://agents.global.org-{ORG}.system.id.goog/agent/{ID}"
   - Arrow from shield to agent showing "Workload Identity Pool"
-  - Below: "IAM Policy Binding" box with role badges
-- Right side "Gateway":
-  - A gateway/firewall icon labeled "Agent Gateway"
-  - Two policy boxes: "Egress Policy" (what agents can call) and "Ingress Policy" (what can call agents)
-  - Arrows showing traffic flow: Agent → Gateway → Cloud Run MCP Servers
-  - Arrow labeled "Allowed: *.run.app"
-  - Blocked arrow with X labeled "Blocked: external APIs"
+  - Below: "Attestation Policy" box with: Image Digest Verification, Namespace Constraints, Service Account Binding
+  - Below that: "IAM Allow Policy Binding" box with role badges
 
-Style: Security-focused diagram with lock/shield icons. Blue for identity, orange for gateway. Professional, clean. Title: "Agent Identity & Gateway Governance"
+- Right gateway "Egress Gateway (Agent-to-Anywhere)":
+  - A gateway/firewall icon labeled "Egress Gateway"
+  - Sub-label: "Agent-to-Anywhere"
+  - Policy box: "Egress Policy" listing: IAM Allow Policies, Service Gateway Policy (SGP) Enforcement, Destination Allowlist
+  - Three outbound arrows from Egress Gateway pointing right to destinations
+
+- Far right "Destinations" (three target boxes stacked vertically):
+  - Box 1: "Gemini Models" (Vertex AI icon, label "gemini-2.5-flash / pro")
+  - Box 2: "MCP Servers" (Cloud Run icon, label "*.run.app")
+  - Box 3: "External APIs" (globe icon, label "Governed by SGP")
+
+- Full flow arrow across bottom: "User → Ingress Gateway → Agent Runtime → Egress Gateway → {Gemini Models, MCP Servers, External APIs}"
+
+Style: Security-focused diagram with lock/shield icons. Blue for identity, orange for ingress gateway, red-orange for egress gateway. Green check marks on allowed flows, red X on blocked flows. Professional, clean. Title: "Agent Identity & Gateway Governance — Ingress + Egress"

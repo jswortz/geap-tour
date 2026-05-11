@@ -535,28 +535,42 @@ travel_agent = LlmAgent(
   <div class="logo" style="color: rgba(255,255,255,0.4);">Google Cloud</div>
 </div>
 
-<!-- ===== SLIDE 14: AGENT GATEWAY ===== -->
+<!-- ===== SLIDE 14: AGENT GATEWAY (DUAL MODE) ===== -->
 <div class="slide" id="s14">
-  <h2>Agent Gateway</h2>
+  <h2>Agent Gateway &mdash; Dual Mode</h2>
   <div class="columns">
     <div>
-      <h3>Network-Level Governance</h3>
-      <ul>
-        <li>Controls <strong>ingress</strong> (client → agent) and <strong>egress</strong> (agent → tools)</li>
-        <li>Enforces identity verification at the boundary</li>
-        <li>Supports MCP protocol natively</li>
-        <li>Semantic Governance Policies for content-aware routing</li>
-      </ul>
-      <div class="highlight-box" style="margin-top: 20px; font-size: 18px;">
-        <strong>Mode:</strong> CLIENT_TO_AGENT<br>
-        <strong>Protocol:</strong> MCP<br>
-        <strong>Created via:</strong> REST API (networkservices.googleapis.com)
+      <h3>Ingress + Egress Governance</h3>
+      <table style="font-size: 16px; width: 100%; border-collapse: collapse;">
+        <tr style="border-bottom: 1px solid #ddd;"><th style="text-align: left; padding: 8px;">Mode</th><th style="text-align: left; padding: 8px;">Gateway</th><th style="text-align: left; padding: 8px;">Controls</th></tr>
+        <tr style="border-bottom: 1px solid #eee;"><td style="padding: 8px;"><strong>Client-to-Agent</strong></td><td style="padding: 8px;"><code>geap-workshop-gateway</code></td><td style="padding: 8px;">Inbound user requests</td></tr>
+        <tr><td style="padding: 8px;"><strong>Agent-to-Anywhere</strong></td><td style="padding: 8px;"><code>geap-workshop-gateway-egress</code></td><td style="padding: 8px;">Gemini model calls, MCP tools, external APIs</td></tr>
+      </table>
+      <div class="highlight-box" style="margin-top: 16px; font-size: 16px;">
+        <strong>Key:</strong> With egress gateway, ALL outbound traffic &mdash; including Gemini model calls &mdash; routes through governance (IAM Allow + SGP + Model Armor)
       </div>
+      <pre style="font-size: 13px; background: #f5f5f5; padding: 12px; border-radius: 8px; margin-top: 12px; overflow-x: auto;"><code>config = {
+  "agent_gateway_config": {
+    "client_to_agent_config": {"agent_gateway": INGRESS},
+    "agent_to_anywhere_config": {"agent_gateway": EGRESS},
+  },
+  "identity_type": "AGENT_IDENTITY",
+}</code></pre>
     </div>
     <div class="img-container">
       <img src="screenshots/session2_agent_gateway.png" alt="Agent Gateway Console">
     </div>
   </div>
+  <div class="logo">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 14b: AGENT TRACES ===== -->
+<div class="slide dark" id="s14b">
+  <h2 style="color: var(--white);">Console: Agent Traces</h2>
+  <div class="img-container img-full">
+    <img src="screenshots/session2_agent_traces.png" alt="Agent Traces">
+  </div>
+  <p style="color: rgba(255,255,255,0.7); text-align: center; font-size: 18px;">Session view showing model calls, tool calls, token usage, and duration per trace</p>
   <div class="logo">Google Cloud</div>
 </div>
 

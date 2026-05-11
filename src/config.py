@@ -7,6 +7,7 @@ GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "wortz-project-352116")
 GCP_REGION = os.environ.get("GCP_REGION", "us-central1")
 GCP_STAGING_BUCKET = os.environ.get("GCP_STAGING_BUCKET", f"{GCP_PROJECT_ID}-geap-staging")
 AGENT_GATEWAY_PATH = os.environ.get("AGENT_GATEWAY_PATH", "")
+AGENT_GATEWAY_EGRESS_PATH = os.environ.get("AGENT_GATEWAY_EGRESS_PATH", "")
 
 SEARCH_MCP_URL = os.environ.get("SEARCH_MCP_URL", "http://localhost:8001/mcp")
 BOOKING_MCP_URL = os.environ.get("BOOKING_MCP_URL", "http://localhost:8002/mcp")

@@ -124,6 +124,7 @@ EXPENSE_MCP_URL=${EXPENSE_URL}/mcp
 MODEL_ARMOR_PROMPT_TEMPLATE=projects/${PROJECT_ID}/locations/${REGION}/templates/geap-workshop-prompt
 MODEL_ARMOR_RESPONSE_TEMPLATE=projects/${PROJECT_ID}/locations/${REGION}/templates/geap-workshop-response
 AGENT_GATEWAY_PATH=projects/${PROJECT_ID}/locations/${REGION}/agentGateways/geap-workshop-gateway
+AGENT_GATEWAY_EGRESS_PATH=projects/${PROJECT_ID}/locations/${REGION}/agentGateways/geap-workshop-gateway-egress
 ENVEOF
 ok ".env written"
 

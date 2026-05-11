@@ -42,7 +42,9 @@ All screenshots are captured from real deployed GCP resources:
 | ![Agent Gateway](docs/screenshots/session1_architecture_overview.png) | Agent Gateway detail (geap-workshop-gateway) |
 | ![Cloud Run](docs/screenshots/session1_cloud_run_mcp_detail.png) | MCP server on Cloud Run |
 | ![Agent Engine](docs/screenshots/session1_agent_engine.png) | Multi-agent deployment |
-| ![Agent Gateway](docs/screenshots/session2_agent_gateway.png) | Agent Gateway (ingress/egress) |
+| ![Agent Gateway](docs/screenshots/session2_agent_gateway.png) | Agent Gateway (ingress + egress) |
+| ![Traces](docs/screenshots/session2_agent_traces.png) | Agent traces — session view with model calls and token usage |
+| ![Trace Spans](docs/screenshots/session2_agent_trace_spans.png) | Trace spans — individual trace view |
 | ![Model Armor](docs/screenshots/session4_model_armor.png) | Input/output screening |
 | ![Evaluation](docs/screenshots/session2_evaluation_pipeline.png) | Three-tier eval pipeline |
 | ![Agent Registry](docs/screenshots/session3_agent_registry_mcp.png) | MCP servers in Agent Registry |

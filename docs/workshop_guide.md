@@ -265,38 +265,69 @@ config = {"identity_type": types.IdentityType.AGENT_IDENTITY}
 
 ---
 
-### 2.1 Agent Gateway (~10 min)
+### 2.1 Agent Gateway (~15 min)
 
 **Script**: `scripts/setup_agent_gateway.sh`
 
-The Agent Gateway is the central networking and security component for all agentic interactions. It provides secure, governed connectivity for:
+The Agent Gateway is the central networking and security component for all agentic interactions. It operates in two modes:
 
-- **Client-to-Agent (ingress)**: Controls what external clients can call your agents
-- **Agent-to-Anywhere (egress)**: Controls what agents can communicate with (MCP servers, APIs, other agents)
+| Mode | Gateway Name | Purpose |
+|------|-------------|---------|
+| **Client-to-Agent (ingress)** | `geap-workshop-gateway` | Controls what external clients can call your agents |
+| **Agent-to-Anywhere (egress)** | `geap-workshop-gateway-egress` | Routes all outbound agent traffic (Gemini model calls, MCP tool calls, external APIs) through governance |
 
-The gateway is created via the Network Services REST API (v1alpha1):
+#### Creating Both Gateways
+
+The ingress gateway controls inbound access:
 
 ```bash
-# Create Agent Gateway via REST API
 curl -X POST \
   "https://networkservices.googleapis.com/v1alpha1/projects/${PROJECT_ID}/locations/${REGION}/agentGateways?agentGatewayId=geap-workshop-gateway" \
   -H "Authorization: Bearer $(gcloud auth print-access-token)" \
   -H "Content-Type: application/json" \
-  -d '{
-    "protocols": ["MCP"],
-    "googleManaged": {
-      "governedAccessPath": "CLIENT_TO_AGENT"
-    }
-  }'
+  -d '{"protocols": ["MCP"], "googleManaged": {"governedAccessPath": "CLIENT_TO_AGENT"}}'
 ```
 
-Or use the setup script:
+The egress gateway intercepts all outbound traffic — including Gemini model calls:
+
+```bash
+curl -X POST \
+  "https://networkservices.googleapis.com/v1alpha1/projects/${PROJECT_ID}/locations/${REGION}/agentGateways?agentGatewayId=geap-workshop-gateway-egress" \
+  -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+  -H "Content-Type: application/json" \
+  -d '{"protocols": ["MCP"], "googleManaged": {"governedAccessPath": "AGENT_TO_ANYWHERE"}}'
+```
+
+Or use the setup script which creates both:
 
 ```bash
 bash scripts/setup_agent_gateway.sh
 ```
 
-**Console tour**: Navigate to Agent Platform -> Gateways in the console. Show the gateway resource, governed access path, and protocol configuration.
+#### Connecting Agents to Both Gateways
+
+When deploying to Agent Runtime, pass `agent_gateway_config` to route traffic through both gateways:
+
+```python
+remote = agent_engines.create(
+    agent_engine=agent,
+    config={
+        "agent_gateway_config": {
+            "client_to_agent_config": {
+                "agent_gateway": f"projects/{PROJECT_ID}/locations/{REGION}/agentGateways/geap-workshop-gateway"
+            },
+            "agent_to_anywhere_config": {
+                "agent_gateway": f"projects/{PROJECT_ID}/locations/{REGION}/agentGateways/geap-workshop-gateway-egress"
+            },
+        },
+        "identity_type": "AGENT_IDENTITY",
+    },
+)
+```
+
+**Key insight**: With egress gateway enabled, every Gemini model call, MCP tool invocation, and external API request flows through the gateway. This means IAM Allow Policies and SGP business rules apply to model traffic — not just tool calls.
+
+**Console tour**: Navigate to Agent Platform -> Gateways. Show both gateways, their governed access paths, and protocol configuration.
 
 **Screenshot**: `docs/screenshots/session2_agent_gateway.png`
 
@@ -306,16 +337,26 @@ bash scripts/setup_agent_gateway.sh
 
 Agent Gateway integrates with **Semantic Governance Policies (SGP)** — natural language rules that govern agent behavior at the platform level without embedding logic in agent code.
 
+**Script**: `scripts/setup_governance_policies.sh`
+
+Three governance layers enforced at the gateway:
+
+| Layer | Type | Enforcement | Example |
+|-------|------|-------------|---------|
+| **IAM Allow Policies** | Static egress control | CEL expressions on tool attributes | "Travel agent can only use non-destructive booking tools" |
+| **Semantic Governance (SGP)** | Runtime business rules | Natural language constraints | "Deny expenses over $200 for meals category" |
+| **Model Armor** | Content screening | Prompt/response templates | "Block prompt injection attempts" |
+
 Navigate to Agent Platform -> Policies -> Business Policies to:
 - Define constraints in plain English (e.g., "Only book economy class flights unless explicitly approved")
 - Scope policies to specific agents, MCP servers, or individual tools
 - Enforce compliance without redeploying agents
 
-> **Note**: SGP requires the policy engine to be provisioned (~15-20 min setup with VPC networking and DNS peering). See the [SGP documentation](https://docs.cloud.google.com/gemini-enterprise-agent-platform/govern/policies/configure-semantic-governance) for full setup.
+> **Note**: SGP requires the policy engine to be provisioned (~15-20 min setup with VPC networking and DNS peering). See `scripts/setup_governance_policies.sh` for full setup including VPC, DNS zone, and SGP engine provisioning.
 
-**Screenshot**: `docs/screenshots/session3_policies.png`
+**Screenshot**: `docs/screenshots/session3_business_policies.png`
 
-![Business Policies](screenshots/session3_policies.png)
+![Business Policies](screenshots/session3_business_policies.png)
 
 ---
 

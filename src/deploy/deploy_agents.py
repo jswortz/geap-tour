@@ -12,6 +12,8 @@ from src.config import (
     SEARCH_MCP_URL,
     BOOKING_MCP_URL,
     EXPENSE_MCP_URL,
+    AGENT_GATEWAY_PATH,
+    AGENT_GATEWAY_EGRESS_PATH,
 )
 
 REQUIREMENTS = [
@@ -33,15 +35,31 @@ def deploy_agent(agent, display_name: str | None = None) -> str:
         "SEARCH_MCP_URL": SEARCH_MCP_URL,
         "BOOKING_MCP_URL": BOOKING_MCP_URL,
         "EXPENSE_MCP_URL": EXPENSE_MCP_URL,
+        "GOOGLE_API_PREVENT_AGENT_TOKEN_SHARING_FOR_GCP_SERVICES": "false",
     }
 
-    remote = agent_engines.create(
+    config = {}
+    gateway_config = {}
+    if AGENT_GATEWAY_PATH:
+        gateway_config["client_to_agent_config"] = {"agent_gateway": AGENT_GATEWAY_PATH}
+    if AGENT_GATEWAY_EGRESS_PATH:
+        gateway_config["agent_to_anywhere_config"] = {"agent_gateway": AGENT_GATEWAY_EGRESS_PATH}
+    if gateway_config:
+        config["agent_gateway_config"] = gateway_config
+        config["identity_type"] = "AGENT_IDENTITY"
+        print(f"  Gateway config: ingress={bool(AGENT_GATEWAY_PATH)}, egress={bool(AGENT_GATEWAY_EGRESS_PATH)}")
+
+    create_kwargs = dict(
         agent_engine=agent,
         requirements=REQUIREMENTS,
         display_name=display_name or agent.name,
         env_vars=env_vars,
         extra_packages=[os.path.join(SRC_DIR, "src")],
     )
+    if config:
+        create_kwargs["config"] = config
+
+    remote = agent_engines.create(**create_kwargs)
     print(f"✓ {agent.name} deployed: {remote.resource_name}")
     return remote.resource_name
 
