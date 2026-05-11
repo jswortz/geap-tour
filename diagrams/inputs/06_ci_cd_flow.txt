@@ -1,0 +1,16 @@
+Create a CI/CD pipeline diagram showing the GitHub Actions workflow.
+
+Flow (left to right):
+1. "Developer" icon → "Push PR" → GitHub icon labeled "GitHub Actions"
+2. GitHub Actions triggers pipeline with steps:
+   - Step 1: "Install deps" (uv sync)
+   - Step 2: "Auth to GCP" (Workload Identity Federation)
+   - Step 3: "Deploy temp agent" (Agent Runtime)
+   - Step 4: "Run simulated eval" with decision diamond
+   - Decision: "All metrics ≥ 3.0?"
+     - Yes (green arrow) → "PR approved" → "Merge to main" → "Deploy production agent"
+     - No (red arrow) → "PR blocked" → "Review failure clusters" → back to Developer
+   - Step 5: "Cleanup temp agent" (always runs)
+3. Side note: "adk optimize" box with arrow labeled "Improve instructions" pointing back to the agent code
+
+Style: DevOps pipeline diagram. Blue for GitHub, green for success path, red for failure path. Clean, horizontal flow. Title: "CI/CD with Simulated Evaluation"

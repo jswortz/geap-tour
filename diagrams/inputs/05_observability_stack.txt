@@ -1,0 +1,15 @@
+Create an observability stack diagram showing how telemetry flows from agents to monitoring.
+
+Flow (left to right):
+- Source: "ADK Agent" box with "OTel Auto-Instrumentation" badge
+  - Env vars shown: OTEL_SEMCONV_STABILITY_OPT_IN, OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT
+- Arrow labeled "OTLP" to:
+- Three GCP services in parallel:
+  1. Cloud Trace icon → "Distributed Traces" → "Span details, latency"
+  2. Cloud Logging icon → "Structured Logs" → "Agent interactions"
+  3. Cloud Monitoring icon → "Metrics & Alerts" → "Quality alerts (score < threshold)"
+- All three feed into:
+- BigQuery icon → "Eval Results Dataset" → "Online monitor scores, failure clusters"
+- Below BigQuery: "Cloud Monitoring Alert" → "Notification Channel" (email/Slack)
+
+Style: Google Cloud product icons, clean flow diagram. Each GCP service uses its official icon color. White background. Title: "Full Observability Stack"

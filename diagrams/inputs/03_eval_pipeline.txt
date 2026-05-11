@@ -1,0 +1,19 @@
+Create a pipeline diagram showing three evaluation approaches flowing left to right.
+
+Three parallel swim lanes:
+
+Lane 1 "One-Time Evaluation":
+- Box: "Eval Dataset (5 prompts)" → Arrow → Box: "PointwiseMetric Rubrics" → Arrow → Box: "Score Report"
+- Subtitle: "Manual, on-demand"
+
+Lane 2 "Online Monitors (Continuous)":
+- Box: "Live Agent Traffic" → Arrow → Box: "Cloud Trace Telemetry" → Arrow → Box: "10-min Cycle Evaluator" → Arrow → Box: "BigQuery Results"
+- Subtitle: "Automatic, continuous"
+
+Lane 3 "Simulated Evaluation (CI/CD)":
+- Box: "generate_conversation_scenarios()" → Arrow → Box: "run_inference()" → Arrow → Box: "evaluate()" → Arrow → Diamond: "Score ≥ 3.0?" with two paths: Yes → "Deploy" (green), No → "Block PR" (red)
+- Subtitle: "On every PR"
+
+Below all lanes: A box labeled "Failure Cluster Analysis" with arrow from the score reports, showing "generate_loss_clusters()" → "Grouped failure patterns"
+
+Style: Clean flowchart with soft colors. Blue for one-time, green for continuous, orange for CI/CD. White background. Title: "Evaluation Pipeline"

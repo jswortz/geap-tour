@@ -1,0 +1,40 @@
+Create a security architecture diagram showing Agent Armor (Model Armor) protecting an AI agent system.
+
+Layout (left to right, three zones):
+
+Zone 1 "Client Input":
+- User icon sending a message
+- Arrow labeled "User Prompt" pointing right
+
+Zone 2 "Agent Armor" (center, prominent):
+- Large shield icon with "Model Armor" label
+- Two screening layers shown as stacked filter bars:
+  - Top bar "Input Screening" with icons for:
+    - Prompt Injection Detection (lock icon)
+    - Content Safety (checkmark icon)
+    - Sensitive Data Protection (eye-slash icon)
+    - Malicious URL Detection (link-break icon)
+  - Bottom bar "Output Screening" with icons for:
+    - Content Safety
+    - Sensitive Data Redaction
+    - Compliance Checks
+- Configuration badges:
+  - "Confidence: MEDIUM_AND_ABOVE"
+  - "Enforcement: INSPECT_AND_BLOCK"
+
+Zone 3 "Agent Runtime":
+- Three agent boxes (Travel, Expense, Coordinator) each with a small shield badge
+- Connected to MCP servers below
+- OTel traces flowing right to Cloud Trace
+
+Flow arrows:
+- User → Input Screening → Agent (green "PASS" path)
+- User → Input Screening → Blocked (red "BLOCK" path, returns rejection message)
+- Agent → Output Screening → User (green "PASS" path)
+- Agent → Output Screening → Redacted (orange "REDACT" path)
+
+Additional detail:
+- before_agent_callback label on the input path showing "client-side guardrails"
+- ModelArmorConfig label on the agent boxes showing "server-side screening"
+
+Style: Security-focused design with shield motifs. Blue for normal flow, red for blocked, green for passed. Professional, clean. Title: "Agent Armor — Input & Output Guardrails"

@@ -1,0 +1,17 @@
+Create a security architecture diagram showing Agent Identity and Agent Gateway.
+
+Layout:
+- Center: A large box labeled "Agent Runtime" containing an agent icon
+- Left side "Identity":
+  - A shield icon labeled "SPIFFE Identity"
+  - Text showing the principal format: "principal://agents.global.org-{ORG}.system.id.goog/agent/{ID}"
+  - Arrow from shield to agent showing "Workload Identity Pool"
+  - Below: "IAM Policy Binding" box with role badges
+- Right side "Gateway":
+  - A gateway/firewall icon labeled "Agent Gateway"
+  - Two policy boxes: "Egress Policy" (what agents can call) and "Ingress Policy" (what can call agents)
+  - Arrows showing traffic flow: Agent → Gateway → Cloud Run MCP Servers
+  - Arrow labeled "Allowed: *.run.app"
+  - Blocked arrow with X labeled "Blocked: external APIs"
+
+Style: Security-focused diagram with lock/shield icons. Blue for identity, orange for gateway. Professional, clean. Title: "Agent Identity & Gateway Governance"

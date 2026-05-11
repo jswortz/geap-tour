@@ -1,0 +1,66 @@
+name: Simulated Eval on PR
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/agents/**'
+      - 'src/mcp_servers/**'
+
+jobs:
+  simulated-eval:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+
+      - name: Deploy temporary agent
+        id: deploy
+        run: |
+          RESOURCE=$(uv run python -c "
+          from src.deploy.deploy_agents import deploy_agent
+          from src.agents.travel_agent import travel_agent
+          from google import genai
+          from src.config import GCP_PROJECT_ID, GCP_REGION
+          client = genai.Client(vertexai=True, project=GCP_PROJECT_ID, location=GCP_REGION)
+          name = deploy_agent(client, travel_agent, enable_identity=False)
+          print(name)
+          ")
+          echo "agent_resource=$RESOURCE" >> "$GITHUB_OUTPUT"
+
+      - name: Run simulated evaluation
+        run: |
+          uv run python -m src.eval.simulated_eval \
+            "${{ steps.deploy.outputs.agent_resource }}" \
+            3.0
+
+      - name: Cleanup temporary agent
+        if: always()
+        run: |
+          uv run python -c "
+          from google import genai
+          from src.config import GCP_PROJECT_ID, GCP_REGION
+          client = genai.Client(vertexai=True, project=GCP_PROJECT_ID, location=GCP_REGION)
+          client.agent_engines.delete('${{ steps.deploy.outputs.agent_resource }}')
+          print('Cleaned up temporary agent')
+          " || true

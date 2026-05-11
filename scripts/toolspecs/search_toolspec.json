@@ -1,0 +1,53 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Search MCP Server",
+    "version": "1.0.0",
+    "description": "Flight and hotel search tools"
+  },
+  "paths": {
+    "/tools/search_flights": {
+      "post": {
+        "operationId": "search_flights",
+        "summary": "Search available flights",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["origin", "destination"],
+                "properties": {
+                  "origin": {"type": "string", "description": "Origin airport code"},
+                  "destination": {"type": "string", "description": "Destination airport code"},
+                  "date": {"type": "string", "description": "Date filter (YYYY-MM-DD)"}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tools/search_hotels": {
+      "post": {
+        "operationId": "search_hotels",
+        "summary": "Search available hotels",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["city"],
+                "properties": {
+                  "city": {"type": "string", "description": "City name"},
+                  "max_price": {"type": "number", "description": "Max price per night"}
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

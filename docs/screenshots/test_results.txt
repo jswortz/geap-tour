@@ -1,0 +1,70 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.0.3, pluggy-1.6.0 -- /home/admin_jwortz_altostrat_com/geap-tour-26/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/admin_jwortz_altostrat_com/geap-tour-26
+configfile: pyproject.toml
+plugins: anyio-4.13.0, asyncio-1.3.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 53 items
+
+tests/test_agents.py::test_travel_agent_config PASSED                    [  1%]
+tests/test_agents.py::test_expense_agent_config PASSED                   [  3%]
+tests/test_agents.py::test_coordinator_agent_config PASSED               [  5%]
+tests/test_agents.py::test_coordinator_has_sub_agents PASSED             [  7%]
+tests/test_armor.py::TestInputGuardrail::test_normal_input_passes PASSED [  9%]
+tests/test_armor.py::TestInputGuardrail::test_empty_input_passes PASSED  [ 11%]
+tests/test_armor.py::TestInputGuardrail::test_prompt_injection_blocked PASSED [ 13%]
+tests/test_armor.py::TestInputGuardrail::test_system_prompt_injection_blocked PASSED [ 15%]
+tests/test_armor.py::TestInputGuardrail::test_role_hijack_blocked PASSED [ 16%]
+tests/test_armor.py::TestInputGuardrail::test_script_injection_blocked PASSED [ 18%]
+tests/test_armor.py::TestInputGuardrail::test_oversized_input_blocked PASSED [ 20%]
+tests/test_armor.py::TestInputGuardrail::test_max_length_input_passes PASSED [ 22%]
+tests/test_armor.py::TestInputGuardrail::test_string_user_content PASSED [ 24%]
+tests/test_armor.py::TestModelArmorConfig::test_config_has_templates PASSED [ 26%]
+tests/test_armor.py::TestModelArmorConfig::test_armored_generate_config PASSED [ 28%]
+tests/test_armor.py::TestAgentsHaveArmor::test_travel_agent_has_armor PASSED [ 30%]
+tests/test_armor.py::TestAgentsHaveArmor::test_expense_agent_has_armor PASSED [ 32%]
+tests/test_armor.py::TestAgentsHaveArmor::test_coordinator_agent_has_armor PASSED [ 33%]
+tests/test_e2e.py::TestSearchToolsE2E::test_search_flights_sfo_jfk PASSED [ 35%]
+tests/test_e2e.py::TestSearchToolsE2E::test_search_flights_no_results PASSED [ 37%]
+tests/test_e2e.py::TestSearchToolsE2E::test_search_hotels_new_york PASSED [ 39%]
+tests/test_e2e.py::TestSearchToolsE2E::test_search_hotels_with_price_filter PASSED [ 41%]
+tests/test_e2e.py::TestBookingToolsE2E::test_book_and_cancel_flow PASSED [ 43%]
+tests/test_e2e.py::TestExpenseToolsE2E::test_expense_within_policy_flow PASSED [ 45%]
+tests/test_e2e.py::TestExpenseToolsE2E::test_expense_over_policy_flow PASSED [ 47%]
+tests/test_e2e.py::TestAgentConfigE2E::test_all_agents_import PASSED     [ 49%]
+tests/test_e2e.py::TestAgentConfigE2E::test_coordinator_orchestration_structure PASSED [ 50%]
+tests/test_e2e.py::TestAgentConfigE2E::test_all_agents_have_model_armor PASSED [ 52%]
+tests/test_e2e.py::TestArmorE2E::test_normal_queries_pass PASSED         [ 54%]
+tests/test_e2e.py::TestArmorE2E::test_attack_queries_blocked PASSED      [ 56%]
+tests/test_e2e.py::TestArmorE2E::test_oversized_input_blocked PASSED     [ 58%]
+tests/test_e2e.py::TestEvalMetricsE2E::test_all_metrics_defined PASSED   [ 60%]
+tests/test_e2e.py::TestEvalMetricsE2E::test_metrics_have_templates PASSED [ 62%]
+tests/test_eval.py::test_helpfulness_metric_defined PASSED               [ 64%]
+tests/test_eval.py::test_tool_use_metric_defined PASSED                  [ 66%]
+tests/test_eval.py::test_policy_compliance_metric_defined PASSED         [ 67%]
+tests/test_eval.py::test_templates_contain_rubric PASSED                 [ 69%]
+tests/test_eval.py::test_templates_have_five_levels PASSED               [ 71%]
+tests/test_mcp_servers.py::TestSearchMockDB::test_flights_have_required_fields PASSED [ 73%]
+tests/test_mcp_servers.py::TestSearchMockDB::test_hotels_have_required_fields PASSED [ 75%]
+tests/test_mcp_servers.py::TestSearchMockDB::test_flights_not_empty PASSED [ 77%]
+tests/test_mcp_servers.py::TestSearchMockDB::test_hotels_not_empty PASSED [ 79%]
+tests/test_mcp_servers.py::TestBookingMockDB::test_create_booking PASSED [ 81%]
+tests/test_mcp_servers.py::TestBookingMockDB::test_cancel_booking PASSED [ 83%]
+tests/test_mcp_servers.py::TestBookingMockDB::test_cancel_nonexistent PASSED [ 84%]
+tests/test_mcp_servers.py::TestBookingMockDB::test_get_booking PASSED    [ 86%]
+tests/test_mcp_servers.py::TestBookingMockDB::test_list_bookings PASSED  [ 88%]
+tests/test_mcp_servers.py::TestExpenseMockDB::test_check_policy_within_limit PASSED [ 90%]
+tests/test_mcp_servers.py::TestExpenseMockDB::test_check_policy_over_limit PASSED [ 92%]
+tests/test_mcp_servers.py::TestExpenseMockDB::test_check_policy_unknown_category PASSED [ 94%]
+tests/test_mcp_servers.py::TestExpenseMockDB::test_submit_expense_within_policy PASSED [ 96%]
+tests/test_mcp_servers.py::TestExpenseMockDB::test_submit_expense_over_policy PASSED [ 98%]
+tests/test_mcp_servers.py::TestExpenseMockDB::test_get_expenses_by_user PASSED [100%]
+
+=============================== warnings summary ===============================
+tests/test_agents.py::test_travel_agent_config
+  /home/admin_jwortz_altostrat_com/geap-tour-26/.venv/lib/python3.13/site-packages/google/adk/features/_feature_decorator.py:72: UserWarning: [EXPERIMENTAL] feature FeatureName.PLUGGABLE_AUTH is enabled.
+    check_feature_enabled()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 53 passed, 1 warning in 1.59s =========================

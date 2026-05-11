@@ -1,0 +1,49 @@
+diagrams:
+  - name: "01_multi_agent_topology"
+    input: "inputs/01_multi_agent_topology.txt"
+    output: "outputs/01_multi_agent_topology.png"
+    width: 3840
+    height: 2160
+    format: png
+
+  - name: "02_deployment_architecture"
+    input: "inputs/02_deployment_architecture.txt"
+    output: "outputs/02_deployment_architecture.png"
+    width: 3840
+    height: 2160
+    format: png
+
+  - name: "03_eval_pipeline"
+    input: "inputs/03_eval_pipeline.txt"
+    output: "outputs/03_eval_pipeline.png"
+    width: 3840
+    height: 2160
+    format: png
+
+  - name: "04_agent_identity_gateway"
+    input: "inputs/04_agent_identity_gateway.txt"
+    output: "outputs/04_agent_identity_gateway.png"
+    width: 3840
+    height: 2160
+    format: png
+
+  - name: "05_observability_stack"
+    input: "inputs/05_observability_stack.txt"
+    output: "outputs/05_observability_stack.png"
+    width: 3840
+    height: 2160
+    format: png
+
+  - name: "06_ci_cd_flow"
+    input: "inputs/06_ci_cd_flow.txt"
+    output: "outputs/06_ci_cd_flow.png"
+    width: 3840
+    height: 2160
+    format: png
+
+  - name: "07_agent_armor"
+    input: "inputs/07_agent_armor.txt"
+    output: "outputs/07_agent_armor.png"
+    width: 3840
+    height: 2160
+    format: png

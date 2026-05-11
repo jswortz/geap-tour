@@ -1,0 +1,15 @@
+Create a clean, professional architecture diagram showing a multi-agent system with MCP tool servers.
+
+Layout (left to right):
+- Left column: Three agent boxes labeled "Coordinator Agent", "Travel Agent", "Expense Agent" — each with the Google ADK logo and "LlmAgent" subtitle
+- Right column: Three MCP server boxes labeled "Search MCP", "Booking MCP", "Expense MCP" — each with a gear icon and "FastMCP" subtitle
+- Arrows connecting agents to their MCP servers:
+  - Coordinator → Search (dashed, labeled "read-only")
+  - Travel → Search (solid)
+  - Travel → Booking (solid)
+  - Expense → Expense MCP (solid)
+  - Coordinator → Travel (dotted, labeled "sub-agent")
+  - Coordinator → Expense Agent (dotted, labeled "sub-agent")
+- All arrows labeled "StreamableHTTP"
+
+Style: Google Cloud architecture diagram style with soft blue/green colors, rounded corners, white background. Include a title "Multi-Agent + MCP Topology" at the top.

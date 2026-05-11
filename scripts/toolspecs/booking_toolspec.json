@@ -1,0 +1,74 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Booking MCP Server",
+    "version": "1.0.0",
+    "description": "Flight and hotel booking tools"
+  },
+  "paths": {
+    "/tools/book_flight": {
+      "post": {
+        "operationId": "book_flight",
+        "summary": "Book a flight",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["flight_id", "passenger_name"],
+                "properties": {
+                  "flight_id": {"type": "string"},
+                  "passenger_name": {"type": "string"}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tools/book_hotel": {
+      "post": {
+        "operationId": "book_hotel",
+        "summary": "Book a hotel",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["hotel_id", "guest_name", "checkin", "checkout"],
+                "properties": {
+                  "hotel_id": {"type": "string"},
+                  "guest_name": {"type": "string"},
+                  "checkin": {"type": "string"},
+                  "checkout": {"type": "string"}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tools/cancel_booking": {
+      "post": {
+        "operationId": "cancel_booking",
+        "summary": "Cancel a booking",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["booking_id"],
+                "properties": {
+                  "booking_id": {"type": "string"}
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

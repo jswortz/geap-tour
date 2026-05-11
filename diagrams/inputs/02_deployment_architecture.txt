@@ -1,0 +1,13 @@
+Create a deployment architecture diagram for Google Cloud Platform.
+
+Layout (top to bottom):
+- Top section "Users": A user icon with arrow pointing down
+- Middle section "Vertex AI Agent Runtime": Three boxes for deployed agents (Travel Agent, Expense Agent, Coordinator) inside a blue bordered region labeled "Agent Engine". Each box shows "AdkApp + OTel Tracing"
+- Bottom section "Cloud Run": Three service boxes (Search MCP :8001, Booking MCP :8002, Expense MCP :8003) inside a green bordered region
+- Arrows from Agent Runtime boxes down to Cloud Run services showing the connection topology
+- Side annotations:
+  - "SPIFFE Identity" badge on Agent Runtime
+  - "Agent Gateway" shield icon between Agent Runtime and Cloud Run
+  - "OTel → Cloud Trace" arrow going right from Agent Runtime to a Cloud Trace icon
+
+Style: Google Cloud official architecture diagram style. Use GCP product icons where possible. White background, professional colors. Title: "Deployment Architecture"

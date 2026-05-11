@@ -1,0 +1,74 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Expense MCP Server",
+    "version": "1.0.0",
+    "description": "Expense submission and policy check tools"
+  },
+  "paths": {
+    "/tools/submit_expense": {
+      "post": {
+        "operationId": "submit_expense",
+        "summary": "Submit an expense report",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["amount", "category", "description", "user_id"],
+                "properties": {
+                  "amount": {"type": "number"},
+                  "category": {"type": "string"},
+                  "description": {"type": "string"},
+                  "user_id": {"type": "string"}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tools/check_expense_policy": {
+      "post": {
+        "operationId": "check_expense_policy",
+        "summary": "Check expense policy limits",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["amount", "category"],
+                "properties": {
+                  "amount": {"type": "number"},
+                  "category": {"type": "string"}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tools/get_user_expenses": {
+      "post": {
+        "operationId": "get_user_expenses",
+        "summary": "Get expenses for a user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["user_id"],
+                "properties": {
+                  "user_id": {"type": "string"}
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

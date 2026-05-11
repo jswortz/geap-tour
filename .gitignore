@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.env
+.venv/
+dist/
+*.egg-info/
+diagrams/outputs/*.png
+diagrams/outputs/*.jpeg
+.uv/
+*.pdf
