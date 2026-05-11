@@ -1,6 +1,8 @@
 __pycache__/
 *.pyc
 .env
+.env.*
+!.env.example
 .venv/
 dist/
 *.egg-info/
@@ -9,3 +11,22 @@ diagrams/outputs/*.jpeg
 .uv/
 *.pdf
 .playwright-mcp/
+
+# Secrets and credentials
+*.pem
+*.key
+*.p12
+*.json.bak
+service-account*.json
+credentials*.json
+*secret*
+!scripts/toolspecs/*
+
+# GCP raw exports (may contain env vars / secrets from other services)
+docs/verification/*.raw.json
+
+# OS / editor
+.DS_Store
+*.swp
+*.swo
+*~
