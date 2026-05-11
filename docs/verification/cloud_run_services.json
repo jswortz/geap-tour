@@ -2,31 +2,52 @@
   {
     "metadata": {
       "name": "booking-mcp",
+      "namespace": "679926387543",
       "creationTimestamp": "2026-05-11T20:52:09.422219Z"
     },
     "status": {
       "url": "https://booking-mcp-in2bk2mdwa-uc.a.run.app",
-      "latestReadyRevisionName": "booking-mcp-00001-fnp"
+      "latestReadyRevisionName": "booking-mcp-00001-fnp",
+      "conditions": [
+        {
+          "status": "True",
+          "type": "Ready"
+        }
+      ]
     }
   },
   {
     "metadata": {
       "name": "expense-mcp",
+      "namespace": "679926387543",
       "creationTimestamp": "2026-05-11T20:52:06.007209Z"
     },
     "status": {
       "url": "https://expense-mcp-in2bk2mdwa-uc.a.run.app",
-      "latestReadyRevisionName": "expense-mcp-00001-ctp"
+      "latestReadyRevisionName": "expense-mcp-00001-ctp",
+      "conditions": [
+        {
+          "status": "True",
+          "type": "Ready"
+        }
+      ]
     }
   },
   {
     "metadata": {
       "name": "search-mcp",
+      "namespace": "679926387543",
       "creationTimestamp": "2026-05-11T20:49:22.473509Z"
     },
     "status": {
       "url": "https://search-mcp-in2bk2mdwa-uc.a.run.app",
-      "latestReadyRevisionName": "search-mcp-00001-52p"
+      "latestReadyRevisionName": "search-mcp-00001-52p",
+      "conditions": [
+        {
+          "status": "True",
+          "type": "Ready"
+        }
+      ]
     }
   }
 ]
