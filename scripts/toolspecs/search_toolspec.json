@@ -1,53 +1,31 @@
 {
-  "openapi": "3.0.0",
-  "info": {
-    "title": "Search MCP Server",
-    "version": "1.0.0",
-    "description": "Flight and hotel search tools"
-  },
-  "paths": {
-    "/tools/search_flights": {
-      "post": {
-        "operationId": "search_flights",
-        "summary": "Search available flights",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["origin", "destination"],
-                "properties": {
-                  "origin": {"type": "string", "description": "Origin airport code"},
-                  "destination": {"type": "string", "description": "Destination airport code"},
-                  "date": {"type": "string", "description": "Date filter (YYYY-MM-DD)"}
-                }
-              }
-            }
-          }
+  "tools": [
+    {
+      "name": "search_flights",
+      "description": "Search available flights by origin, destination, and optional date.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["origin", "destination"],
+        "properties": {
+          "origin": {"type": "string", "description": "Origin airport code (e.g., SFO)"},
+          "destination": {"type": "string", "description": "Destination airport code (e.g., JFK)"},
+          "date": {"type": "string", "description": "Date filter (YYYY-MM-DD)"}
         }
-      }
+      },
+      "annotations": {"title": "Search Flights", "readOnlyHint": true}
     },
-    "/tools/search_hotels": {
-      "post": {
-        "operationId": "search_hotels",
-        "summary": "Search available hotels",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["city"],
-                "properties": {
-                  "city": {"type": "string", "description": "City name"},
-                  "max_price": {"type": "number", "description": "Max price per night"}
-                }
-              }
-            }
-          }
+    {
+      "name": "search_hotels",
+      "description": "Search available hotels by city with optional max price filter.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["city"],
+        "properties": {
+          "city": {"type": "string", "description": "City name"},
+          "max_price": {"type": "number", "description": "Max price per night"}
         }
-      }
+      },
+      "annotations": {"title": "Search Hotels", "readOnlyHint": true}
     }
-  }
+  ]
 }

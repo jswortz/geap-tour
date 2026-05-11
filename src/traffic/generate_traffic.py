@@ -1,7 +1,7 @@
 """Generate test traffic to populate OTel traces for evaluation."""
 
-from google import genai
-from google.genai import types
+import vertexai
+from vertexai import agent_engines
 
 from src.config import GCP_PROJECT_ID, GCP_REGION
 
@@ -30,21 +30,17 @@ QUERIES = [
 
 def generate_traffic(agent_resource_name: str | None = None):
     """Send test queries to a deployed agent to generate OTel traces."""
-    client = genai.Client(
-        vertexai=True,
-        project=GCP_PROJECT_ID,
-        location=GCP_REGION,
-    )
+    vertexai.init(project=GCP_PROJECT_ID, location=GCP_REGION)
 
     if agent_resource_name is None:
-        agents = list(client.agent_engines.list())
-        if not agents:
-            print("No deployed agents found. Deploy first: uv run python src/deploy/deploy_all.py")
+        engines = list(agent_engines.list())
+        if not engines:
+            print("No deployed agents found. Deploy first: uv run python -m src.deploy.deploy_all")
             return
-        agent_resource_name = agents[0].name
+        agent_resource_name = engines[0].resource_name
         print(f"Using agent: {agent_resource_name}")
 
-    agent = client.agent_engines.get(agent_resource_name)
+    agent = agent_engines.get(agent_resource_name)
 
     for i, query in enumerate(QUERIES, 1):
         print(f"\n[{i}/{len(QUERIES)}] {query}")

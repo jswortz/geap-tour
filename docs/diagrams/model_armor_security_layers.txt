@@ -1,0 +1,37 @@
+Model Armor in the GEAP platform implements dual-layer security that screens both
+inputs (user prompts) and outputs (model responses) through two complementary
+protection mechanisms.
+
+The outer protection layer is a client-side guardrail callback implemented in the
+agent's ADK (Agent Development Kit) code. This callback runs locally before any
+request is sent to the model and after any response is received. On the input
+path, the callback applies: (1) regex pattern matching to detect and block prompt
+injection attempts using known attack patterns, (2) input length limits that
+reject prompts exceeding a configured maximum token count to prevent resource
+exhaustion, (3) custom business rule validation specific to the travel and expense
+domain. On the output path, the callback applies the same regex patterns to detect
+any leaked sensitive content in the model's response.
+
+The inner protection layer is Google Cloud's Model Armor service, which provides
+server-side screening via configurable templates. Each template defines a set of
+filters that are applied to the content. The Model Armor templates used in GEAP
+include: (1) Responsible AI (RAI) filters that detect and block harmful content
+across categories including harassment, hate speech, sexually explicit content,
+and dangerous content, with configurable confidence thresholds; (2) Personally
+Identifiable Information (PI) detection that identifies and optionally redacts
+names, email addresses, phone numbers, social security numbers, and credit card
+numbers; (3) Sensitive Data Protection (SDP) integration that extends PI detection
+with custom info types and de-identification transforms; (4) Malicious URI
+detection that scans for phishing URLs, malware distribution links, and other
+dangerous URIs in both inputs and outputs.
+
+The complete screening path for an input is: User prompt -> Client-side guardrail
+callback (regex patterns, length limits) -> Model Armor template (RAI filters,
+PI detection, SDP, malicious URI) -> Gemini model. The output screening path
+mirrors this in reverse: Gemini model response -> Model Armor template (RAI
+filters, PI detection, SDP, malicious URI) -> Client-side guardrail callback
+(regex patterns) -> User.
+
+If either layer detects a violation, the request or response is blocked and an
+appropriate error message is returned to the user. Both layers log all screening
+decisions to Cloud Logging for audit and compliance purposes.

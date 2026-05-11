@@ -49,7 +49,7 @@ gcloud services enable \
 
 **Console Tours:** Vertex AI Agent Builder, Cloud Run Services, IAM Workload Identity Pools
 
-**Screenshot:** `docs/screenshots/session1_cloud_run_services.png`, `docs/screenshots/session1_agent_builder.png`, `docs/screenshots/session1_workload_identity.png`
+**Screenshots:** `docs/screenshots/session1_architecture_overview.png`, `docs/screenshots/session1_cloud_run_services.png`, `docs/screenshots/session1_agent_engine.png`, `docs/screenshots/session1_agent_builder.png`, `docs/screenshots/session1_workload_identity.png`
 
 ---
 
@@ -65,6 +65,10 @@ Our workshop system has three ADK agents sharing three MCP tool servers:
 - **Expense Agent** — submits expenses, enforces policy limits
 
 **Key insight**: Multiple agents can share the same MCP server (e.g., both Travel Agent and Coordinator use the Search MCP), demonstrating the 1-to-many topology.
+
+**Screenshot**: `docs/screenshots/session1_architecture_overview.png`
+
+![Architecture Overview](screenshots/session1_architecture_overview.png)
 
 ---
 
@@ -163,6 +167,8 @@ This runs `gcloud run deploy` for each server with its Dockerfile.
 
 **Screenshot**: `docs/screenshots/session1_cloud_run_services.png`
 
+![Cloud Run Services](screenshots/session1_cloud_run_services.png)
+
 **Diagram**: `diagrams/outputs/02_deployment_architecture.png`
 
 ---
@@ -171,32 +177,33 @@ This runs `gcloud run deploy` for each server with its Dockerfile.
 
 **Code**: `src/deploy/deploy_agents.py`
 
-Agents deploy to Vertex AI Agent Runtime via the `google-genai` SDK:
+Agents deploy to Vertex AI Agent Engine using the ADK CLI:
 
-```python
-from google.adk.app import AdkApp
+```bash
+# Self-contained agent directory structure:
+# src/agents/coordinator/
+#   agent.py          — defines root_agent with sub-agents inline
+#   requirements.txt  — google-cloud-aiplatform[adk,agent_engines], google-genai, fastmcp
+#   .env              — MCP URLs, Model Armor templates, GCP config
 
-app = AdkApp(agent=travel_agent, enable_tracing=True)
-remote_app = client.agent_engines.create(
-    agent=app,
-    config={
-        "requirements": [...],
-        "staging_bucket": "gs://...",
-        "env_vars": {
-            "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
-        },
-    },
-)
+adk deploy agent_engine \
+    --project wortz-project-352116 \
+    --region us-central1 \
+    --display_name "GEAP Coordinator Agent" \
+    src/agents/coordinator
 ```
 
-Key deployment options:
-- `enable_tracing=True` — auto-instruments with OpenTelemetry
-- `requirements` — Python packages the agent needs at runtime
-- `env_vars` — OTel configuration for Cloud Trace integration
+Key deployment considerations:
+- Agent code must be **self-contained** — no external `src.*` imports (cloudpickle serialization)
+- All sub-agents are defined inline in `agent.py` with `root_agent` as the entry point
+- MCP URLs, Model Armor templates, and config are read from environment variables
+- The ADK CLI handles source bundling, dependency resolution, and pickling
 
 **Console tour**: Navigate to Vertex AI -> Agents. Show the deployed agents, their configurations, and the "Test" panel.
 
-**Screenshot**: `docs/screenshots/session1_agent_builder.png`
+**Screenshot**: `docs/screenshots/session1_agent_engine.png`
+
+![Agent Engine](screenshots/session1_agent_engine.png)
 
 ---
 
@@ -281,6 +288,8 @@ config = {
 
 **Screenshot**: `docs/screenshots/session2_agent_gateway.png`
 
+![Agent Gateway](screenshots/session2_agent_gateway.png)
+
 ---
 
 ### 2.2 One-Time Evaluation (~15 min)
@@ -307,7 +316,9 @@ uv run python -m src.eval.one_time_eval <agent-resource-name>
 
 **Console tour**: Navigate to Vertex AI -> Evaluation. Show eval results, per-metric scores, and individual sample breakdowns.
 
-**Screenshot**: `docs/screenshots/session2_evaluation.png`
+**Screenshot**: `docs/screenshots/session2_evaluation_pipeline.png`
+
+![Evaluation Pipeline](screenshots/session2_evaluation_pipeline.png)
 
 **Diagram**: `diagrams/outputs/03_eval_pipeline.png`
 
@@ -418,6 +429,18 @@ uv run python -m src.eval.quality_alerts list
 
 **Screenshot**: `docs/screenshots/session2_monitoring_alerts.png`
 
+![Monitoring Alerts](screenshots/session2_monitoring_alerts.png)
+
+**Observability Data Pipeline**: Agent traces flow from Cloud Logging through logging sinks into BigQuery datasets for analysis.
+
+**Screenshot**: `docs/screenshots/session2_bigquery_sink.png`
+
+![BigQuery Sink](screenshots/session2_bigquery_sink.png)
+
+**Screenshot**: `docs/screenshots/session2_cloud_logging.png`
+
+![Cloud Logging](screenshots/session2_cloud_logging.png)
+
 **Diagram**: `diagrams/outputs/05_observability_stack.png`
 
 ---
@@ -464,13 +487,25 @@ This produces optimized system instructions that can be compared to the original
 
 **Script**: `scripts/register_agent_registry.sh`
 
-When agents are deployed to Agent Runtime via `client.agent_engines.create()`, they are automatically registered in the Agent Registry. The registry serves as the central catalog for discovering, governing, and auditing all deployed agents.
+When agents are deployed to Agent Engine, they are automatically registered in the Agent Registry. MCP servers can also be registered manually to make their tools discoverable.
 
 ```bash
-# List all registered agents
-gcloud ai agent-engines list \
+# Enable Agent Registry API
+gcloud services enable agentregistry.googleapis.com --project="$PROJECT_ID"
+
+# Register an MCP server with tool specification
+gcloud alpha agent-registry services create search-mcp \
     --project="$PROJECT_ID" \
-    --region="$REGION"
+    --location=global \
+    --display-name="Search MCP Server" \
+    --mcp-server-spec-type=tool-spec \
+    --mcp-server-spec-content="$(cat scripts/toolspecs/search_toolspec.json)" \
+    --interfaces=url=https://search-mcp-xxx.a.run.app/mcp,protocolBinding=JSONRPC
+
+# List registered MCP servers
+gcloud alpha agent-registry mcp-servers list \
+    --project="$PROJECT_ID" \
+    --location=global
 ```
 
 Each registered agent includes:
@@ -479,9 +514,11 @@ Each registered agent includes:
 - **Create/update timestamps** — lifecycle tracking
 - **Configuration** — model, tools, identity, gateway settings
 
-**Console tour**: Navigate to Vertex AI -> Agents. Show the list of registered agents, click into one to view its configuration, test panel, and deployment details.
+**Console tour**: Navigate to Agent Platform -> Agent Registry -> MCP Servers. Show the registered servers, their tools, and endpoint URLs.
 
 **Screenshot**: `docs/screenshots/session3_agent_registry.png`
+
+![Agent Registry MCP Servers](screenshots/session3_agent_registry.png)
 
 ---
 
@@ -491,7 +528,7 @@ Each registered agent includes:
 
 The Agent Registry integrates with GEAP governance features:
 
-- **Tool Specifications** — OpenAPI specs (`scripts/toolspecs/search_toolspec.json`, `booking_toolspec.json`, `expense_toolspec.json`) document what each MCP server exposes, enabling discovery and compliance review
+- **Tool Specifications** — MCP tool specs (`scripts/toolspecs/search_toolspec.json`, `booking_toolspec.json`, `expense_toolspec.json`) document tools with `inputSchema` for each parameter, enabling discovery and compliance review
 - **Identity Binding** — each registered agent's SPIFFE identity (from Session 1.7) is visible in the registry, enabling per-agent IAM policies
 - **Gateway Association** — the Agent Gateway config (from Session 2.1) is attached to each agent's registry entry
 - **Audit Trail** — all agent interactions are logged with the agent's identity, enabling governance teams to track which agent did what
@@ -589,6 +626,8 @@ uv run pytest tests/test_armor.py -v
 
 **Screenshot**: `docs/screenshots/session4_model_armor.png`
 
+![Model Armor](screenshots/session4_model_armor.png)
+
 **Diagram**: `diagrams/outputs/07_agent_armor.png`
 
 ---
@@ -600,6 +639,17 @@ uv run pytest tests/test_armor.py -v
 ---
 
 ## Appendix: Full Deployment Sequence
+
+### One-Liner Deploy
+
+```bash
+# Deploy everything in one command:
+bash scripts/deploy_all.sh
+```
+
+This orchestrates all 9 deployment steps: API enablement, staging bucket, MCP servers (parallel), smoke tests, Model Armor, logging sink, agent gateway, agent deployment, and verification.
+
+### Step-by-Step Deploy
 
 ```bash
 # 1. Setup environment
@@ -613,23 +663,30 @@ bash scripts/setup_agent_gateway.sh
 bash scripts/setup_model_armor.sh
 bash scripts/setup_logging_sink.sh
 
-# 3. Deploy everything
-uv run python src/deploy/deploy_all.py
+# 3. Deploy MCP servers to Cloud Run
+uv run python src/deploy/deploy_mcp_servers.py
 
-# 4. Generate traffic
+# 4. Deploy agents to Agent Engine
+adk deploy agent_engine \
+    --project $GCP_PROJECT_ID \
+    --region $GCP_REGION \
+    --display_name "GEAP Coordinator Agent" \
+    src/agents/coordinator
+
+# 5. Generate traffic
 uv run python src/traffic/generate_traffic.py
 
-# 5. Setup evaluation
+# 6. Setup evaluation
 uv run python -m src.eval.setup_online_monitors <agent-resource-name>
 uv run python -m src.eval.quality_alerts helpfulness 3.0
 
-# 6. Run one-time eval
+# 7. Run one-time eval
 uv run python -m src.eval.one_time_eval <agent-resource-name>
 
-# 7. Generate diagrams
-cd diagrams && paperbanana batch --manifest batch_manifest.yaml
+# 8. Capture screenshots
+uv run python scripts/capture_screenshots.py
 
-# 8. Cleanup when done
+# 9. Cleanup when done
 bash scripts/cleanup.sh
 ```
 

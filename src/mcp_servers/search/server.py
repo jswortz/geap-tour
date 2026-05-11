@@ -1,5 +1,9 @@
 from fastmcp import FastMCP
-from .mock_db import FLIGHTS, HOTELS
+
+try:
+    from .mock_db import FLIGHTS, HOTELS
+except ImportError:
+    from mock_db import FLIGHTS, HOTELS
 
 mcp = FastMCP("search-mcp", instructions="Search for flights and hotels.")
 

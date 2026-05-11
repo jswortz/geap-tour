@@ -29,9 +29,22 @@ cp .env.example .env
 # Run tests
 uv run pytest tests/
 
-# Deploy everything (MCP servers → agents → monitors)
-uv run python src/deploy/deploy_all.py
+# Deploy everything in one command
+bash scripts/deploy_all.sh
 ```
+
+## Screenshots
+
+All screenshots are captured from real deployed GCP resources:
+
+| Screenshot | Feature |
+|-----------|---------|
+| ![Architecture](docs/screenshots/session1_architecture_overview.png) | GEAP architecture overview |
+| ![Cloud Run](docs/screenshots/session1_cloud_run_services.png) | MCP servers on Cloud Run |
+| ![Agent Engine](docs/screenshots/session1_agent_engine.png) | Multi-agent deployment |
+| ![Model Armor](docs/screenshots/session4_model_armor.png) | Input/output screening |
+| ![Evaluation](docs/screenshots/session2_evaluation_pipeline.png) | Three-tier eval pipeline |
+| ![BigQuery](docs/screenshots/session2_bigquery_sink.png) | Observability data pipeline |
 
 ## Workshop Guide
 

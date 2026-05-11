@@ -1,7 +1,9 @@
 """Simulated evaluation — generate synthetic scenarios and run agent inference for CI/CD."""
 
+import vertexai
 from google import genai
 from google.genai import types
+from vertexai import agent_engines
 
 from src.config import GCP_PROJECT_ID, GCP_REGION
 from src.eval.one_time_eval import HELPFULNESS_METRIC, TOOL_USE_METRIC
@@ -14,13 +16,14 @@ def run_simulated_eval(
     score_threshold: float = 3.0,
 ) -> bool:
     """Run simulated evaluation. Returns True if all metrics pass threshold."""
+    vertexai.init(project=GCP_PROJECT_ID, location=GCP_REGION)
     client = genai.Client(
         vertexai=True,
         project=GCP_PROJECT_ID,
         location=GCP_REGION,
     )
 
-    agent = client.agent_engines.get(agent_resource_name)
+    agent = agent_engines.get(agent_resource_name)
 
     # Step 1: Generate synthetic conversation scenarios
     print(f"[1/3] Generating {scenario_count} conversation scenarios...")

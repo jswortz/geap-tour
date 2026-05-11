@@ -8,3 +8,4 @@ diagrams/outputs/*.png
 diagrams/outputs/*.jpeg
 .uv/
 *.pdf
+.playwright-mcp/

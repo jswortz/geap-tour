@@ -1,0 +1,38 @@
+The GEAP evaluation pipeline implements a three-stage approach to agent quality
+assurance, progressing from one-time checks to continuous monitoring to CI/CD
+integration.
+
+Stage 1: One-Time Evaluation. This is the initial quality gate run during
+development. A set of 5 test prompts is sent to the agent under evaluation.
+Each prompt exercises a different capability (search, booking, expense creation,
+policy lookup, multi-step coordination). The agent's responses are scored against
+3 custom evaluation metrics: (1) Tool Trajectory Accuracy, which measures whether
+the agent called the correct sequence of MCP tools; (2) Response Quality, which
+uses an LLM-as-judge to rate the final answer on relevance, completeness, and
+accuracy; (3) Safety Compliance, which checks that Model Armor screening was
+invoked on both input and output. The evaluation produces a scorecard with
+pass/fail thresholds for each metric.
+
+Stage 2: Online Monitors. Once the agent is deployed to production, continuous
+monitoring begins. OpenTelemetry (OTel) spans are collected from every agent
+invocation, including tool calls, model inference latency, and token counts.
+These spans are aggregated in 10-minute windows. The aggregated metrics feed
+into a quality dashboard that displays: p50/p95 latency, tool call success
+rates, Model Armor trigger rates, and response quality trends (sampled via
+periodic LLM-as-judge runs). Alerts fire when metrics breach configured
+thresholds.
+
+Stage 3: Simulated Evaluation in CI/CD. When a pull request is opened that
+modifies agent code, a CI/CD pipeline triggers automated evaluation. The
+pipeline: (1) deploys a temporary copy of the agent to a staging environment,
+(2) auto-generates diverse test scenarios using an LLM to expand coverage beyond
+the fixed 5-prompt set, (3) runs the generated scenarios against the temporary
+agent and evaluates responses using the same 3 metrics from Stage 1, (4) applies
+a pass/fail quality gate -- the PR can only merge if all metrics exceed their
+thresholds, (5) cleans up the temporary agent deployment after evaluation
+completes.
+
+The flow is: Stage 1 (5 test prompts -> Agent -> 3 custom metrics -> scorecard)
+-> Stage 2 (OTel spans -> 10-min aggregation -> quality dashboard with alerts)
+-> Stage 3 (PR trigger -> deploy temp agent -> auto-generate scenarios ->
+evaluate with 3 metrics -> pass/fail gate -> cleanup).

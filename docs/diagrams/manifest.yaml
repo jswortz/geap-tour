@@ -1,0 +1,28 @@
+# GEAP Workshop diagram batch manifest.
+# Generates 4 architecture diagrams for the Gemini Enterprise Agent Platform tour.
+# Run: paperbanana batch --manifest docs/diagrams/manifest.yaml --optimize
+# Or:  ./scripts/generate_diagrams.sh
+
+composite:
+  layout: "2x2"
+  labels: auto
+  spacing: 30
+  label_position: bottom
+  output: "geap_composite.png"
+
+items:
+  - input: geap_architecture_overview.txt
+    caption: "GEAP architecture overview showing the coordinator agent delegating to travel and expense sub-agents, with MCP gateway routing to Cloud Run services and observability flowing into BigQuery evaluation"
+    id: geap_architecture
+
+  - input: multi_agent_mcp_topology.txt
+    caption: "Multi-agent MCP topology with coordinator delegation pattern, StreamableHTTP transport, per-server tool definitions, and SPIFFE identity badges on each agent"
+    id: mcp_topology
+
+  - input: evaluation_pipeline.txt
+    caption: "Three-stage evaluation pipeline: one-time eval with custom metrics, online OTel monitors with 10-minute aggregation, and simulated CI/CD evaluation with auto-generated scenarios and quality gates"
+    id: eval_pipeline
+
+  - input: model_armor_security_layers.txt
+    caption: "Model Armor dual-layer security showing client-side guardrail callbacks (regex, length limits) and server-side Model Armor templates (RAI, PI, SDP, malicious URI) screening both input and output paths"
+    id: model_armor

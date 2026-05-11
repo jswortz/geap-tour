@@ -1,74 +1,43 @@
 {
-  "openapi": "3.0.0",
-  "info": {
-    "title": "Expense MCP Server",
-    "version": "1.0.0",
-    "description": "Expense submission and policy check tools"
-  },
-  "paths": {
-    "/tools/submit_expense": {
-      "post": {
-        "operationId": "submit_expense",
-        "summary": "Submit an expense report",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["amount", "category", "description", "user_id"],
-                "properties": {
-                  "amount": {"type": "number"},
-                  "category": {"type": "string"},
-                  "description": {"type": "string"},
-                  "user_id": {"type": "string"}
-                }
-              }
-            }
-          }
+  "tools": [
+    {
+      "name": "submit_expense",
+      "description": "Submit an expense report with employee ID, category, amount, and description.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["employee_id", "category", "amount", "description"],
+        "properties": {
+          "employee_id": {"type": "string", "description": "Employee ID"},
+          "category": {"type": "string", "description": "Expense category (meals, transport, lodging, supplies, entertainment)"},
+          "amount": {"type": "number", "description": "Expense amount in USD"},
+          "description": {"type": "string", "description": "Expense description"}
         }
-      }
+      },
+      "annotations": {"title": "Submit Expense"}
     },
-    "/tools/check_expense_policy": {
-      "post": {
-        "operationId": "check_expense_policy",
-        "summary": "Check expense policy limits",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["amount", "category"],
-                "properties": {
-                  "amount": {"type": "number"},
-                  "category": {"type": "string"}
-                }
-              }
-            }
-          }
+    {
+      "name": "check_expense_policy",
+      "description": "Check expense policy limits for a given category.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["category"],
+        "properties": {
+          "category": {"type": "string", "description": "Category to check policy for"}
         }
-      }
+      },
+      "annotations": {"title": "Check Expense Policy", "readOnlyHint": true}
     },
-    "/tools/get_user_expenses": {
-      "post": {
-        "operationId": "get_user_expenses",
-        "summary": "Get expenses for a user",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["user_id"],
-                "properties": {
-                  "user_id": {"type": "string"}
-                }
-              }
-            }
-          }
+    {
+      "name": "get_user_expenses",
+      "description": "Get expense history for a specific employee.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["employee_id"],
+        "properties": {
+          "employee_id": {"type": "string", "description": "Employee ID to look up"}
         }
-      }
+      },
+      "annotations": {"title": "Get User Expenses", "readOnlyHint": true}
     }
-  }
+  ]
 }

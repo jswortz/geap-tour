@@ -1,6 +1,7 @@
 """One-time evaluation with custom pointwise metric rubrics."""
 
-from google import genai
+import vertexai
+from vertexai import agent_engines
 from google.genai import types
 
 from src.config import GCP_PROJECT_ID, GCP_REGION
@@ -77,6 +78,9 @@ POLICY_COMPLIANCE_METRIC = types.Metric(
 
 def run_one_time_eval(agent_resource_name: str):
     """Run one-time evaluation against a deployed agent."""
+    from google import genai
+
+    vertexai.init(project=GCP_PROJECT_ID, location=GCP_REGION)
     client = genai.Client(
         vertexai=True,
         project=GCP_PROJECT_ID,

@@ -1,5 +1,9 @@
 from fastmcp import FastMCP
-from .mock_db import submit_expense as _submit, check_policy as _check, get_expenses as _get
+
+try:
+    from .mock_db import submit_expense as _submit, check_policy as _check, get_expenses as _get
+except ImportError:
+    from mock_db import submit_expense as _submit, check_policy as _check, get_expenses as _get
 
 mcp = FastMCP("expense-mcp", instructions="Submit and manage corporate expense reports.")
 

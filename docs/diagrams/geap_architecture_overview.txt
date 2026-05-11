@@ -1,0 +1,36 @@
+The Gemini Enterprise Agent Platform (GEAP) is a multi-agent system deployed on
+Google Cloud that orchestrates travel and expense management workflows.
+
+At the top level, users interact with the platform through a chat interface. User
+requests flow into a Coordinator Agent, which serves as the central orchestrator.
+The Coordinator Agent delegates tasks to two specialized sub-agents: a Travel Agent
+(handling flight/hotel search and booking) and an Expense Agent (handling expense
+report creation and policy compliance).
+
+All agents are wrapped in a Model Armor security shield that performs input and
+output screening. Model Armor intercepts every prompt before it reaches the Gemini
+model and screens every response before it is returned to the user. The shield
+enforces Responsible AI (RAI) filters, personally identifiable information (PI)
+detection, sensitive data protection (SDP), and malicious URI blocking.
+
+Between the agents and their backend tools sits an Agent Gateway, which provides
+centralized routing, authentication, and rate limiting for all tool calls. The
+Agent Gateway connects to three MCP (Model Context Protocol) servers via
+StreamableHTTP transport: a Search MCP server (exposing search_flights and
+search_hotels tools), a Booking MCP server (exposing create_booking and
+cancel_booking tools), and an Expense MCP server (exposing create_report and
+get_policy tools).
+
+Each MCP server runs as a Cloud Run service with automatic scaling. The MCP
+servers call downstream APIs and databases to fulfill requests.
+
+For observability, Cloud Trace captures distributed traces across all agent and
+MCP interactions. Cloud Logging collects structured logs from every component.
+Cloud Monitoring provides dashboards and alerting. All telemetry data flows into
+BigQuery, where it feeds an evaluation pipeline that measures agent quality,
+latency, and safety compliance over time.
+
+The data flow is: User -> Coordinator Agent -> (Travel Agent, Expense Agent) ->
+Agent Gateway -> (Search MCP, Booking MCP, Expense MCP) -> Cloud Run services.
+Observability: Cloud Trace + Cloud Logging + Cloud Monitoring -> BigQuery ->
+Evaluation Dashboard.

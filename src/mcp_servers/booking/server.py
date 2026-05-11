@@ -1,5 +1,9 @@
 from fastmcp import FastMCP
-from .mock_db import create_booking, cancel_booking as _cancel, get_booking, list_bookings
+
+try:
+    from .mock_db import create_booking, cancel_booking as _cancel, get_booking, list_bookings
+except ImportError:
+    from mock_db import create_booking, cancel_booking as _cancel, get_booking, list_bookings
 
 mcp = FastMCP("booking-mcp", instructions="Book and manage flight and hotel reservations.")
 

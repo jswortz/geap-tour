@@ -1,74 +1,44 @@
 {
-  "openapi": "3.0.0",
-  "info": {
-    "title": "Booking MCP Server",
-    "version": "1.0.0",
-    "description": "Flight and hotel booking tools"
-  },
-  "paths": {
-    "/tools/book_flight": {
-      "post": {
-        "operationId": "book_flight",
-        "summary": "Book a flight",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["flight_id", "passenger_name"],
-                "properties": {
-                  "flight_id": {"type": "string"},
-                  "passenger_name": {"type": "string"}
-                }
-              }
-            }
-          }
+  "tools": [
+    {
+      "name": "book_flight",
+      "description": "Book a flight by flight ID and passenger name.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["flight_id", "passenger_name"],
+        "properties": {
+          "flight_id": {"type": "string", "description": "Flight ID to book"},
+          "passenger_name": {"type": "string", "description": "Passenger full name"}
         }
-      }
+      },
+      "annotations": {"title": "Book Flight"}
     },
-    "/tools/book_hotel": {
-      "post": {
-        "operationId": "book_hotel",
-        "summary": "Book a hotel",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["hotel_id", "guest_name", "checkin", "checkout"],
-                "properties": {
-                  "hotel_id": {"type": "string"},
-                  "guest_name": {"type": "string"},
-                  "checkin": {"type": "string"},
-                  "checkout": {"type": "string"}
-                }
-              }
-            }
-          }
+    {
+      "name": "book_hotel",
+      "description": "Book a hotel by hotel ID, guest name, and dates.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["hotel_id", "guest_name", "check_in", "check_out"],
+        "properties": {
+          "hotel_id": {"type": "string", "description": "Hotel ID"},
+          "guest_name": {"type": "string", "description": "Guest name"},
+          "check_in": {"type": "string", "description": "Check-in date (YYYY-MM-DD)"},
+          "check_out": {"type": "string", "description": "Check-out date (YYYY-MM-DD)"}
         }
-      }
+      },
+      "annotations": {"title": "Book Hotel"}
     },
-    "/tools/cancel_booking": {
-      "post": {
-        "operationId": "cancel_booking",
-        "summary": "Cancel a booking",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["booking_id"],
-                "properties": {
-                  "booking_id": {"type": "string"}
-                }
-              }
-            }
-          }
+    {
+      "name": "get_booking",
+      "description": "Get booking details by booking ID.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["booking_id"],
+        "properties": {
+          "booking_id": {"type": "string", "description": "Booking ID to retrieve"}
         }
-      }
+      },
+      "annotations": {"title": "Get Booking", "readOnlyHint": true}
     }
-  }
+  ]
 }

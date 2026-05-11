@@ -1,7 +1,6 @@
 """End-to-end deployment: MCP servers → agents → online monitors."""
 
 import os
-import sys
 
 from src.deploy.deploy_mcp_servers import deploy_all_servers
 from src.deploy.deploy_agents import deploy_all_agents
@@ -27,8 +26,8 @@ def main():
 
     # Step 3: Setup online monitors (optional, requires traffic first)
     print("\n[3/3] Skipping online monitor setup (run after generating traffic)")
-    print("  → Generate traffic: uv run python src/traffic/generate_traffic.py")
-    print("  → Setup monitors:  uv run python src/eval/setup_online_monitors.py")
+    print("  → Generate traffic: uv run python -m src.traffic.generate_traffic")
+    print("  → Setup monitors:  uv run python -m src.eval.setup_online_monitors")
 
     print("\n" + "=" * 60)
     print("Deployment complete!")

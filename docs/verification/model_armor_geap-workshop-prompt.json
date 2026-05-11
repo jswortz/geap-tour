@@ -1,0 +1,35 @@
+{
+  "name": "projects/wortz-project-352116/locations/us-central1/templates/geap-workshop-prompt",
+  "createTime": "2026-05-11T20:54:15.801985387Z",
+  "updateTime": "2026-05-11T20:54:15.877101260Z",
+  "filterConfig": {
+    "raiSettings": {
+      "raiFilters": [
+        {
+          "filterType": "DANGEROUS",
+          "confidenceLevel": "MEDIUM_AND_ABOVE"
+        },
+        {
+          "filterType": "HARASSMENT",
+          "confidenceLevel": "MEDIUM_AND_ABOVE"
+        },
+        {
+          "filterType": "HATE_SPEECH",
+          "confidenceLevel": "MEDIUM_AND_ABOVE"
+        },
+        {
+          "filterType": "SEXUALLY_EXPLICIT",
+          "confidenceLevel": "HIGH"
+        }
+      ]
+    },
+    "piAndJailbreakFilterSettings": {
+      "filterEnforcement": "ENABLED",
+      "confidenceLevel": "MEDIUM_AND_ABOVE"
+    },
+    "maliciousUriFilterSettings": {
+      "filterEnforcement": "ENABLED"
+    }
+  },
+  "templateMetadata": {}
+}

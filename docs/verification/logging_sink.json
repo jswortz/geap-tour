@@ -1,0 +1,10 @@
+{
+  "createTime": "2026-05-11T20:52:20.483078186Z",
+  "description": "Sink agent traces to BigQuery for evaluation",
+  "destination": "bigquery.googleapis.com/projects/wortz-project-352116/datasets/geap_workshop_logs",
+  "filter": "resource.type=\"aiplatform.googleapis.com/AgentEngine\"",
+  "name": "geap-agent-traces",
+  "resourceName": "projects/wortz-project-352116/sinks/geap-agent-traces",
+  "updateTime": "2026-05-11T20:52:20.483078186Z",
+  "writerIdentity": "serviceAccount:service-679926387543@gcp-sa-logging.iam.gserviceaccount.com"
+}

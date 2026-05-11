@@ -1,0 +1,35 @@
+The GEAP multi-agent system follows a coordinator delegation pattern where a
+central Coordinator Agent routes user requests to specialized sub-agents, each
+connected to dedicated MCP (Model Context Protocol) tool servers.
+
+The Coordinator Agent sits at the top of the hierarchy. It analyzes incoming user
+requests and delegates to the appropriate sub-agent based on intent classification.
+The Coordinator Agent has a SPIFFE identity badge: spiffe://geap.example.com/agent/coordinator.
+
+The Travel Agent handles all travel-related workflows. It has a SPIFFE identity
+badge: spiffe://geap.example.com/agent/travel. The Travel Agent connects to two
+MCP servers via StreamableHTTP transport:
+
+1. Search MCP Server: Exposes the tools search_flights(origin, destination, date,
+   passengers) and search_hotels(city, checkin, checkout, guests). This server
+   performs real-time availability lookups against airline and hotel APIs.
+
+2. Booking MCP Server: Exposes the tools create_booking(itinerary_id, traveler_info,
+   payment_method) and cancel_booking(booking_id, reason). This server handles
+   reservation creation and cancellation with confirmation workflows.
+
+The Expense Agent handles expense reporting and policy compliance. It has a SPIFFE
+identity badge: spiffe://geap.example.com/agent/expense. The Expense Agent
+connects to one MCP server via StreamableHTTP transport:
+
+3. Expense MCP Server: Exposes the tools create_report(employee_id, line_items,
+   category, receipt_urls) and get_policy(policy_type, department). This server
+   manages expense submissions and retrieves corporate travel policies.
+
+Each StreamableHTTP connection between an agent and its MCP servers is
+authenticated using the agent's SPIFFE identity. The MCP servers validate the
+SPIFFE SVID before processing any tool call.
+
+The topology is: Coordinator Agent -> Travel Agent -> {Search MCP, Booking MCP};
+Coordinator Agent -> Expense Agent -> {Expense MCP}. All connections use
+StreamableHTTP with mutual TLS via SPIFFE.
