@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GEAP Workshop — Enterprise Agent Platform Tour</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Google+Sans+Text:wght@400;500&display=swap');
+
+  :root {
+    --blue: #1a73e8;
+    --green: #1e8e3e;
+    --red: #d93025;
+    --yellow: #f9ab00;
+    --dark: #202124;
+    --gray: #5f6368;
+    --light: #f8f9fa;
+    --white: #ffffff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Google Sans', 'Google Sans Text', -apple-system, sans-serif;
+    color: var(--dark);
+    background: var(--dark);
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  .slide {
+    display: none;
+    width: 100vw;
+    height: 100vh;
+    padding: 60px 80px;
+    background: var(--white);
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .slide.active { display: flex; }
+
+  .slide.dark {
+    background: var(--dark);
+    color: var(--white);
+  }
+
+  .slide.blue-bg {
+    background: var(--blue);
+    color: var(--white);
+  }
+
+  .slide.gradient {
+    background: linear-gradient(135deg, #174ea6 0%, #1a73e8 40%, #4285f4 100%);
+    color: var(--white);
+  }
+
+  h1 {
+    font-size: 48px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    line-height: 1.2;
+  }
+
+  h2 {
+    font-size: 36px;
+    font-weight: 500;
+    margin-bottom: 20px;
+    line-height: 1.3;
+  }
+
+  h3 {
+    font-size: 24px;
+    font-weight: 500;
+    margin-bottom: 16px;
+    color: var(--blue);
+  }
+
+  .dark h3, .blue-bg h3, .gradient h3 { color: var(--yellow); }
+
+  .subtitle {
+    font-size: 24px;
+    color: var(--gray);
+    margin-bottom: 32px;
+    font-weight: 400;
+  }
+
+  .dark .subtitle { color: #9aa0a6; }
+
+  ul {
+    font-size: 22px;
+    line-height: 1.8;
+    padding-left: 28px;
+  }
+
+  li { margin-bottom: 8px; }
+
+  .columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: start;
+  }
+
+  .columns-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 32px;
+  }
+
+  .card {
+    background: var(--light);
+    border-radius: 12px;
+    padding: 28px;
+    border-left: 4px solid var(--blue);
+  }
+
+  .card.green { border-left-color: var(--green); }
+  .card.red { border-left-color: var(--red); }
+  .card.yellow { border-left-color: var(--yellow); }
+
+  .card h3 { color: var(--dark); font-size: 20px; margin-bottom: 12px; }
+  .card p, .card ul { font-size: 18px; color: var(--gray); }
+
+  .img-container {
+    text-align: center;
+    margin: 20px 0;
+  }
+
+  .img-container img {
+    max-width: 100%;
+    max-height: 55vh;
+    border-radius: 8px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+  }
+
+  .img-full img {
+    max-height: 70vh;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 20px;
+    margin-top: 16px;
+  }
+
+  th {
+    background: var(--blue);
+    color: white;
+    padding: 14px 20px;
+    text-align: left;
+    font-weight: 500;
+  }
+
+  td {
+    padding: 12px 20px;
+    border-bottom: 1px solid #e8eaed;
+  }
+
+  tr:nth-child(even) { background: var(--light); }
+
+  .badge {
+    display: inline-block;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    margin-right: 8px;
+  }
+
+  .badge.blue { background: #e8f0fe; color: var(--blue); }
+  .badge.green { background: #e6f4ea; color: var(--green); }
+  .badge.red { background: #fce8e6; color: var(--red); }
+  .badge.yellow { background: #fef7e0; color: #e37400; }
+
+  code {
+    font-family: 'Google Sans Mono', 'Roboto Mono', monospace;
+    background: #f1f3f4;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 18px;
+  }
+
+  .dark code { background: #303134; color: #e8eaed; }
+
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 24px;
+    border-radius: 12px;
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: auto;
+  }
+
+  .logo {
+    position: absolute;
+    bottom: 24px;
+    right: 40px;
+    font-size: 14px;
+    color: var(--gray);
+    opacity: 0.6;
+  }
+
+  .dark .logo { color: #9aa0a6; }
+
+  .slide-num {
+    position: absolute;
+    bottom: 24px;
+    left: 40px;
+    font-size: 14px;
+    color: var(--gray);
+    opacity: 0.5;
+  }
+
+  .progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 4px;
+    background: var(--blue);
+    transition: width 0.3s ease;
+    z-index: 100;
+  }
+
+  .key-value {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 8px 16px;
+    font-size: 20px;
+    margin: 16px 0;
+  }
+
+  .key-value dt { font-weight: 500; color: var(--blue); }
+  .key-value dd { color: var(--gray); }
+
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 24px 0;
+    font-size: 20px;
+    flex-wrap: wrap;
+  }
+
+  .flow-box {
+    background: var(--light);
+    border: 2px solid var(--blue);
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-weight: 500;
+  }
+
+  .flow-arrow { color: var(--blue); font-size: 28px; }
+
+  .highlight-box {
+    background: #e8f0fe;
+    border-radius: 12px;
+    padding: 24px 32px;
+    margin: 16px 0;
+    font-size: 22px;
+  }
+
+  .section-label {
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--yellow);
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+
+  .dark .section-label { color: var(--yellow); }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<!-- ===== SLIDE 1: TITLE ===== -->
+<div class="slide gradient active" id="s1">
+  <div class="section-label">Google Cloud Workshop</div>
+  <h1 style="font-size: 56px;">Gemini Enterprise<br>Agent Platform Tour</h1>
+  <p class="subtitle" style="color: rgba(255,255,255,0.8); font-size: 28px; margin-top: 16px;">
+    Build, Deploy, Govern, Evaluate, and Optimize AI Agents
+  </p>
+  <div style="margin-top: 40px; font-size: 20px; opacity: 0.7;">
+    ADK Agents &bull; MCP Servers &bull; Agent Gateway &bull; Agent Registry &bull; Model Armor &bull; Evaluation Pipeline
+  </div>
+  <div class="logo" style="color: rgba(255,255,255,0.5);">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 2: AGENDA ===== -->
+<div class="slide" id="s2">
+  <h1>Agenda</h1>
+  <table>
+    <tr><th>Session</th><th>Topic</th><th>Duration</th><th>Key Activities</th></tr>
+    <tr><td><span class="badge blue">1</span></td><td><strong>AI Gateway / MCP Gateway</strong></td><td>~90 min</td><td>Architecture, MCP servers, ADK agents, deployment, identity</td></tr>
+    <tr><td colspan="4" style="background:#f1f3f4; text-align:center; color:var(--gray);">Lunch Break (~45 min)</td></tr>
+    <tr><td><span class="badge green">2</span></td><td><strong>AI Gateway / MCP Gateway (cont.)</strong></td><td>~75 min</td><td>Agent Gateway, evaluation, observability, optimization</td></tr>
+    <tr><td><span class="badge yellow">3</span></td><td><strong>Agent Registry</strong></td><td>~15 min</td><td>Agent registration, discovery, governance</td></tr>
+    <tr><td><span class="badge red">4</span></td><td><strong>Model Security / Model Armor</strong></td><td>~15 min</td><td>Input/output screening, guardrails, content safety</td></tr>
+    <tr><td colspan="4" style="background:#f1f3f4; text-align:center; color:var(--gray);">Break (~15 min)</td></tr>
+  </table>
+  <div class="logo">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 3: ARCHITECTURE ===== -->
+<div class="slide" id="s3">
+  <h1>Platform Architecture</h1>
+  <div class="img-container img-full">
+    <img src="screenshots/geap_architecture.png" alt="GEAP Architecture">
+  </div>
+  <p style="text-align: center; color: var(--gray); font-size: 18px; margin-top: 12px;">
+    User &rarr; Frontend &rarr; Agent Gateway &rarr; Agent Identity (Runtime) &rarr; Agent Gateway &rarr; Agents, Tools, Models, APIs
+  </p>
+  <div class="logo">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 4: IDENTITY MODEL ===== -->
+<div class="slide" id="s4">
+  <h1>Agent Identity Model</h1>
+  <div class="img-container img-full">
+    <img src="screenshots/identity_types.png" alt="Identities in Agentic Apps">
+  </div>
+  <div class="logo">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 5: SESSION 1 HEADER ===== -->
+<div class="slide blue-bg" id="s5">
+  <div class="section-label" style="color: rgba(255,255,255,0.7);">Session 1</div>
+  <h1>AI Gateway / MCP Gateway</h1>
+  <p class="subtitle" style="color: rgba(255,255,255,0.8);">Build, connect, and deploy agents with MCP tool servers</p>
+  <ul style="color: rgba(255,255,255,0.9); font-size: 24px;">
+    <li>Multi-agent architecture with MCP connectivity</li>
+    <li>FastMCP tool servers on Cloud Run</li>
+    <li>ADK agents deployed to Agent Runtime</li>
+    <li>SPIFFE-based workload identity</li>
+  </ul>
+  <div class="logo" style="color: rgba(255,255,255,0.4);">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 6: MULTI-AGENT TOPOLOGY ===== -->
+<div class="slide" id="s6">
+  <h2>Multi-Agent Topology</h2>
+  <div class="columns">
+    <div>
+      <div class="img-container">
+        <img src="../diagrams/outputs/01_multi_agent_topology.png" alt="Multi-Agent Topology">
+      </div>
+    </div>
+    <div>
+      <h3>Three ADK Agents</h3>
+      <ul>
+        <li><strong>Coordinator Agent</strong> — routes requests to specialists</li>
+        <li><strong>Travel Agent</strong> — searches flights/hotels, makes bookings</li>
+        <li><strong>Expense Agent</strong> — submits expenses, enforces policy limits</li>
+      </ul>
+      <h3 style="margin-top: 24px;">Three MCP Servers</h3>
+      <ul>
+        <li><strong>Search MCP</strong> — shared by Travel + Coordinator</li>
+        <li><strong>Booking MCP</strong> — flight/hotel reservations</li>
+        <li><strong>Expense MCP</strong> — expense submission + policy checks</li>
+      </ul>
+    </div>
+  </div>
+  <div class="logo">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 7: MCP SERVER DEVELOPMENT ===== -->
+<div class="slide" id="s7">
+  <h2>MCP Server Development</h2>
+  <div class="columns">
+    <div>
+      <h3>FastMCP Pattern</h3>
+      <pre><span style="color:#569cd6">from</span> mcp.server.fastmcp <span style="color:#569cd6">import</span> FastMCP
+
+mcp = FastMCP(<span style="color:#ce9178">"search-tools"</span>)
+
+<span style="color:#dcdcaa">@mcp.tool()</span>
+<span style="color:#569cd6">def</span> <span style="color:#dcdcaa">search_flights</span>(
+    origin: <span style="color:#4ec9b0">str</span>,
+    destination: <span style="color:#4ec9b0">str</span>,
+    date: <span style="color:#4ec9b0">str</span>
+) -> <span style="color:#4ec9b0">list</span>[<span style="color:#4ec9b0">dict</span>]:
+    <span style="color:#ce9178">"""Search available flights."""</span>
+    <span style="color:#569cd6">return</span> flight_db.search(
+        origin, destination, date
+    )</pre>
+    </div>
+    <div>
+      <h3>Key Capabilities</h3>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>StreamableHTTP Transport</h3>
+        <p>MCP servers run as standard HTTP services on Cloud Run with automatic scaling</p>
+      </div>
+      <div class="card green" style="margin-bottom: 16px;">
+        <h3>Tool Discovery</h3>
+        <p>Agents dynamically discover available tools via MCP protocol introspection</p>
+      </div>
+      <div class="card yellow">
+        <h3>1-to-Many Topology</h3>
+        <p>Multiple agents can share the same MCP server — no duplication needed</p>
+      </div>
+    </div>
+  </div>
+  <div class="logo">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 8: ADK AGENTS ===== -->
+<div class="slide" id="s8">
+  <h2>ADK Agent Architecture</h2>
+  <div class="columns">
+    <div>
+      <h3>Agent Definition</h3>
+      <pre><span style="color:#569cd6">from</span> google.adk.agents <span style="color:#569cd6">import</span> LlmAgent
+<span style="color:#569cd6">from</span> google.adk.tools.mcp <span style="color:#569cd6">import</span> MCPToolset
+
+travel_agent = LlmAgent(
+  name=<span style="color:#ce9178">"travel_agent"</span>,
+  model=<span style="color:#ce9178">"gemini-2.5-flash"</span>,
+  instruction=<span style="color:#ce9178">"""You are a travel
+  assistant..."""</span>,
+  tools=[
+    MCPToolset(
+      connection_params=
+        StreamableHTTPConnectionParams(
+          url=<span style="color:#ce9178">"https://search-mcp-..."</span>
+        )
+    )
+  ]
+)</pre>
+    </div>
+    <div>
+      <h3>Multi-Agent Coordination</h3>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>Coordinator Pattern</h3>
+        <p>Root agent uses <code>sub_agents=[travel, expense]</code> to delegate by intent</p>
+      </div>
+      <div class="card green" style="margin-bottom: 16px;">
+        <h3>Session Management</h3>
+        <p>Each user gets isolated sessions with conversation history and state</p>
+      </div>
+      <div class="card yellow">
+        <h3>OTel Tracing</h3>
+        <p>Every agent call produces OpenTelemetry spans — exported to Cloud Trace automatically</p>
+      </div>
+    </div>
+  </div>
+  <div class="logo">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 9: DEPLOYMENT ===== -->
+<div class="slide" id="s9">
+  <h2>Deployment Architecture</h2>
+  <div class="columns">
+    <div class="img-container">
+      <img src="../diagrams/outputs/02_deployment_architecture.png" alt="Deployment Architecture">
+    </div>
+    <div>
+      <h3>Two Deployment Targets</h3>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>Cloud Run — MCP Servers</h3>
+        <p>StreamableHTTP transport, auto-scaling, IAM-secured endpoints</p>
+      </div>
+      <div class="card green" style="margin-bottom: 16px;">
+        <h3>Agent Runtime — ADK Agents</h3>
+        <p>Vertex AI Agent Engine with built-in session management and memory</p>
+      </div>
+      <div class="highlight-box" style="font-size: 18px;">
+        <strong>One command deploy:</strong> <code>bash scripts/deploy_all.sh</code><br>
+        Deploys 3 MCP servers + coordinator agent in sequence
+      </div>
+    </div>
+  </div>
+  <div class="logo">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 10: CONSOLE — AGENT ENGINE ===== -->
+<div class="slide dark" id="s10">
+  <h2 style="color: var(--white);">Console: Deployments on Agent Runtime</h2>
+  <div class="img-container img-full">
+    <img src="screenshots/session1_agent_engine.png" alt="Agent Runtime Deployments">
+  </div>
+  <div class="logo">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 11: IDENTITY (SPIFFE) ===== -->
+<div class="slide" id="s11">
+  <h2>Agent Identity — SPIFFE</h2>
+  <div class="columns">
+    <div class="img-container">
+      <img src="../diagrams/outputs/04_agent_identity_gateway.png" alt="Agent Identity & Gateway">
+    </div>
+    <div>
+      <h3>Workload Identity Federation</h3>
+      <ul>
+        <li>Each agent gets a <strong>SPIFFE ID</strong> at deployment</li>
+        <li>Attestation policies verify agent identity at runtime</li>
+        <li>Agent Gateway enforces identity at network boundary</li>
+      </ul>
+      <h3 style="margin-top: 24px;">Three Identity Types</h3>
+      <table style="font-size: 16px;">
+        <tr><th>Type</th><th>Purpose</th></tr>
+        <tr><td>ID-1: User</td><td>Human accessing the app</td></tr>
+        <tr><td>ID-2: Agent</td><td>Agent's own authority</td></tr>
+        <tr><td>ID-3: Delegated</td><td>Agent on behalf of user</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="logo">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 12: CONSOLE — WORKLOAD IDENTITY ===== -->
+<div class="slide dark" id="s12">
+  <h2 style="color: var(--white);">Console: Workload Identity Pools</h2>
+  <div class="img-container img-full">
+    <img src="screenshots/session1_workload_identity.png" alt="Workload Identity Pools">
+  </div>
+  <div class="logo">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 13: SESSION 2 HEADER ===== -->
+<div class="slide gradient" id="s13">
+  <div class="section-label" style="color: rgba(255,255,255,0.7);">Session 2</div>
+  <h1>AI Gateway / MCP Gateway<br><span style="font-size: 36px; font-weight: 400;">(continued)</span></h1>
+  <p class="subtitle" style="color: rgba(255,255,255,0.8);">Gateway, evaluation, observability, and optimization</p>
+  <ul style="color: rgba(255,255,255,0.9); font-size: 24px;">
+    <li>Agent Gateway for ingress/egress control</li>
+    <li>Three-tier evaluation pipeline</li>
+    <li>Online monitors and failure cluster analysis</li>
+    <li>Agent optimization with GEPA algorithm</li>
+  </ul>
+  <div class="logo" style="color: rgba(255,255,255,0.4);">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 14: AGENT GATEWAY ===== -->
+<div class="slide" id="s14">
+  <h2>Agent Gateway</h2>
+  <div class="columns">
+    <div>
+      <h3>Network-Level Governance</h3>
+      <ul>
+        <li>Controls <strong>ingress</strong> (client → agent) and <strong>egress</strong> (agent → tools)</li>
+        <li>Enforces identity verification at the boundary</li>
+        <li>Supports MCP protocol natively</li>
+        <li>Semantic Governance Policies for content-aware routing</li>
+      </ul>
+      <div class="highlight-box" style="margin-top: 20px; font-size: 18px;">
+        <strong>Mode:</strong> CLIENT_TO_AGENT<br>
+        <strong>Protocol:</strong> MCP<br>
+        <strong>Created via:</strong> REST API (networkservices.googleapis.com)
+      </div>
+    </div>
+    <div class="img-container">
+      <img src="screenshots/session2_agent_gateway.png" alt="Agent Gateway Console">
+    </div>
+  </div>
+  <div class="logo">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 15: EVALUATION PIPELINE ===== -->
+<div class="slide" id="s15">
+  <h2>Three-Tier Evaluation Pipeline</h2>
+  <div class="img-container">
+    <img src="../diagrams/outputs/03_eval_pipeline.png" alt="Evaluation Pipeline" style="max-height: 40vh;">
+  </div>
+  <div class="columns-3" style="margin-top: 20px;">
+    <div class="card">
+      <h3>One-Time Eval</h3>
+      <p>Manual, on-demand evaluation with PointwiseMetric rubrics against a curated dataset</p>
+    </div>
+    <div class="card green">
+      <h3>Online Monitors</h3>
+      <p>Continuous evaluation of live traffic via Cloud Trace telemetry on 10-min cycles</p>
+    </div>
+    <div class="card yellow">
+      <h3>Simulated (CI/CD)</h3>
+      <p>Automated eval gate on PRs — score &ge; 3.0 to merge, blocks otherwise</p>
+    </div>
+  </div>
+  <div class="logo">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 16: CONSOLE — EVALUATION ===== -->
+<div class="slide dark" id="s16">
+  <h2 style="color: var(--white);">Console: Evaluation Experiments</h2>
+  <div class="img-container img-full">
+    <img src="screenshots/session2_evaluation.png" alt="Evaluation Console">
+  </div>
+  <div class="logo">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 17: OBSERVABILITY ===== -->
+<div class="slide" id="s17">
+  <h2>Observability Stack</h2>
+  <div class="columns">
+    <div class="img-container">
+      <img src="../diagrams/outputs/05_observability_stack.png" alt="Observability Stack">
+    </div>
+    <div>
+      <h3>End-to-End Tracing</h3>
+      <div class="flow">
+        <div class="flow-box">Agent Call</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-box">OTel Spans</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-box">Cloud Trace</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-box">BigQuery</div>
+      </div>
+      <h3 style="margin-top: 20px;">Data Pipeline</h3>
+      <ul>
+        <li>Cloud Trace captures every agent + tool call</li>
+        <li>Log sink exports structured data to BigQuery</li>
+        <li>Cloud Monitoring alerts on anomalies</li>
+        <li>Failure cluster analysis groups error patterns</li>
+      </ul>
+    </div>
+  </div>
+  <div class="logo">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 18: CONSOLE — CLOUD TRACE ===== -->
+<div class="slide dark" id="s18">
+  <h2 style="color: var(--white);">Console: Cloud Trace</h2>
+  <div class="img-container img-full">
+    <img src="screenshots/session2_cloud_trace.png" alt="Cloud Trace">
+  </div>
+  <div class="logo">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 19: CI/CD ===== -->
+<div class="slide" id="s19">
+  <h2>CI/CD — Simulated Eval Gate</h2>
+  <div class="columns">
+    <div class="img-container">
+      <img src="../diagrams/outputs/06_ci_cd_flow.png" alt="CI/CD Flow">
+    </div>
+    <div>
+      <h3>GitHub Actions Workflow</h3>
+      <div class="flow">
+        <div class="flow-box">PR Opened</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-box">Generate Scenarios</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-box">Run Inference</div>
+      </div>
+      <div class="flow">
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-box">Evaluate</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-box" style="border-color: var(--green);">Score &ge; 3.0?</div>
+      </div>
+      <div style="margin-top: 20px;">
+        <span class="badge green">Pass</span> Merge allowed<br>
+        <span class="badge red">Fail</span> PR blocked with failure report
+      </div>
+    </div>
+  </div>
+  <div class="logo">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 20: GEPA OPTIMIZATION ===== -->
+<div class="slide" id="s20">
+  <h2>Agent Optimization — GEPA Algorithm</h2>
+  <div class="columns">
+    <div>
+      <h3>Gemini Evolutionary Prompt Algorithm</h3>
+      <ul>
+        <li><strong>Generate</strong> prompt variants using LLM mutation</li>
+        <li><strong>Evaluate</strong> each variant against test scenarios</li>
+        <li><strong>Select</strong> top performers based on eval scores</li>
+        <li><strong>Evolve</strong> over multiple generations</li>
+      </ul>
+      <div class="highlight-box" style="margin-top: 20px; font-size: 18px;">
+        <strong>Result:</strong> Automatically discovers better agent instructions without manual prompt engineering
+      </div>
+    </div>
+    <div>
+      <h3>Configuration</h3>
+      <pre><span style="color:#569cd6">optimizer</span> = AgentOptimizer(
+  agent=coordinator_agent,
+  eval_dataset=eval_data,
+  metrics=[
+    <span style="color:#ce9178">"response_quality"</span>,
+    <span style="color:#ce9178">"tool_selection"</span>,
+    <span style="color:#ce9178">"safety"</span>
+  ],
+  generations=<span style="color:#b5cea8">5</span>,
+  population_size=<span style="color:#b5cea8">4</span>
+)</pre>
+    </div>
+  </div>
+  <div class="logo">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 21: SESSION 3 HEADER ===== -->
+<div class="slide dark" id="s21">
+  <div class="section-label">Session 3</div>
+  <h1>Agent Registry</h1>
+  <p class="subtitle">Agent registration, discovery, and governance</p>
+  <div class="logo">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 22: AGENT REGISTRY ===== -->
+<div class="slide" id="s22">
+  <h2>Agent Registry & Discovery</h2>
+  <div class="columns">
+    <div>
+      <h3>Registry Capabilities</h3>
+      <ul>
+        <li><strong>Register</strong> agents with metadata, toolspecs, and versioning</li>
+        <li><strong>Discover</strong> available agents and their capabilities</li>
+        <li><strong>Associate</strong> MCP tool specifications with agents</li>
+        <li><strong>Govern</strong> agent lifecycle and access control</li>
+      </ul>
+      <h3 style="margin-top: 24px;">Toolspec Association</h3>
+      <pre style="font-size: 14px;"><span style="color:#569cd6">gcloud</span> agent-platform agent-registry \
+  toolspecs associate \
+  --agent=geap-coordinator \
+  --toolspec=search-mcp-spec.yaml</pre>
+    </div>
+    <div class="img-container">
+      <img src="screenshots/session3_agent_registry_mcp.png" alt="Agent Registry MCP Servers">
+    </div>
+  </div>
+  <div class="logo">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 23: CONSOLE — POLICIES ===== -->
+<div class="slide dark" id="s23">
+  <h2 style="color: var(--white);">Console: Business Policies</h2>
+  <div class="img-container img-full">
+    <img src="screenshots/session3_policies.png" alt="Business Policies">
+  </div>
+  <div class="logo">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 24: SESSION 4 HEADER ===== -->
+<div class="slide" style="background: linear-gradient(135deg, #c5221f 0%, #d93025 40%, #ea4335 100%); color: white;" id="s24">
+  <div class="section-label" style="color: rgba(255,255,255,0.7);">Session 4</div>
+  <h1>Model Security /<br>Model Armor</h1>
+  <p class="subtitle" style="color: rgba(255,255,255,0.8);">Input/output screening, guardrails, and content safety</p>
+  <div class="logo" style="color: rgba(255,255,255,0.4);">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 25: AGENT ARMOR ===== -->
+<div class="slide" id="s25">
+  <h2>Agent Armor — Model Armor Integration</h2>
+  <div class="columns">
+    <div class="img-container">
+      <img src="../diagrams/outputs/07_agent_armor.png" alt="Agent Armor">
+    </div>
+    <div>
+      <h3>Defense Layers</h3>
+      <div class="card red" style="margin-bottom: 16px;">
+        <h3>Input Screening</h3>
+        <p>Prompt injection detection, jailbreak prevention, PII filtering before model call</p>
+      </div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>Output Screening</h3>
+        <p>Harmful content filtering, hallucination flags, safety score thresholds</p>
+      </div>
+      <div class="card green">
+        <h3>ADK Guardrail Callbacks</h3>
+        <p><code>before_model_callback</code> and <code>after_model_callback</code> hooks integrated into agent lifecycle</p>
+      </div>
+    </div>
+  </div>
+  <div class="logo">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 26: CONSOLE — MODEL ARMOR ===== -->
+<div class="slide dark" id="s26">
+  <h2 style="color: var(--white);">Console: Model Armor</h2>
+  <div class="img-container img-full">
+    <img src="screenshots/session4_model_armor.png" alt="Model Armor Console">
+  </div>
+  <div class="logo">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 27: SUMMARY ===== -->
+<div class="slide" id="s27">
+  <h1>Platform Summary</h1>
+  <div class="columns-3">
+    <div class="card">
+      <h3>Build</h3>
+      <ul style="font-size: 16px;">
+        <li>ADK agents with LlmAgent</li>
+        <li>FastMCP tool servers</li>
+        <li>Multi-agent coordination</li>
+      </ul>
+    </div>
+    <div class="card green">
+      <h3>Deploy</h3>
+      <ul style="font-size: 16px;">
+        <li>Cloud Run (MCP servers)</li>
+        <li>Agent Runtime (agents)</li>
+        <li>One-command deployment</li>
+      </ul>
+    </div>
+    <div class="card yellow">
+      <h3>Govern</h3>
+      <ul style="font-size: 16px;">
+        <li>SPIFFE identity</li>
+        <li>Agent Gateway</li>
+        <li>Agent Registry</li>
+      </ul>
+    </div>
+  </div>
+  <div class="columns-3" style="margin-top: 24px;">
+    <div class="card red">
+      <h3>Secure</h3>
+      <ul style="font-size: 16px;">
+        <li>Model Armor templates</li>
+        <li>Input/output screening</li>
+        <li>Guardrail callbacks</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Evaluate</h3>
+      <ul style="font-size: 16px;">
+        <li>One-time eval</li>
+        <li>Online monitors</li>
+        <li>CI/CD eval gate</li>
+      </ul>
+    </div>
+    <div class="card green">
+      <h3>Optimize</h3>
+      <ul style="font-size: 16px;">
+        <li>GEPA algorithm</li>
+        <li>Prompt evolution</li>
+        <li>OTel observability</li>
+      </ul>
+    </div>
+  </div>
+  <div class="logo">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 28: RESOURCES ===== -->
+<div class="slide gradient" id="s28">
+  <div class="section-label" style="color: rgba(255,255,255,0.7);">Resources</div>
+  <h1>Get Started</h1>
+  <ul style="font-size: 28px; color: rgba(255,255,255,0.95); line-height: 2.2;">
+    <li><strong>Workshop repo:</strong> github.com/jswortz/geap-tour</li>
+    <li><strong>Workshop guide:</strong> docs/workshop_guide.md</li>
+    <li><strong>Agent Development Kit:</strong> google.github.io/adk-docs</li>
+    <li><strong>MCP Protocol:</strong> modelcontextprotocol.io</li>
+    <li><strong>Agent Platform:</strong> cloud.google.com/agent-platform</li>
+  </ul>
+  <div style="margin-top: 48px; font-size: 22px; opacity: 0.7;">
+    Thank you!
+  </div>
+  <div class="logo" style="color: rgba(255,255,255,0.4);">Google Cloud</div>
+</div>
+
+<!-- Navigation -->
+<script>
+  const slides = document.querySelectorAll('.slide');
+  let current = 0;
+  const total = slides.length;
+  const progress = document.getElementById('progress');
+
+  function updateProgress() {
+    progress.style.width = ((current + 1) / total * 100) + '%';
+    // Update slide numbers
+    document.querySelectorAll('.slide-num').forEach(el => el.remove());
+    const num = document.createElement('div');
+    num.className = 'slide-num';
+    num.textContent = (current + 1) + ' / ' + total;
+    slides[current].appendChild(num);
+  }
+
+  function goTo(n) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(n, total - 1));
+    slides[current].classList.add('active');
+    updateProgress();
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+      e.preventDefault();
+      goTo(current + 1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      e.preventDefault();
+      goTo(current - 1);
+    } else if (e.key === 'Home') {
+      goTo(0);
+    } else if (e.key === 'End') {
+      goTo(total - 1);
+    }
+  });
+
+  // Touch support
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) goTo(current + 1);
+      else goTo(current - 1);
+    }
+  });
+
+  // Click to advance (right half) or go back (left half)
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('a, button, input, pre, code')) return;
+    if (e.clientX > window.innerWidth / 2) goTo(current + 1);
+    else goTo(current - 1);
+  });
+
+  updateProgress();
+</script>
+
+</body>
+</html>

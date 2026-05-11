@@ -6,8 +6,9 @@ __pycache__/
 .venv/
 dist/
 *.egg-info/
-diagrams/outputs/*.png
-diagrams/outputs/*.jpeg
+# Diagram outputs are committed for the workshop
+# diagrams/outputs/*.png
+# diagrams/outputs/*.jpeg
 .uv/
 *.pdf
 .playwright-mcp/

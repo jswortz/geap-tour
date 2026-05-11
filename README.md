@@ -61,20 +61,35 @@ See [docs/workshop_guide.md](docs/workshop_guide.md) for the full workshop organ
 
 ## Architecture
 
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  Travel Agent   │     │  Expense Agent  │     │  Coordinator    │
-│  (ADK LlmAgent) │     │  (ADK LlmAgent) │     │  (ADK LlmAgent) │
-└────┬───────┬────┘     └────────┬────────┘     └────────┬────────┘
-     │       │                   │                       │
-     ▼       ▼                   ▼                       ▼
-┌────────┐ ┌────────┐    ┌──────────┐             ┌────────┐
-│ Search │ │Booking │    │ Expense  │             │ Search │
-│  MCP   │ │  MCP   │    │   MCP    │             │  MCP   │
-└────────┘ └────────┘    └──────────┘             └────────┘
-     ↕           ↕             ↕                       ↕
-            Cloud Run (StreamableHTTP)
-```
+![GEAP Architecture](docs/screenshots/geap_architecture.png)
+
+*Agent Platform architecture showing the full request flow: User → Frontend → Agent Gateway → Agent Identity (Agent Platform Runtime) → Agent Gateway → downstream Agents, Tools, Models, and APIs. Governed by Agent Registry, AI Security, and Access Authorization with full AI Observability.*
+
+### Agent Identity Model
+
+![Identities in Agentic Apps](docs/screenshots/identity_types.png)
+
+The platform supports three identity types for secure agent operations:
+
+| Identity | Purpose | Issuing System |
+|----------|---------|----------------|
+| **ID-1: User Identity** | User accessing the agent or SaaS application | Human IdP (Entra, Cloud Identity, Auth0) |
+| **ID-2: Agent Identity** | Agent accessing resources under its own authority | GCP — created when agent is deployed |
+| **ID-3: Delegated Identity** | Agent accessing resources on behalf of the user | OAuth server (1P or 3P) via OAuth dance |
+
+In our workshop, agents use SPIFFE-based workload identity (ID-2) with attestation policies, and the Agent Gateway enforces identity at the network boundary.
+
+### Paper Banana Architecture Diagrams
+
+| Diagram | Description |
+|---------|-------------|
+| ![Multi-Agent Topology](diagrams/outputs/01_multi_agent_topology.png) | Coordinator agent routing to travel and expense sub-agents with MCP tool servers |
+| ![Deployment Architecture](diagrams/outputs/02_deployment_architecture.png) | Cloud Run MCP servers + Agent Runtime deployment topology |
+| ![Evaluation Pipeline](diagrams/outputs/03_eval_pipeline.png) | Three-tier evaluation: one-time, continuous, and CI/CD simulated |
+| ![Agent Identity & Gateway](diagrams/outputs/04_agent_identity_gateway.png) | SPIFFE identity, attestation policies, and Agent Gateway flow |
+| ![Observability Stack](diagrams/outputs/05_observability_stack.png) | OTel traces → Cloud Trace → BigQuery pipeline |
+| ![CI/CD Flow](diagrams/outputs/06_ci_cd_flow.png) | GitHub Actions simulated eval gate on pull requests |
+| ![Agent Armor](diagrams/outputs/07_agent_armor.png) | Model Armor input/output screening with guardrail callbacks |
 
 ## Project Structure
 
