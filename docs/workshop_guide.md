@@ -226,9 +226,13 @@ This enables:
 config = {"identity_type": types.IdentityType.AGENT_IDENTITY}
 ```
 
+> **Note:** The `identity_type` config is set during `agent_engines.create()`. The workshop scripts configure identity via `scripts/setup_agent_identity.sh`.
+
 **Console tour**: Navigate to IAM & Admin -> Workload Identity Pools. Show the agent pool and bound principals.
 
 **Screenshot**: `docs/screenshots/session1_workload_identity.png`
+
+![Workload Identity](screenshots/session1_workload_identity.png)
 
 **Diagram**: `diagrams/outputs/04_agent_identity_gateway.png`
 
@@ -324,6 +328,8 @@ remote = agent_engines.create(
     },
 )
 ```
+
+> **Note:** Inline gateway config requires Private Preview enrollment. The workshop deploy script (`src/deploy/deploy_agents.py`) uses a REST API fallback — see `_attach_gateway()`.
 
 **Key insight**: With egress gateway enabled, every Gemini model call, MCP tool invocation, and external API request flows through the gateway. This means IAM Allow Policies and SGP business rules apply to model traffic — not just tool calls.
 
@@ -534,6 +540,18 @@ This produces optimized system instructions that can be compared to the original
 
 ---
 
+### 2.7 Agent Traces & Observability
+
+The Agent Platform provides built-in trace visualization for debugging agent behavior:
+
+![Agent Traces](screenshots/session2_agent_traces.png)
+
+![Agent Trace Spans](screenshots/session2_agent_trace_spans.png)
+
+Key trace metrics: session duration, model calls, tool calls, token usage, and error rates.
+
+---
+
 # Session 3: Agent Registry
 
 **Duration:** ~15 min | **Theme:** Agent discovery, registration, and governance
@@ -547,7 +565,7 @@ This produces optimized system instructions that can be compared to the original
 
 **Console Tours:** Vertex AI -> Agents (registry view)
 
-**Screenshots:** `docs/screenshots/session3_agent_registry.png`
+**Screenshots:** `docs/screenshots/session3_agent_registry.png`, `docs/screenshots/session3_agent_registry_mcp.png`
 
 ---
 
@@ -631,11 +649,11 @@ gcloud ai agent-engines describe <AGENT_RESOURCE_NAME> \
 
 ---
 
-### 4.1 Agent Armor (Model Armor) (~15 min)
+### 4.1 Model Armor (Content Safety) (~15 min)
 
 **Code**: `src/armor/config.py` | **Script**: `scripts/setup_model_armor.sh`
 
-Agent Armor protects agents at two layers:
+Model Armor protects agents at two layers:
 
 #### Layer 1: Server-side — Model Armor Templates
 

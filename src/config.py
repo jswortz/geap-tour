@@ -14,7 +14,6 @@ BOOKING_MCP_URL = os.environ.get("BOOKING_MCP_URL", "http://localhost:8002/mcp")
 EXPENSE_MCP_URL = os.environ.get("EXPENSE_MCP_URL", "http://localhost:8003/mcp")
 
 OTEL_ENV_VARS = {
-    "OTEL_EXPORTER_OTLP_ENDPOINT": "http://localhost:4317",
     "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
     "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY",
 }

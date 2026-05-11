@@ -10,8 +10,8 @@ A hands-on workshop demonstrating the full Gemini Enterprise Agent Platform (GEA
 | **MCP Servers** | Three FastMCP tool servers deployed to Cloud Run (search, booking, expense) |
 | **Deployment** | Agent Runtime deployment with identity, gateway, and OTel tracing |
 | **Evaluation** | One-time, continuous (online monitors), and simulated evaluation pipelines |
-| **Agent Armor** | Model Armor templates for input/output screening + client-side guardrails |
-| **Governance** | Agent identity (SPIFFE), agent gateway, agent registry |
+| **Model Armor** | Model Armor templates for input/output screening + client-side guardrails |
+| **Governance** | Agent identity (SPIFFE), agent gateway (ingress + egress), agent registry, Semantic Governance Policies (SGP) |
 | **Optimization** | Agent optimization via GEPA algorithm |
 | **CI/CD** | GitHub Actions workflow running simulated evals on PRs |
 | **Diagrams** | Architecture diagrams generated with Paper Banana |
@@ -39,7 +39,7 @@ All screenshots are captured from real deployed GCP resources:
 
 | Screenshot | Feature |
 |-----------|---------|
-| ![Agent Gateway](docs/screenshots/session1_architecture_overview.png) | Agent Gateway detail (geap-workshop-gateway) |
+| ![Agent Gateway](docs/screenshots/session1_architecture_overview.png) | Agent Gateway ingress detail (geap-workshop-gateway) |
 | ![Cloud Run](docs/screenshots/session1_cloud_run_mcp_detail.png) | MCP server on Cloud Run |
 | ![Agent Engine](docs/screenshots/session1_agent_engine.png) | Multi-agent deployment |
 | ![Agent Gateway](docs/screenshots/session2_agent_gateway.png) | Agent Gateway (ingress + egress) |
@@ -93,14 +93,14 @@ In our workshop, agents use SPIFFE-based workload identity (ID-2) with attestati
 | ![Agent Identity & Gateway](diagrams/outputs/04_agent_identity_gateway.png) | SPIFFE identity, attestation policies, and Agent Gateway flow |
 | ![Observability Stack](diagrams/outputs/05_observability_stack.png) | OTel traces → Cloud Trace → BigQuery pipeline |
 | ![CI/CD Flow](diagrams/outputs/06_ci_cd_flow.png) | GitHub Actions simulated eval gate on pull requests |
-| ![Agent Armor](diagrams/outputs/07_agent_armor.png) | Model Armor input/output screening with guardrail callbacks |
+| ![Model Armor](diagrams/outputs/07_agent_armor.png) | Model Armor input/output screening with guardrail callbacks |
 
 ## Project Structure
 
 ```
 src/
 ├── agents/          # ADK agent definitions
-├── armor/           # Agent Armor — Model Armor config + guardrail callbacks
+├── armor/           # Model Armor config + guardrail callbacks
 ├── mcp_servers/     # FastMCP tool servers (search, booking, expense)
 ├── deploy/          # Deployment scripts for Cloud Run + Agent Runtime
 ├── eval/            # Evaluation pipeline (one-time, online, simulated)

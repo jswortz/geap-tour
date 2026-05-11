@@ -69,7 +69,8 @@ curl -s -X POST \
 
 # Grant the agent service account Model Armor roles
 echo "[4/4] Granting IAM roles..."
-SA_EMAIL="${PROJECT_ID}@appspot.gserviceaccount.com"
+PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format="value(projectNumber)")
+SA_EMAIL="service-${PROJECT_NUMBER}@gcp-sa-aiplatform-re.iam.gserviceaccount.com"
 for role in roles/modelarmor.user roles/modelarmor.calloutUser; do
     gcloud projects add-iam-policy-binding "$PROJECT_ID" \
         --member="serviceAccount:${SA_EMAIL}" \

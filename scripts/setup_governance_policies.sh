@@ -18,11 +18,16 @@ set -euo pipefail
 PROJECT_ID="${GCP_PROJECT_ID:-wortz-project-352116}"
 REGION="${GCP_REGION:-us-central1}"
 GATEWAY_NAME="geap-workshop-gateway"
+GATEWAY_EGRESS_NAME="${GATEWAY_EGRESS_NAME:-geap-workshop-gateway-egress}"
+
+PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format="value(projectNumber)")
+RE_SA="service-${PROJECT_NUMBER}@gcp-sa-aiplatform-re.iam.gserviceaccount.com"
 
 echo "=== GEAP Governance Policies Setup ==="
-echo "Project:  ${PROJECT_ID}"
+echo "Project:  ${PROJECT_ID} (${PROJECT_NUMBER})"
 echo "Region:   ${REGION}"
-echo "Gateway:  ${GATEWAY_NAME}"
+echo "Ingress:  ${GATEWAY_NAME}"
+echo "Egress:   ${GATEWAY_EGRESS_NAME}"
 echo ""
 
 # ─────────────────────────────────────────────────────────────
@@ -50,14 +55,14 @@ echo "── Layer 1: IAM Allow Policies ──"
 echo ""
 
 # Example 1: Allow coordinator agent read-only access to the Search MCP server
-cat > /tmp/iam-policy-coordinator-search.json <<'POLICY'
+cat > /tmp/iam-policy-coordinator-search.json <<POLICY
 {
   "policy": {
     "bindings": [
       {
         "role": "roles/iap.egressor",
         "members": [
-          "principal://service-679926387543@gcp-sa-aiplatform-re.iam.gserviceaccount.com"
+          "principal://${RE_SA}"
         ],
         "condition": {
           "title": "Coordinator read-only search access",
@@ -76,14 +81,14 @@ echo "            --project=${PROJECT_ID} --mcpServer=search-mcp --region=${REGI
 echo ""
 
 # Example 2: Allow travel agent full access to Booking MCP but deny destructive operations
-cat > /tmp/iam-policy-travel-booking.json <<'POLICY'
+cat > /tmp/iam-policy-travel-booking.json <<POLICY
 {
   "policy": {
     "bindings": [
       {
         "role": "roles/iap.egressor",
         "members": [
-          "principal://service-679926387543@gcp-sa-aiplatform-re.iam.gserviceaccount.com"
+          "principal://${RE_SA}"
         ],
         "condition": {
           "title": "Travel agent booking access - no destructive ops",
@@ -100,14 +105,14 @@ echo "        File: /tmp/iam-policy-travel-booking.json"
 echo ""
 
 # Example 3: Allow expense agent access only to specific tools by name
-cat > /tmp/iam-policy-expense-tools.json <<'POLICY'
+cat > /tmp/iam-policy-expense-tools.json <<POLICY
 {
   "policy": {
     "bindings": [
       {
         "role": "roles/iap.egressor",
         "members": [
-          "principal://service-679926387543@gcp-sa-aiplatform-re.iam.gserviceaccount.com"
+          "principal://${RE_SA}"
         ],
         "condition": {
           "title": "Expense agent tool-level access",
@@ -161,7 +166,7 @@ if gcloud compute networks describe "${NETWORK_NAME}" --project="${PROJECT_ID}" 
 else
     echo "    Creating VPC network '${NETWORK_NAME}'..."
     gcloud compute networks create "${NETWORK_NAME}" \
-        --subnet-mode=auto \
+        --subnet-mode=custom \
         --project="${PROJECT_ID}" 2>/dev/null || echo "    (network creation requires compute.networks.create permission)"
 fi
 
@@ -285,7 +290,7 @@ echo "    curl -X POST \\"
 echo "      'https://networksecurity.googleapis.com/v1beta1/projects/${PROJECT_ID}/locations/${REGION}/authzPolicies?authzPolicyId=geap-sgp-policy' \\"
 echo "      -H 'Authorization: Bearer \$(gcloud auth print-access-token)' \\"
 echo "      -H 'Content-Type: application/json' \\"
-echo "      -d '{\"target\": {\"loadBalancingScheme\": \"LOAD_BALANCING_SCHEME_UNSPECIFIED\", \"resources\": [\"projects/${PROJECT_ID}/locations/${REGION}/agentGateways/${GATEWAY_NAME}\"]}, \"httpRules\": [{\"to\": {\"operations\": [{\"paths\": [{\"prefix\": \"/\"}]}]}, \"when\": \"!request.headers['\\\"'\\\"'content-type'\\\"'\\\"'].startsWith('\\\"'\\\"'application/grpc'\\\"'\\\"')\"}], \"action\": \"CUSTOM\", \"policyProfile\": \"CONTENT_AUTHZ\", \"customProvider\": {\"authzExtension\": {\"resources\": [\"projects/${PROJECT_ID}/locations/${REGION}/authzExtensions/geap-sgp-extension\"]}}}'"
+echo "      -d '{\"target\": {\"loadBalancingScheme\": \"LOAD_BALANCING_SCHEME_UNSPECIFIED\", \"resources\": [\"projects/${PROJECT_ID}/locations/${REGION}/agentGateways/${GATEWAY_NAME}\", \"projects/${PROJECT_ID}/locations/${REGION}/agentGateways/${GATEWAY_EGRESS_NAME}\"]}, \"httpRules\": [{\"to\": {\"operations\": [{\"paths\": [{\"prefix\": \"/\"}]}]}, \"when\": \"!request.headers['\\\"'\\\"'content-type'\\\"'\\\"'].startsWith('\\\"'\\\"'application/grpc'\\\"'\\\"')\"}], \"action\": \"CUSTOM\", \"policyProfile\": \"CONTENT_AUTHZ\", \"customProvider\": {\"authzExtension\": {\"resources\": [\"projects/${PROJECT_ID}/locations/${REGION}/authzExtensions/geap-sgp-extension\"]}}}'"
 echo ""
 
 echo "  Optional: Enable dry-run mode for testing:"

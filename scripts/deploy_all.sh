@@ -31,8 +31,9 @@ fail() { echo -e "${RED}  ✗ $1${NC}"; }
 echo -e "${BLUE}"
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║           GEAP Workshop — Full Deployment                   ║"
-echo "║  Project: $PROJECT_ID"
-echo "║  Region:  $REGION"
+echo "║  Project: ${PROJECT_ID}"
+echo "║  Region:  ${REGION}"
+echo "║  Bucket:  ${STAGING_BUCKET}"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
@@ -133,11 +134,11 @@ AGENT_RESOURCE=$(uv run python -c "
 import vertexai
 vertexai.init(project='${PROJECT_ID}', location='${REGION}', staging_bucket='gs://${STAGING_BUCKET}')
 from src.deploy.deploy_agents import deploy_agent
-from src.agents.travel_agent import travel_agent
-name = deploy_agent(travel_agent)
+from src.agents.coordinator_agent import coordinator_agent
+name = deploy_agent(coordinator_agent)
 print(name)
 " 2>&1 | tail -1)
-ok "travel_agent deployed: $AGENT_RESOURCE"
+ok "coordinator_agent deployed: $AGENT_RESOURCE"
 
 # ─── Step 8: Generate traffic and run evaluations ───────────────────
 step "8/11" "Generating traffic and running evaluations"

@@ -22,6 +22,7 @@ gcloud services enable \
 
 ACCESS_TOKEN=$(gcloud auth print-access-token)
 
+# Ingress gateway governs WHO can talk to your agents
 # --- Ingress: Client-to-Agent gateway ---
 echo "[2/5] Creating Client-to-Agent (ingress) gateway..."
 EXISTING=$(curl -s -o /dev/null -w "%{http_code}" \
@@ -57,12 +58,17 @@ else
                 break
             fi
         done
+        if [ "$DONE" != "True" ]; then
+            echo "  ERROR: Ingress gateway creation timed out after 60 seconds."
+            exit 1
+        fi
     else
         echo "  Error creating ingress gateway: $RESULT"
         exit 1
     fi
 fi
 
+# Egress gateway governs WHAT your agents can access (MCP servers, models, external APIs)
 # --- Egress: Agent-to-Anywhere gateway ---
 echo "[3/5] Creating Agent-to-Anywhere (egress) gateway..."
 EXISTING_EGRESS=$(curl -s -o /dev/null -w "%{http_code}" \
@@ -98,6 +104,10 @@ else
                 break
             fi
         done
+        if [ "$DONE" != "True" ]; then
+            echo "  ERROR: Egress gateway creation timed out after 60 seconds."
+            exit 1
+        fi
     else
         echo "  Error creating egress gateway: $RESULT_EGRESS"
         exit 1
