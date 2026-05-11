@@ -40,7 +40,7 @@ All screenshots are captured from real deployed GCP resources:
 | Screenshot | Feature |
 |-----------|---------|
 | ![Architecture](docs/screenshots/session1_architecture_overview.png) | GEAP architecture overview (Topology) |
-| ![Cloud Run](docs/screenshots/session1_cloud_run_services.png) | MCP servers on Cloud Run |
+| ![Cloud Run](docs/screenshots/session1_cloud_run_mcp_detail.png) | MCP server on Cloud Run |
 | ![Agent Engine](docs/screenshots/session1_agent_engine.png) | Multi-agent deployment |
 | ![Agent Gateway](docs/screenshots/session2_agent_gateway.png) | Agent Gateway (ingress/egress) |
 | ![Model Armor](docs/screenshots/session4_model_armor.png) | Input/output screening |

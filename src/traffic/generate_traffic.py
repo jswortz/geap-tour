@@ -46,12 +46,23 @@ def generate_traffic(agent_resource_name: str | None = None):
         print(f"\n[{i}/{len(QUERIES)}] {query}")
         try:
             session = agent.create_session(user_id=f"test-user-{i % 3}")
-            response = session.send_message(query)
-            print(f"  → {str(response)[:120]}...")
+            session_id = session["id"]
+            response = agent.stream_query(
+                user_id=f"test-user-{i % 3}",
+                session_id=session_id,
+                message=query,
+            )
+            full_response = ""
+            for chunk in response:
+                if hasattr(chunk, "text"):
+                    full_response += chunk.text
+                elif isinstance(chunk, dict) and "text" in chunk:
+                    full_response += chunk["text"]
+            print(f"  -> {full_response[:120]}...")
         except Exception as e:
-            print(f"  ✗ Error: {e}")
+            print(f"  x Error: {e}")
 
-    print(f"\n✓ Sent {len(QUERIES)} queries — check Cloud Trace for spans")
+    print(f"\n Done: sent {len(QUERIES)} queries — check Cloud Trace for spans")
 
 
 if __name__ == "__main__":

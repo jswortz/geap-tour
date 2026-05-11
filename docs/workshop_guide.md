@@ -49,7 +49,7 @@ gcloud services enable \
 
 **Console Tours:** Vertex AI Agent Builder, Cloud Run Services, IAM Workload Identity Pools
 
-**Screenshots:** `docs/screenshots/session1_architecture_overview.png`, `docs/screenshots/session1_cloud_run_services.png`, `docs/screenshots/session1_agent_engine.png`, `docs/screenshots/session1_agent_builder.png`, `docs/screenshots/session1_workload_identity.png`
+**Screenshots:** `docs/screenshots/session1_architecture_overview.png`, `docs/screenshots/session1_cloud_run_mcp_detail.png`, `docs/screenshots/session1_agent_engine.png`, `docs/screenshots/session1_agent_builder.png`, `docs/screenshots/session1_workload_identity.png`
 
 ---
 
@@ -165,9 +165,9 @@ This runs `gcloud run deploy` for each server with its Dockerfile.
 
 **Console tour**: Navigate to Cloud Run -> Services. Show the three deployed MCP servers, their URLs, and logs.
 
-**Screenshot**: `docs/screenshots/session1_cloud_run_services.png`
+**Screenshot**: `docs/screenshots/session1_cloud_run_mcp_detail.png`
 
-![Cloud Run Services](screenshots/session1_cloud_run_services.png)
+![Cloud Run MCP Detail](screenshots/session1_cloud_run_mcp_detail.png)
 
 **Diagram**: `diagrams/outputs/02_deployment_architecture.png`
 
@@ -261,7 +261,7 @@ config = {"identity_type": types.IdentityType.AGENT_IDENTITY}
 
 **Console Tours:** Agent Gateway, Vertex AI Evaluation, Online Monitors, Cloud Monitoring Alerting, Cloud Trace, BigQuery, GitHub Actions
 
-**Screenshots:** `docs/screenshots/session2_agent_gateway.png`, `docs/screenshots/session2_evaluation.png`, `docs/screenshots/session2_online_monitors.png`, `docs/screenshots/session2_monitoring_alerts.png`, `docs/screenshots/session2_cloud_trace.png`, `docs/screenshots/session2_bigquery.png`, `docs/screenshots/session2_cloud_logging.png`
+**Screenshots:** `docs/screenshots/session2_agent_gateway.png`, `docs/screenshots/session2_evaluation.png`, `docs/screenshots/session2_evaluation_pipeline.png`, `docs/screenshots/session2_monitoring_alerts.png`, `docs/screenshots/session2_cloud_trace.png`, `docs/screenshots/session2_bigquery.png`, `docs/screenshots/session2_cloud_logging.png`
 
 ---
 
@@ -382,7 +382,7 @@ uv run python -m src.eval.manage_monitors resume <monitor-name>
 
 **Console tour**: Navigate to Vertex AI -> Evaluation -> Online Monitors. Show active monitors, their schedules, and recent results.
 
-**Screenshot**: `docs/screenshots/session2_online_monitors.png`
+**Screenshot**: `docs/screenshots/session2_evaluation_pipeline.png`
 
 ---
 
