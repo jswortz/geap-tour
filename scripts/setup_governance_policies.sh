@@ -577,6 +577,103 @@ fi
 echo ""
 
 # ─────────────────────────────────────────────────────────────
+# Layer 3: Authorization Delegation (IAP + Model Armor)
+# ─────────────────────────────────────────────────────────────
+#
+# Wire IAP and Model Armor to the gateway via authz extensions and policies.
+# IAP:         REQUEST_AUTHZ  — evaluates IAM conditions on request headers
+# Model Armor: CONTENT_AUTHZ  — screens request/response bodies for safety
+#
+# These are separate from the SGP authz extension created in Layer 2.
+# Max 4 authz policies per gateway (across both profiles).
+
+step "Layer 3: Authorization Delegation (IAP + Model Armor)"
+
+# 3a: IAP Authorization Extension (via REST — gcloud requires undocumented loadBalancingScheme)
+info "Creating IAP authorization extension..."
+run_cmd curl -s -X POST \
+    "https://networkservices.googleapis.com/v1beta1/projects/${PROJECT_ID}/locations/${REGION}/authzExtensions?authzExtensionId=geap-iap-extension" \
+    -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+    -H "Content-Type: application/json" \
+    -d '{"service":"iap.googleapis.com","failOpen":true,"timeout":"1s"}' \
+    && ok "IAP authz extension created" \
+    || warn "IAP authz extension creation failed (may already exist)"
+sleep 10
+
+# 3b: IAP Authorization Policy (REQUEST_AUTHZ on ingress gateway)
+info "Creating IAP authorization policy..."
+run_cmd curl -s -X POST \
+    "https://networksecurity.googleapis.com/v1beta1/projects/${PROJECT_ID}/locations/${REGION}/authzPolicies?authzPolicyId=geap-iap-policy" \
+    -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+    -H "Content-Type: application/json" \
+    -d "{
+        \"target\":{\"resources\":[\"projects/${PROJECT_NUMBER}/locations/${REGION}/agentGateways/${GATEWAY_NAME}\"]},
+        \"action\":\"CUSTOM\",
+        \"customProvider\":{\"authzExtension\":{\"resources\":[\"projects/${PROJECT_NUMBER}/locations/${REGION}/authzExtensions/geap-iap-extension\"]}},
+        \"policyProfile\":\"REQUEST_AUTHZ\"
+    }" \
+    && ok "IAP authz policy created (REQUEST_AUTHZ → ingress gateway)" \
+    || warn "IAP authz policy creation failed (may already exist)"
+sleep 10
+
+# 3c: Model Armor IAM prerequisites
+MA_SA="service-${PROJECT_NUMBER}@gcp-sa-dep.iam.gserviceaccount.com"
+info "Granting Model Armor roles to gateway service account..."
+
+run_cmd gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+    --member="serviceAccount:${MA_SA}" \
+    --role=roles/modelarmor.calloutUser \
+    --condition=None \
+    --quiet 2>/dev/null \
+    && ok "roles/modelarmor.calloutUser granted to gateway SA" \
+    || warn "modelarmor.calloutUser grant failed (may already exist)"
+
+run_cmd gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+    --member="serviceAccount:${MA_SA}" \
+    --role=roles/serviceusage.serviceUsageConsumer \
+    --condition=None \
+    --quiet 2>/dev/null \
+    && ok "roles/serviceusage.serviceUsageConsumer granted to gateway SA" \
+    || warn "serviceUsageConsumer grant failed (may already exist)"
+
+# 3d: Model Armor Authorization Extension
+PROMPT_TEMPLATE="projects/${PROJECT_ID}/locations/${REGION}/templates/geap-workshop-prompt"
+RESPONSE_TEMPLATE="projects/${PROJECT_ID}/locations/${REGION}/templates/geap-workshop-response"
+
+info "Creating Model Armor authorization extension..."
+MA_SETTINGS="[{\"request_template_id\":\"${PROMPT_TEMPLATE}\",\"response_template_id\":\"${RESPONSE_TEMPLATE}\"}]"
+run_cmd curl -s -X POST \
+    "https://networkservices.googleapis.com/v1beta1/projects/${PROJECT_ID}/locations/${REGION}/authzExtensions?authzExtensionId=geap-model-armor-extension" \
+    -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+    -H "Content-Type: application/json" \
+    -d "{\"service\":\"modelarmor.${REGION}.rep.googleapis.com\",\"metadata\":{\"model_armor_settings\":\"${MA_SETTINGS}\"},\"failOpen\":true,\"timeout\":\"1s\"}" \
+    && ok "Model Armor authz extension created" \
+    || warn "Model Armor authz extension creation failed (may already exist)"
+sleep 10
+
+# 3e: Model Armor Authorization Policy (CONTENT_AUTHZ on ingress gateway)
+info "Creating Model Armor authorization policy..."
+run_cmd curl -s -X POST \
+    "https://networksecurity.googleapis.com/v1beta1/projects/${PROJECT_ID}/locations/${REGION}/authzPolicies?authzPolicyId=geap-model-armor-policy" \
+    -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+    -H "Content-Type: application/json" \
+    -d "{
+        \"target\":{\"resources\":[\"projects/${PROJECT_NUMBER}/locations/${REGION}/agentGateways/${GATEWAY_NAME}\"]},
+        \"action\":\"CUSTOM\",
+        \"customProvider\":{\"authzExtension\":{\"resources\":[\"projects/${PROJECT_NUMBER}/locations/${REGION}/authzExtensions/geap-model-armor-extension\"]}},
+        \"policyProfile\":\"CONTENT_AUTHZ\"
+    }" \
+    && ok "Model Armor authz policy created (CONTENT_AUTHZ → ingress gateway)" \
+    || warn "Model Armor authz policy creation failed (may already exist)"
+
+echo ""
+info "Verify deployed extensions and policies:"
+info "  gcloud beta service-extensions authz-extensions list --location=${REGION}"
+info "  gcloud beta network-security authz-policies list --location=${REGION}"
+
+echo ""
+
+# ─────────────────────────────────────────────────────────────
 # Summary
 # ─────────────────────────────────────────────────────────────
 
@@ -621,7 +718,15 @@ else
     echo "  Layer 2 — Semantic Governance (SKIPPED — pass --sgp to enable)"
 fi
 echo ""
-echo "  Layer 3 — Model Armor (content screening)"
-echo "    See: scripts/setup_model_armor.sh"
+echo "  Layer 3 — Authorization Delegation (IAP + Model Armor)"
+echo "    IAP extension:         geap-iap-extension (REQUEST_AUTHZ)"
+echo "    IAP policy:            geap-iap-policy → ingress gateway"
+echo "    Model Armor extension: geap-model-armor-extension (CONTENT_AUTHZ)"
+echo "    Model Armor policy:    geap-model-armor-policy → ingress gateway"
+echo "    Templates:             geap-workshop-prompt / geap-workshop-response"
+echo ""
+echo "  Model Armor templates — see: scripts/setup_model_armor.sh"
+echo ""
+echo "  Docs: https://cloud.google.com/gemini-enterprise-agent-platform/govern/gateways/delegate-authorization"
 echo ""
 echo "  Done."

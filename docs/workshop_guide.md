@@ -535,6 +535,252 @@ Navigate to Agent Platform -> Policies -> Business Policies to view active SGP r
 
 ![Business Policies](screenshots/session3_business_policies.png)
 
+#### Delegating Authorization to Agent Gateway
+
+**Docs**: [Delegate Authorization](https://cloud.google.com/gemini-enterprise-agent-platform/govern/gateways/delegate-authorization)
+
+The three governance layers above (IAM, SGP, Model Armor) each need to be **wired to the gateway** via authorization extensions and policies. This "delegation" step is what turns the gateway from a passthrough into an enforcement point — without it, traffic flows through ungoverned.
+
+##### How Authorization Delegation Works
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                    Agent Gateway                          │
+│                                                           │
+│   Request arrives                                         │
+│       │                                                   │
+│       ▼                                                   │
+│   REQUEST_AUTHZ policies evaluate  ◄── IAP (headers)      │
+│       │                                                   │
+│       ▼                                                   │
+│   Route to agent / MCP server                             │
+│       │                                                   │
+│       ▼                                                   │
+│   CONTENT_AUTHZ policies evaluate  ◄── Model Armor (body) │
+│       │                              ◄── SGP (semantics)  │
+│       ▼                                                   │
+│   Response returned                                       │
+└──────────────────────────────────────────────────────────┘
+```
+
+Two policy profiles govern **when** the extension sees traffic:
+
+| Profile | Sees | Best for | Latency impact |
+|---------|------|----------|----------------|
+| **REQUEST_AUTHZ** | Request headers only | Identity checks, tool allow/deny lists | Low |
+| **CONTENT_AUTHZ** | Full request + response bodies | Content screening, semantic analysis | Higher |
+
+Each gateway supports up to **4 authorization policies** (across both profiles). Multiple policies with the same profile execute in undefined order.
+
+##### Three Delegation Options
+
+| Option | Extension service | Profile | Purpose |
+|--------|-------------------|---------|---------|
+| **IAP** | `iap.googleapis.com` | REQUEST_AUTHZ | User identity verification + IAM CEL conditions on tool attributes |
+| **Model Armor** | `modelarmor.REGION.rep.googleapis.com` | CONTENT_AUTHZ | Prompt/response content screening at the gateway level |
+| **Custom** | Your FQDN (VPC only) | Either | Roll your own gRPC authorization service |
+
+All three can coexist on a single gateway — use REQUEST_AUTHZ (IAP for identity) + CONTENT_AUTHZ (Model Armor for safety) for defense-in-depth.
+
+##### Option 1: IAP (Identity-Aware Proxy)
+
+IAP intercepts requests at the gateway and evaluates IAM conditions using CEL expressions on MCP tool attributes. This is how the IAM Allow Policies from Layer 1 are enforced.
+
+**Step 1**: Create an authorization extension pointing to IAP via REST API:
+
+```bash
+# For Google API services (IAP, Model Armor), omit the 'authority' field
+curl -X POST \
+    "https://networkservices.googleapis.com/v1beta1/projects/${PROJECT_ID}/locations/${REGION}/authzExtensions?authzExtensionId=geap-iap-extension" \
+    -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+    -H "Content-Type: application/json" \
+    -d '{"service": "iap.googleapis.com", "failOpen": true, "timeout": "1s"}'
+```
+
+Use `failOpen: true` during development (allows traffic if IAP is unavailable) and `false` in production. For audit-only mode, add `"metadata": {"iamEnforcementMode": "DRY_RUN"}` to the request body.
+
+> **Note:** The `gcloud beta service-extensions authz-extensions import` command requires an undocumented `loadBalancingScheme` field for Google API services. Use the REST API directly instead.
+
+**Step 2**: Create an authorization policy binding the extension to the ingress gateway:
+
+```bash
+curl -X POST \
+    "https://networksecurity.googleapis.com/v1beta1/projects/${PROJECT_ID}/locations/${REGION}/authzPolicies?authzPolicyId=geap-iap-policy" \
+    -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "target": {"resources": ["projects/${PROJECT_NUMBER}/locations/${REGION}/agentGateways/geap-workshop-gateway"]},
+      "action": "CUSTOM",
+      "customProvider": {"authzExtension": {"resources": ["projects/${PROJECT_NUMBER}/locations/${REGION}/authzExtensions/geap-iap-extension"]}},
+      "policyProfile": "REQUEST_AUTHZ"
+    }'
+```
+
+> **Important:** Target resources and extension references must use **project number** (not project ID) in the resource path.
+
+Once wired, the IAM Allow Policies created in Layer 1 are enforced at the gateway boundary. The CEL conditions on tool attributes (`mcp.toolName`, `mcp.tool.isReadOnly`, etc.) are evaluated by IAP before the request reaches the agent.
+
+##### Option 2: Model Armor at the Gateway
+
+Model Armor can screen traffic in two places:
+- **Inside the agent** — via `GenerateContentConfig` (already configured in Session 4)
+- **At the gateway** — via a CONTENT_AUTHZ extension (catches threats before they reach the agent)
+
+Gateway-level Model Armor sees the full request and response bodies, providing defense-in-depth. Even if an attacker bypasses client-side guardrails, the gateway blocks malicious content.
+
+**Prerequisites** — grant roles to the gateway service account:
+
+```bash
+# Gateway service account: service-PROJECT_NUMBER@gcp-sa-dep.iam.gserviceaccount.com
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+    --member="serviceAccount:service-${PROJECT_NUMBER}@gcp-sa-dep.iam.gserviceaccount.com" \
+    --role=roles/modelarmor.calloutUser
+
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+    --member="serviceAccount:service-${PROJECT_NUMBER}@gcp-sa-dep.iam.gserviceaccount.com" \
+    --role=roles/serviceusage.serviceUsageConsumer
+
+# If Model Armor templates are in a different project, also grant in that project:
+gcloud projects add-iam-policy-binding ${MODEL_ARMOR_PROJECT_ID} \
+    --member="serviceAccount:service-${PROJECT_NUMBER}@gcp-sa-dep.iam.gserviceaccount.com" \
+    --role=roles/modelarmor.user
+```
+
+**Step 1**: Create a CONTENT_AUTHZ extension pointing to Model Armor:
+
+```bash
+curl -X POST \
+    "https://networkservices.googleapis.com/v1beta1/projects/${PROJECT_ID}/locations/${REGION}/authzExtensions?authzExtensionId=geap-model-armor-extension" \
+    -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "service": "modelarmor.${REGION}.rep.googleapis.com",
+      "metadata": {
+        "model_armor_settings": "[{\"request_template_id\": \"projects/${PROJECT_ID}/locations/${REGION}/templates/geap-workshop-prompt\", \"response_template_id\": \"projects/${PROJECT_ID}/locations/${REGION}/templates/geap-workshop-response\"}]"
+      },
+      "failOpen": true,
+      "timeout": "1s"
+    }'
+```
+
+The `model_armor_settings` metadata value is a JSON string (not an object) containing an array of template pairs.
+
+**Step 2**: Create a CONTENT_AUTHZ policy:
+
+```bash
+curl -X POST \
+    "https://networksecurity.googleapis.com/v1beta1/projects/${PROJECT_ID}/locations/${REGION}/authzPolicies?authzPolicyId=geap-model-armor-policy" \
+    -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "target": {"resources": ["projects/${PROJECT_NUMBER}/locations/${REGION}/agentGateways/geap-workshop-gateway"]},
+      "action": "CUSTOM",
+      "customProvider": {"authzExtension": {"resources": ["projects/${PROJECT_NUMBER}/locations/${REGION}/authzExtensions/geap-model-armor-extension"]}},
+      "policyProfile": "CONTENT_AUTHZ"
+    }'
+```
+
+##### Option 3: Custom Authorization Service
+
+For custom business logic beyond what IAP and Model Armor provide, deploy your own gRPC service implementing the `ext_authz` protocol and point the extension at its FQDN:
+
+```yaml
+name: my-custom-authz
+service: myauthz.internal.example.com
+failOpen: true
+timeout: 1s
+wireFormat: EXT_AUTHZ_GRPC
+```
+
+The extension communicates via HTTP2+TLS on port 443. The FQDN must resolve within your VPC (configure DNS peering). Certificate validation is disabled by the gateway, so rely on VPC containment for security.
+
+##### MCP Tool-Level Authorization Policies
+
+Beyond delegating to external services, you can write inline ALLOW/DENY policies that filter MCP tool access directly at the gateway — no extension needed:
+
+**ALLOW specific tools** (whitelist pattern):
+
+```yaml
+name: geap-allow-search-tools
+target:
+  resources:
+    - "projects/${PROJECT_ID}/locations/${REGION}/agentGateways/geap-workshop-gateway-egress"
+policyProfile: REQUEST_AUTHZ
+httpRules:
+  - to:
+      operations:
+        - mcp:
+            baseProtocolMethodsOption: MATCH_BASE_PROTOCOL_METHODS
+            methods:
+              - name: "tools/list"
+              - name: "tools/call"
+                params:
+                  - exact: "search_flights"
+                  - exact: "search_hotels"
+action: ALLOW
+```
+
+> **Important**: Always include `baseProtocolMethodsOption: MATCH_BASE_PROTOCOL_METHODS` in ALLOW rules — this ensures MCP base operations (initialize, ping, notifications) still work. Omitting it will break the MCP session.
+
+**DENY dangerous operations** (blacklist pattern):
+
+```yaml
+name: geap-deny-prompts
+target:
+  resources:
+    - "projects/${PROJECT_ID}/locations/${REGION}/agentGateways/geap-workshop-gateway-egress"
+policyProfile: REQUEST_AUTHZ
+httpRules:
+  - to:
+      operations:
+        - mcp:
+            methods:
+              - name: "prompts"
+action: DENY
+```
+
+Deploy MCP authz policies with:
+
+```bash
+gcloud beta network-security authz-policies import POLICY_NAME \
+    --source=policy.yaml \
+    --location=${REGION}
+```
+
+##### Putting It All Together: Defense-in-Depth
+
+The workshop demonstrates a layered authorization strategy:
+
+```
+Request flow through Agent Gateway:
+
+  1. MCP tool-level ALLOW/DENY rules     ← Static whitelist/blacklist (no extension)
+  2. IAP REQUEST_AUTHZ extension          ← Identity + CEL conditions on tool attributes
+  3. Model Armor CONTENT_AUTHZ extension  ← Content safety on request body
+  4. Agent processes request
+  5. Model Armor CONTENT_AUTHZ extension  ← Content safety on response body
+  6. SGP CONTENT_AUTHZ extension          ← Semantic business rules (if enabled)
+```
+
+**Setup script**:
+
+```bash
+# Create all authorization extensions and policies:
+bash scripts/setup_governance_policies.sh --sgp
+
+# This creates:
+#   Step 0: Agent-to-gateway attachment (identityType + agentGatewayConfig)
+#   Layer 1: IAM Allow Policies (CEL conditions)
+#   Layer 2: SGP authz extension + policy (CONTENT_AUTHZ, if --sgp)
+#   Layer 3: IAP + Model Armor authz extensions + policies
+
+# Verify what's deployed:
+gcloud beta service-extensions authz-extensions list --location=${REGION}
+gcloud beta network-security authz-policies list --location=${REGION}
+```
+
+> **Key limitation**: Maximum 4 authorization policies per gateway. Plan your policy allocation across IAP, Model Armor, SGP, and any custom extensions.
+
 ---
 
 ### 2.2 One-Time Evaluation (~15 min)
@@ -962,9 +1208,9 @@ gcloud ai agent-engines describe <AGENT_RESOURCE_NAME> \
 
 ### 4.1 Model Armor (Content Safety) (~15 min)
 
-**Code**: [`src/armor/config.py:17-65`](../src/armor/config.py) | **Script**: [`scripts/setup_model_armor.sh`](../scripts/setup_model_armor.sh) | **Docs**: [Model Armor](https://cloud.google.com/security/products/model-armor)
+**Code**: [`src/armor/config.py:17-65`](../src/armor/config.py) | **Script**: [`scripts/setup_model_armor.sh`](../scripts/setup_model_armor.sh) | **Docs**: [Model Armor](https://cloud.google.com/security/products/model-armor) | [Delegate to Model Armor](https://cloud.google.com/gemini-enterprise-agent-platform/govern/gateways/delegate-authorization)
 
-Model Armor protects agents at two layers:
+Model Armor protects agents at three layers (two inside the agent, one at the gateway):
 
 #### Layer 1: Server-side — Model Armor Templates
 
@@ -1020,6 +1266,12 @@ The callback blocks:
 # Test the guardrails
 uv run pytest tests/test_armor.py -v
 ```
+
+#### Layer 3: Gateway-level — Model Armor CONTENT_AUTHZ
+
+When Model Armor is delegated to the Agent Gateway (see section 2.1 "Delegating Authorization"), every request and response body is screened **before it reaches the agent** and again **before it leaves**. This catches threats even if client-side guardrails are bypassed — for example, a direct API call that skips the `before_agent_callback`.
+
+See the "Option 2: Model Armor at the Gateway" section under Delegating Authorization for setup instructions.
 
 **Console tour**: Navigate to Security -> Model Armor in the Cloud Console. Show templates, filter configurations, and enforcement logs.
 
