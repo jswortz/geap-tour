@@ -556,6 +556,7 @@ travel_agent = LlmAgent(
   },
   "identity_type": "AGENT_IDENTITY",
 }</code></pre>
+      <p style="font-size: 13px; color: var(--gray); margin-top: 8px;"><em>Requires Private Preview — gateway attachment via REST API PATCH</em></p>
     </div>
     <div class="img-container">
       <img src="screenshots/session2_agent_gateway.png" alt="Agent Gateway Console">
@@ -571,6 +572,40 @@ travel_agent = LlmAgent(
     <img src="screenshots/session2_agent_traces.png" alt="Agent Traces">
   </div>
   <p style="color: rgba(255,255,255,0.7); text-align: center; font-size: 18px;">Session view showing model calls, tool calls, token usage, and duration per trace</p>
+  <div class="logo">Google Cloud</div>
+</div>
+
+<!-- ===== SLIDE 14c: GOVERNANCE POLICIES ===== -->
+<div class="slide" id="s14c">
+  <h2>Governance — Three Policy Layers</h2>
+  <div class="columns">
+    <div>
+      <table style="font-size: 16px; width: 100%; border-collapse: collapse;">
+        <tr style="border-bottom: 2px solid var(--blue);"><th style="text-align: left; padding: 10px;">Layer</th><th style="text-align: left; padding: 10px;">Type</th><th style="text-align: left; padding: 10px;">Enforces</th></tr>
+        <tr style="border-bottom: 1px solid #eee;"><td style="padding: 10px;"><span class="badge blue">IAM Allow</span></td><td style="padding: 10px;">Static (CEL rules)</td><td style="padding: 10px;">Which MCP servers an agent can call via egress gateway</td></tr>
+        <tr style="border-bottom: 1px solid #eee;"><td style="padding: 10px;"><span class="badge green">SGP</span></td><td style="padding: 10px;">Runtime (natural language)</td><td style="padding: 10px;">Business rules — e.g. "Booking amounts must not exceed $5,000"</td></tr>
+        <tr><td style="padding: 10px;"><span class="badge red">Model Armor</span></td><td style="padding: 10px;">Content screening</td><td style="padding: 10px;">Prompt injection, jailbreak, PII, harmful content</td></tr>
+      </table>
+      <div class="highlight-box" style="margin-top: 20px; font-size: 17px;">
+        <strong>Layered defense:</strong> IAM Allow restricts <em>where</em> agents connect, SGP restricts <em>what</em> agents do, Model Armor restricts <em>how</em> content is screened
+      </div>
+    </div>
+    <div>
+      <h3>IAM Allow Policy (CEL)</h3>
+      <pre style="font-size: 13px;"><span style="color:#569cd6">resource.type</span> == <span style="color:#ce9178">"networkservices"</span>
+&& resource.service in [
+  <span style="color:#ce9178">"search-mcp"</span>,
+  <span style="color:#ce9178">"booking-mcp"</span>,
+  <span style="color:#ce9178">"expense-mcp"</span>
+]</pre>
+      <h3 style="margin-top: 16px;">Semantic Governance Policy</h3>
+      <pre style="font-size: 13px;"><span style="color:#569cd6">name:</span> <span style="color:#ce9178">"booking-limit"</span>
+<span style="color:#569cd6">rule:</span> <span style="color:#ce9178">"Booking amounts must
+  not exceed $5,000 per
+  transaction"</span>
+<span style="color:#569cd6">action:</span> <span style="color:#ce9178">BLOCK</span></pre>
+    </div>
+  </div>
   <div class="logo">Google Cloud</div>
 </div>
 
@@ -743,40 +778,6 @@ travel_agent = LlmAgent(
   <div class="logo">Google Cloud</div>
 </div>
 
-<!-- ===== SLIDE 22b: GOVERNANCE POLICIES ===== -->
-<div class="slide" id="s22b">
-  <h2>Governance — Three Policy Layers</h2>
-  <div class="columns">
-    <div>
-      <table style="font-size: 16px; width: 100%; border-collapse: collapse;">
-        <tr style="border-bottom: 2px solid var(--blue);"><th style="text-align: left; padding: 10px;">Layer</th><th style="text-align: left; padding: 10px;">Type</th><th style="text-align: left; padding: 10px;">Enforces</th></tr>
-        <tr style="border-bottom: 1px solid #eee;"><td style="padding: 10px;"><span class="badge blue">IAM Allow</span></td><td style="padding: 10px;">Static (CEL rules)</td><td style="padding: 10px;">Which MCP servers an agent can call via egress gateway</td></tr>
-        <tr style="border-bottom: 1px solid #eee;"><td style="padding: 10px;"><span class="badge green">SGP</span></td><td style="padding: 10px;">Runtime (natural language)</td><td style="padding: 10px;">Business rules — e.g. "Booking amounts must not exceed $5,000"</td></tr>
-        <tr><td style="padding: 10px;"><span class="badge red">Model Armor</span></td><td style="padding: 10px;">Content screening</td><td style="padding: 10px;">Prompt injection, jailbreak, PII, harmful content</td></tr>
-      </table>
-      <div class="highlight-box" style="margin-top: 20px; font-size: 17px;">
-        <strong>Layered defense:</strong> IAM Allow restricts <em>where</em> agents connect, SGP restricts <em>what</em> agents do, Model Armor restricts <em>how</em> content is screened
-      </div>
-    </div>
-    <div>
-      <h3>IAM Allow Policy (CEL)</h3>
-      <pre style="font-size: 13px;"><span style="color:#569cd6">resource.type</span> == <span style="color:#ce9178">"networkservices"</span>
-&& resource.service in [
-  <span style="color:#ce9178">"search-mcp"</span>,
-  <span style="color:#ce9178">"booking-mcp"</span>,
-  <span style="color:#ce9178">"expense-mcp"</span>
-]</pre>
-      <h3 style="margin-top: 16px;">Semantic Governance Policy</h3>
-      <pre style="font-size: 13px;"><span style="color:#569cd6">name:</span> <span style="color:#ce9178">"booking-limit"</span>
-<span style="color:#569cd6">rule:</span> <span style="color:#ce9178">"Booking amounts must
-  not exceed $5,000 per
-  transaction"</span>
-<span style="color:#569cd6">action:</span> <span style="color:#ce9178">BLOCK</span></pre>
-    </div>
-  </div>
-  <div class="logo">Google Cloud</div>
-</div>
-
 <!-- ===== SLIDE 23: CONSOLE — POLICIES ===== -->
 <div class="slide dark" id="s23">
   <h2 style="color: var(--white);">Console: Business Policies</h2>
@@ -799,7 +800,7 @@ travel_agent = LlmAgent(
   <h2>Model Armor — Content Safety Integration</h2>
   <div class="columns">
     <div class="img-container">
-      <img src="../diagrams/outputs/07_agent_armor.png" alt="Agent Armor">
+      <img src="../diagrams/outputs/07_agent_armor.png" alt="Model Armor">
     </div>
     <div>
       <h3>Defense Layers</h3>
@@ -853,7 +854,7 @@ travel_agent = LlmAgent(
       <h3>Govern</h3>
       <ul style="font-size: 16px;">
         <li>SPIFFE identity</li>
-        <li>Agent Gateway</li>
+        <li>Agent Gateway (dual)</li>
         <li>Agent Registry</li>
       </ul>
     </div>
