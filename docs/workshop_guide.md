@@ -368,11 +368,43 @@ remote = agent_engines.create(
 )
 ```
 
-> **Private Preview note:** The `agentGatewayConfig` field on ReasoningEngine requires separate Private Preview enrollment on the AI Platform API. This is a different enrollment than the Network Services API (which controls gateway creation). Your project may be enrolled in one but not the other.
+> **Private Preview note (verified 2026-05-12):** Attaching agents to gateways requires the `agentGatewayConfig` field on ReasoningEngine/Agent, which is gated behind a **separate** Private Preview enrollment on the AI Platform API. This is independent from the Network Services API enrollment (which controls gateway creation). Your project may be enrolled in one but not the other.
 >
-> - **Network Services API enrolled** → gateways create successfully with mTLS endpoints
-> - **AI Platform API enrolled** → `agentGatewayConfig` is accepted during agent deployment
-> - **AI Platform API NOT enrolled** → gateways exist but can't be attached to agents (400 error)
+> **What works without AI Platform enrollment:**
+> - Creating both ingress and egress gateways (Network Services API)
+> - Gateway mTLS endpoints and root certificates
+> - SGP engine provisioning (becomes ACTIVE with PSC service attachment)
+> - Authz extensions and policies connecting SGP to gateways
+> - IAM Allow policy JSON generation
+> - Agent Registry entries with RuntimeIdentity attributes
+>
+> **What requires AI Platform enrollment (`agentGatewayConfig`):**
+> - Attaching gateways to agents during deployment (`agent_gateway_config` in create config)
+> - SGP policy creation (fails with `SEMANTIC_GOVERNANCE_POLICY_AGENT_NOT_CONFIGURED` because the agent isn't linked to a gateway, so SGP can't validate its RuntimeIdentity)
+> - MCP server registration in Agent Registry (needed for tool-scope SGP policies)
+>
+> **How to verify enrollment status:**
+> ```bash
+> # If this returns "Unknown name", you're NOT enrolled:
+> curl -s -X PATCH \
+>     "https://${REGION}-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_ID}/locations/${REGION}/reasoningEngines/${ENGINE_ID}" \
+>     -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+>     -H "Content-Type: application/json" \
+>     -d '{"agentGatewayConfig": {"agentToAnywhereConfig": {"agentGateway": "projects/PROJECT/locations/REGION/agentGateways/NAME"}}}'
+> ```
+>
+> The field is not yet in the public `google-cloud-aiplatform` SDK (tested up to v1.151.0) or the REST API schema. When enrolled, pass the config during deployment:
+> ```python
+> remote = agent_engines.create(
+>     agent_engine=agent,
+>     config={
+>         "agent_gateway_config": {
+>             "client_to_agent_config": {"agent_gateway": INGRESS_GATEWAY_PATH},
+>             "agent_to_anywhere_config": {"agent_gateway": EGRESS_GATEWAY_PATH},
+>         },
+>     },
+> )
+> ```
 >
 > The workshop deploy script (`src/deploy/deploy_agents.py`) handles this gracefully via `_attach_gateway()`, which tries v1beta1 then v1 and logs a note if attachment fails.
 
@@ -455,10 +487,12 @@ When `--sgp` is passed, the script performs these additional steps:
 1. Creates a VPC network and subnet for SGP engine connectivity
 2. Creates a private DNS zone for internal resolution
 3. Provisions the SGP engine (takes ~15-20 minutes to become ACTIVE)
-4. Creates 5 example SGP policies (once the engine is ACTIVE)
+4. Creates 6 example SGP policies (once the engine is ACTIVE)
 5. Connects the SGP engine to both gateways via an authorization extension and policy
 
 > **Note:** The SGP engine provisioning is a one-time step. If the engine is still provisioning (state: CREATING), re-run the script with `--sgp` after it becomes ACTIVE to create the policies and connect the gateway.
+
+> **Enrollment dependency:** SGP policy creation requires that agents are attached to gateways via `agentGatewayConfig` (see the Private Preview note in section 2.1). Without this enrollment, the SGP engine is ACTIVE and the authz wiring is in place, but policy creation fails with `SEMANTIC_GOVERNANCE_POLICY_AGENT_NOT_CONFIGURED`. Tool-scope policies additionally require MCP servers to be registered in the Agent Registry with fully qualified names (`projects/*/locations/*/mcpServers/*`).
 
 **Five example SGP policies:**
 
