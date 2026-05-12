@@ -17,6 +17,10 @@ from src.config import (
     EXPENSE_MCP_URL,
     AGENT_GATEWAY_PATH,
     AGENT_GATEWAY_EGRESS_PATH,
+    OPUS_MODEL,
+    LITE_MODEL,
+    FLASH_MODEL,
+    COMPLEXITY_THRESHOLD_HIGH,
 )
 
 REQUIREMENTS = [
@@ -24,6 +28,7 @@ REQUIREMENTS = [
     "google-genai>=1.14.0",
     "fastmcp>=2.0.0",
     "python-dotenv>=1.0.0",
+    "litellm>=1.0.0",
 ]
 
 SRC_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -78,6 +83,10 @@ def deploy_agent(agent, display_name: str | None = None) -> str:
         "SEARCH_MCP_URL": SEARCH_MCP_URL,
         "BOOKING_MCP_URL": BOOKING_MCP_URL,
         "EXPENSE_MCP_URL": EXPENSE_MCP_URL,
+        "OPUS_MODEL": OPUS_MODEL,
+        "LITE_MODEL": LITE_MODEL,
+        "FLASH_MODEL": FLASH_MODEL,
+        "COMPLEXITY_THRESHOLD_HIGH": str(COMPLEXITY_THRESHOLD_HIGH),
         "GOOGLE_API_PREVENT_AGENT_TOKEN_SHARING_FOR_GCP_SERVICES": "false",
     }
 
@@ -100,8 +109,8 @@ def deploy_all_agents() -> dict[str, str]:
     """Deploy all agents and return a map of name → resource name."""
     vertexai.init(project=GCP_PROJECT_ID, location=GCP_REGION, staging_bucket=f"gs://{GCP_STAGING_BUCKET}")
 
-    from src.agents.coordinator_agent import coordinator_agent
-    agents = [coordinator_agent]
+    from src.router.agents import router_agent
+    agents = [router_agent]
     deployed = {}
 
     for agent in agents:
