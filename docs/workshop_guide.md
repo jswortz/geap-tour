@@ -621,6 +621,146 @@ Key trace metrics: session duration, model calls, tool calls, token usage, and e
 
 ---
 
+### 2.8 Multi-Model Router (~15 min)
+
+**Code**: `src/router/agents.py`, `src/router/complexity.py`
+
+The multi-model router dynamically selects the best model for each user prompt based on complexity. Instead of sending every request to a single model, a lightweight classifier scores the prompt and routes to the appropriate specialist:
+
+| Complexity | Score Range | Model | Use Case |
+|------------|------------|-------|----------|
+| **Low** | 0.0–0.34 | `gemini-2.0-flash-lite` | Single-intent lookups, quick facts |
+| **Medium** | 0.35–0.64 | `gemini-2.5-flash` | Comparisons, multi-step lookups, summaries |
+| **High** | 0.65–1.0 | `claude-opus-4-7` (via LiteLLM) | Cross-domain analysis, multi-step planning |
+
+#### Complexity Classifier
+
+A micro-judge powered by Gemini Flash Lite scores each incoming prompt (0–1) with a one-sentence rationale:
+
+```python
+# src/router/complexity.py
+async def classify_complexity(prompt: str) -> ComplexityResult:
+    client = genai.Client(vertexai=True, project=GCP_PROJECT_ID, location=GCP_REGION)
+    response = await client.aio.models.generate_content(
+        model="gemini-2.0-flash-lite",
+        contents=CLASSIFIER_PROMPT_TEMPLATE.format(prompt=prompt),
+        config=GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=RESPONSE_SCHEMA,
+            temperature=0.0,
+        ),
+    )
+    data = json.loads(response.text)
+    score = max(0.0, min(1.0, float(data["score"])))
+    return ComplexityResult(level=_score_to_level(score), score=score, reason=data.get("reason", ""))
+```
+
+#### Router Agent Architecture
+
+The router agent uses a `before_agent_callback` to classify complexity and store it in session state, then delegates to the appropriate sub-agent:
+
+```python
+# src/router/agents.py
+router_agent = LlmAgent(
+    model=_resolve_model(LITE_MODEL),
+    name="router_agent",
+    instruction=ROUTER_INSTRUCTION,      # reads complexity_level from state
+    tools=[PreloadMemoryTool()],
+    sub_agents=[lite_agent, flash_agent, opus_agent],
+    before_agent_callback=complexity_router_callback,
+    after_agent_callback=save_memories_callback,
+)
+```
+
+Each sub-agent (lite, flash, opus) has its own model, instruction style, and full MCP tool access. Non-Gemini models (like Claude) are wrapped with `LiteLlm()` for Vertex AI compatibility.
+
+#### Deploying the Router
+
+```bash
+# Deploy the router agent alongside the coordinator
+uv run python src/deploy/deploy_agents.py router
+
+# Or deploy both coordinator and router
+uv run python src/deploy/deploy_agents.py all
+```
+
+#### Testing with Complexity-Tagged Traffic
+
+The traffic generator includes queries tagged by expected complexity:
+
+```bash
+# Generate traffic across all complexity levels
+uv run python src/traffic/generate_traffic.py
+```
+
+Queries are tagged with expected complexity so you can verify routing accuracy in Cloud Trace.
+
+---
+
+### 2.9 Memory Bank & User Namespaces (~10 min)
+
+**Code**: `src/agents/coordinator_agent.py`, `src/router/agents.py`
+
+Memory Bank gives agents persistent memory across sessions. Each conversation is stored and recalled so the agent remembers user preferences, past bookings, and prior interactions.
+
+#### How Memory Bank Works
+
+Two components enable memory:
+
+1. **`PreloadMemoryTool`** — injected into the agent's tools list. At the start of each turn, it retrieves relevant memories from Memory Bank and injects them into the system instruction.
+
+2. **`save_memories_callback`** — an `after_agent_callback` that persists the session's events to Memory Bank after each turn.
+
+```python
+from google.adk.tools.preload_memory_tool import PreloadMemoryTool
+from google.adk.agents.callback_context import CallbackContext
+
+async def save_memories_callback(callback_context: CallbackContext, **kwargs):
+    await callback_context.add_session_to_memory()
+    return None
+
+agent = LlmAgent(
+    ...
+    tools=[PreloadMemoryTool()],
+    after_agent_callback=save_memories_callback,
+)
+```
+
+#### User Namespaces
+
+Memories are automatically scoped by `user_id` and `app_name`. Each user gets their own isolated memory space — Alice's booking history is never visible to Bob's sessions.
+
+**Setting up user namespaces in traffic generation:**
+
+```python
+# Each user gets a unique session with their user_id
+session = agent.create_session(user_id="alice")
+response = agent.stream_query(
+    user_id="alice",
+    session_id=session["id"],
+    message="What did I book last time?",
+)
+```
+
+**Key insight**: The `user_id` parameter during `create_session()` and `stream_query()` is the namespace key. Memory Bank uses `{user_id, app_name}` as the compound key, so:
+- Same `user_id` across sessions → memories persist and accumulate
+- Different `user_id` values → fully isolated memory spaces
+- No additional configuration needed — namespacing is automatic
+
+**For local development**, connect to the same Memory Bank backing store:
+
+```python
+from google.adk.memory import VertexAiMemoryBankService
+
+memory_service = VertexAiMemoryBankService(
+    project=GCP_PROJECT_ID,
+    location=GCP_REGION,
+    agent_engine_id=AGENT_ENGINE_ID,
+)
+```
+
+---
+
 # Session 3: Agent Registry
 
 **Duration:** ~15 min | **Theme:** Agent discovery, registration, and governance
