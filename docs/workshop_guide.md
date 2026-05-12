@@ -368,32 +368,54 @@ remote = agent_engines.create(
 )
 ```
 
-> **Private Preview note (verified 2026-05-12):** Attaching agents to gateways requires the `agentGatewayConfig` field on ReasoningEngine/Agent, which is gated behind a **separate** Private Preview enrollment on the AI Platform API. This is independent from the Network Services API enrollment (which controls gateway creation). Your project may be enrolled in one but not the other.
+> **Private Preview note (verified 2026-05-12):** Attaching agents to gateways requires the `agentGatewayConfig` field on ReasoningEngine, which is gated behind a **separate** Private Preview enrollment on the AI Platform API. This is independent from the Network Services API enrollment (which controls gateway creation). Your project may be enrolled in one but not the other.
 >
 > **What works without AI Platform enrollment:**
 > - Creating both ingress and egress gateways (Network Services API)
-> - Gateway mTLS endpoints and root certificates
+> - Gateway mTLS endpoints and root certificates (egress only — ingress gateway gets no mTLS endpoint until an agent is attached)
 > - SGP engine provisioning (becomes ACTIVE with PSC service attachment)
 > - Authz extensions and policies connecting SGP to gateways
 > - IAM Allow policy JSON generation
 > - Agent Registry entries with RuntimeIdentity attributes
+> - Setting `identityType: AGENT_IDENTITY` on agents (succeeds, enables `effectiveIdentity`)
+> - Sending `agentGatewayConfig` via v1beta1 REST API (LRO starts, but fails during deployment)
 >
-> **What requires AI Platform enrollment (`agentGatewayConfig`):**
-> - Attaching gateways to agents during deployment (`agent_gateway_config` in create config)
-> - SGP policy creation (fails with `SEMANTIC_GOVERNANCE_POLICY_AGENT_NOT_CONFIGURED` because the agent isn't linked to a gateway, so SGP can't validate its RuntimeIdentity)
+> **What requires AI Platform enrollment:**
+> - Successful gateway attachment (LRO fails with `code: 13 INTERNAL` without enrollment)
+> - SGP policy creation (fails with `SEMANTIC_GOVERNANCE_POLICY_AGENT_NOT_CONFIGURED` because the agent isn't linked to a gateway)
 > - MCP server registration in Agent Registry (needed for tool-scope SGP policies)
 >
-> **How to verify enrollment status:**
+> **REST API details (for when enrollment is granted):**
+>
+> The correct v1beta1 REST path for gateway attachment is `spec.deploymentSpec.agentGatewayConfig`:
 > ```bash
-> # If this returns "Unknown name", you're NOT enrolled:
-> curl -s -X PATCH \
->     "https://${REGION}-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_ID}/locations/${REGION}/reasoningEngines/${ENGINE_ID}" \
+> # Step 1: Set identity type (required before gateway attachment)
+> curl -X PATCH \
+>     "https://${REGION}-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_ID}/locations/${REGION}/reasoningEngines/${ENGINE_ID}?updateMask=spec.identityType" \
 >     -H "Authorization: Bearer $(gcloud auth print-access-token)" \
 >     -H "Content-Type: application/json" \
->     -d '{"agentGatewayConfig": {"agentToAnywhereConfig": {"agentGateway": "projects/PROJECT/locations/REGION/agentGateways/NAME"}}}'
+>     -d '{"spec": {"identityType": "AGENT_IDENTITY"}}'
+>
+> # Step 2: Attach gateway(s) — ingress only, egress only, or both
+> curl -X PATCH \
+>     "https://${REGION}-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_ID}/locations/${REGION}/reasoningEngines/${ENGINE_ID}?updateMask=spec.deploymentSpec.agentGatewayConfig" \
+>     -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+>     -H "Content-Type: application/json" \
+>     -d '{
+>       "spec": {
+>         "deploymentSpec": {
+>           "agentGatewayConfig": {
+>             "clientToAgentConfig": {"agentGateway": "projects/PROJECT/locations/REGION/agentGateways/INGRESS_GW"},
+>             "agentToAnywhereConfig": {"agentGateway": "projects/PROJECT/locations/REGION/agentGateways/EGRESS_GW"}
+>           }
+>         }
+>       }
+>     }'
 > ```
 >
-> The field is not yet in the public `google-cloud-aiplatform` SDK (tested up to v1.151.0) or the REST API schema. When enrolled, pass the config during deployment:
+> **Egress gateway prerequisite:** Before attaching an egress gateway, it must have a `networkConfig` with PSC network attachment and DNS peering for `googleapis.com`. Without this, the agent's outbound traffic (Gemini API calls, Cloud Resource Manager, etc.) will fail with `503 failed to connect to all addresses` when routed through PSC.
+>
+> **SDK equivalent** (not yet available in `google-cloud-aiplatform` v1.151.0):
 > ```python
 > remote = agent_engines.create(
 >     agent_engine=agent,
@@ -402,6 +424,7 @@ remote = agent_engines.create(
 >             "client_to_agent_config": {"agent_gateway": INGRESS_GATEWAY_PATH},
 >             "agent_to_anywhere_config": {"agent_gateway": EGRESS_GATEWAY_PATH},
 >         },
+>         "identity_type": "AGENT_IDENTITY",
 >     },
 > )
 > ```
