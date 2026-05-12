@@ -8,7 +8,7 @@ from google.adk.tools.mcp_tool.mcp_toolset import StreamableHTTPConnectionParams
 from google.adk.tools.preload_memory_tool import PreloadMemoryTool
 from google.genai.types import Content, Part
 
-from src.config import (
+from .config import (
     LITE_MODEL,
     FLASH_MODEL,
     OPUS_MODEL,
@@ -75,10 +75,10 @@ opus_agent = LlmAgent(
 )
 
 
-async def complexity_router_callback(callback_context):
+async def complexity_router_callback(callback_context=None, **kwargs):
     """Classify prompt complexity and store in state for the router's delegation logic."""
     user_message = ""
-    if callback_context.user_content:
+    if callback_context and callback_context.user_content:
         if isinstance(callback_context.user_content, Content):
             for part in callback_context.user_content.parts or []:
                 if part.text:
@@ -89,7 +89,7 @@ async def complexity_router_callback(callback_context):
     if not user_message:
         return None
 
-    guardrail_result = input_guardrail_callback(callback_context)
+    guardrail_result = input_guardrail_callback(callback_context=callback_context)
     if guardrail_result is not None:
         return guardrail_result
 
@@ -100,7 +100,7 @@ async def complexity_router_callback(callback_context):
     return None
 
 
-async def save_memories_callback(callback_context: CallbackContext):
+async def save_memories_callback(callback_context: CallbackContext = None, **kwargs):
     """Persist session events to Memory Bank after each turn."""
     await callback_context.add_session_to_memory()
     return None

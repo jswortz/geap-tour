@@ -5,7 +5,7 @@ import re
 
 from google.genai.types import GenerateContentConfig, ModelArmorConfig
 
-from src.config import GCP_PROJECT_ID, GCP_REGION
+from .config import GCP_PROJECT_ID, GCP_REGION
 
 
 def get_model_armor_config() -> ModelArmorConfig:
@@ -39,11 +39,12 @@ BLOCKED_PATTERNS = [
 REJECTION_MESSAGE = "I'm sorry, I can't process that request. Please rephrase your question about travel or expenses."
 
 
-def input_guardrail_callback(context):
+def input_guardrail_callback(callback_context=None, **kwargs):
     from google.genai.types import Content, Part
 
+    context = callback_context
     user_message = ""
-    if context.user_content:
+    if context and context.user_content:
         if isinstance(context.user_content, Content):
             for part in context.user_content.parts or []:
                 if part.text:
