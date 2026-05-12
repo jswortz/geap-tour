@@ -1,9 +1,11 @@
 """Multi-model agent definitions — routes by prompt complexity to Lite, Flash, or Opus."""
 
 from google.adk.agents import LlmAgent
+from google.adk.agents.callback_context import CallbackContext
 from google.adk.models.lite_llm import LiteLlm
 from google.adk.tools import McpToolset
 from google.adk.tools.mcp_tool.mcp_toolset import StreamableHTTPConnectionParams
+from google.adk.tools.preload_memory_tool import PreloadMemoryTool
 from google.genai.types import Content, Part
 
 from src.config import (
@@ -98,6 +100,12 @@ async def complexity_router_callback(callback_context):
     return None
 
 
+async def save_memories_callback(callback_context: CallbackContext):
+    """Persist session events to Memory Bank after each turn."""
+    await callback_context.add_session_to_memory()
+    return None
+
+
 ROUTER_INSTRUCTION = """\
 You are a routing coordinator. Check the complexity assessment in state and delegate:
 
@@ -113,6 +121,8 @@ router_agent = LlmAgent(
     model=_resolve_model(LITE_MODEL),
     name="router_agent",
     instruction=ROUTER_INSTRUCTION,
+    tools=[PreloadMemoryTool()],
     sub_agents=[lite_agent, flash_agent, opus_agent],
     before_agent_callback=complexity_router_callback,
+    after_agent_callback=save_memories_callback,
 )

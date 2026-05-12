@@ -16,12 +16,12 @@ class TestComplexityScoring:
         assert _score_to_level(0.0) == "low"
 
     def test_medium_score(self):
-        assert _score_to_level(0.4) == "medium"
+        assert _score_to_level(0.35) == "medium"
         assert _score_to_level(0.5) == "medium"
-        assert _score_to_level(0.69) == "medium"
+        assert _score_to_level(0.64) == "medium"
 
     def test_high_score(self):
-        assert _score_to_level(0.7) == "high"
+        assert _score_to_level(0.65) == "high"
         assert _score_to_level(0.9) == "high"
         assert _score_to_level(1.0) == "high"
 

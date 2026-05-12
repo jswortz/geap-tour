@@ -24,10 +24,11 @@ AGENT_MODEL = "gemini-2.0-flash"
 LITE_MODEL = os.environ.get("LITE_MODEL", "gemini-2.0-flash-lite")
 FLASH_MODEL = os.environ.get("FLASH_MODEL", "gemini-2.5-flash")
 OPUS_MODEL = os.environ.get("OPUS_MODEL", "vertex_ai/claude-opus-4-7")
-COMPLEXITY_THRESHOLD_HIGH = float(os.environ.get("COMPLEXITY_THRESHOLD_HIGH", "0.7"))
+COMPLEXITY_THRESHOLD_HIGH = float(os.environ.get("COMPLEXITY_THRESHOLD_HIGH", "0.65"))
 CLASSIFIER_MODEL = os.environ.get("CLASSIFIER_MODEL", "gemini-2.0-flash-lite")
 
 # Evaluation
 EVAL_OUTPUT_DIR = os.environ.get("EVAL_OUTPUT_DIR", "eval_outputs")
 BQ_EVAL_DATASET = os.environ.get("BQ_EVAL_DATASET", "geap_workshop_logs")
 AGENT_ENGINE_ID = os.environ.get("AGENT_ENGINE_ID", "1316648131831529472")
+ROUTER_ENGINE_ID = os.environ.get("ROUTER_ENGINE_ID", "4546503120842129408")
