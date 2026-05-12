@@ -1,6 +1,7 @@
 """Generate PowerPoint slide deck from GEAP workshop content."""
 
 import os
+import textwrap
 from pptx import Presentation
 from pptx.util import Inches, Pt, Emu
 from pptx.dml.color import RGBColor
@@ -119,7 +120,7 @@ def add_code_block(slide, left, top, width, height, code_text, font_size=11):
     tf.margin_right = Pt(12)
     tf.margin_bottom = Pt(8)
 
-    lines = code_text.strip().split("\n")
+    lines = textwrap.dedent(code_text).strip().split("\n")
     for i, line in enumerate(lines):
         if i == 0:
             p = tf.paragraphs[0]
@@ -197,13 +198,45 @@ def add_notes(slide, text):
     tf.text = text
 
 
-REPO_URL = "github.com/jswortz/geap-tour"
+REPO_URL = "https://github.com/jswortz/geap-tour"
+GCP_PROJECT = "wortz-project-352116"
 
 
 def add_repo_link(slide, code_path=None, y_pos=Inches(6.9)):
-    text = f"{REPO_URL}/{code_path}" if code_path else REPO_URL
-    add_text(slide, Inches(0.3), y_pos, Inches(7), Inches(0.3),
-             text, font_size=10, color=GRAY, align=PP_ALIGN.LEFT)
+    if code_path:
+        display_text = f"{REPO_URL}/{code_path}"
+        prefix = "/tree/main/" if code_path.endswith("/") else "/blob/main/"
+        url = f"{REPO_URL}{prefix}{code_path}"
+    else:
+        display_text = REPO_URL
+        url = REPO_URL
+    txBox = slide.shapes.add_textbox(Inches(0.3), y_pos, Inches(7), Inches(0.3))
+    tf = txBox.text_frame
+    tf.word_wrap = True
+    p = tf.paragraphs[0]
+    p.alignment = PP_ALIGN.LEFT
+    run = p.add_run()
+    run.text = display_text
+    run.font.size = Pt(10)
+    run.font.color.rgb = GRAY
+    run.font.name = FONT
+    run.hyperlink.address = url
+    return txBox
+
+
+def add_console_link(slide, console_url, y_pos=Inches(6.9)):
+    txBox = slide.shapes.add_textbox(Inches(7), y_pos, Inches(4), Inches(0.3))
+    tf = txBox.text_frame
+    tf.word_wrap = True
+    p = tf.paragraphs[0]
+    p.alignment = PP_ALIGN.LEFT
+    run = p.add_run()
+    run.text = "Open in Cloud Console"
+    run.font.size = Pt(10)
+    run.font.color.rgb = RGBColor(0xAA, 0xAA, 0xAA)
+    run.font.name = FONT
+    run.hyperlink.address = console_url
+    return txBox
 
 
 def add_logo(slide, color=GRAY):
@@ -446,6 +479,7 @@ def build_deck():
              "Console: Deployments on Agent Runtime", 32, bold=True, color=WHITE)
     add_image_safe(s, os.path.join(SCREENSHOTS, "session1_agent_engine.png"),
                    Inches(0.8), Inches(1.3), width=Inches(11.5))
+    add_console_link(s, f"https://console.cloud.google.com/vertex-ai/agents?project={GCP_PROJECT}")
     add_logo(s, RGBColor(0x88, 0x88, 0x88))
     add_notes(s, "CONSOLE DEMO: Show the Agent Engine console page. Point out the deployed agent, "
               "its status, the model it's using, and the session management configuration. "
@@ -569,6 +603,7 @@ def build_deck():
     add_text(s, Inches(1), Inches(6.5), Inches(11), Inches(0.5),
              "Session view showing model calls, tool calls, token usage, and duration per trace",
              16, color=RGBColor(0xAA, 0xAA, 0xAA), align=PP_ALIGN.CENTER)
+    add_console_link(s, f"https://console.cloud.google.com/trace/list?project={GCP_PROJECT}")
     add_logo(s, RGBColor(0x88, 0x88, 0x88))
     add_notes(s, "CONSOLE DEMO: Show the Cloud Trace view of an agent interaction. "
               "Point out the trace waterfall: the root span is the user request, child spans show agent routing, "
@@ -720,6 +755,7 @@ def build_deck():
              "Console: Evaluation Experiments", 32, bold=True, color=WHITE)
     add_image_safe(s, os.path.join(SCREENSHOTS, "session2_evaluation.png"),
                    Inches(0.8), Inches(1.3), width=Inches(11.5))
+    add_console_link(s, f"https://console.cloud.google.com/vertex-ai/agents?project={GCP_PROJECT}")
     add_logo(s, RGBColor(0x88, 0x88, 0x88))
     add_notes(s, "CONSOLE DEMO: Show the Evaluation Experiments page. "
               "Walk through an experiment: the eval dataset, the metrics used, and the score distribution. "
@@ -788,6 +824,7 @@ def build_deck():
              "Console: Cloud Trace", 32, bold=True, color=WHITE)
     add_image_safe(s, os.path.join(SCREENSHOTS, "session2_cloud_trace.png"),
                    Inches(0.8), Inches(1.3), width=Inches(11.5))
+    add_console_link(s, f"https://console.cloud.google.com/trace/list?project={GCP_PROJECT}")
     add_logo(s, RGBColor(0x88, 0x88, 0x88))
     add_notes(s, "CONSOLE DEMO: Open Cloud Trace and show a real agent trace. "
               "Walk through the span hierarchy, point out model call latency, tool call duration, "
@@ -936,6 +973,7 @@ def build_deck():
              "Console: Business Policies", 32, bold=True, color=WHITE)
     add_image_safe(s, os.path.join(SCREENSHOTS, "session3_policies.png"),
                    Inches(0.8), Inches(1.3), width=Inches(11.5))
+    add_console_link(s, f"https://console.cloud.google.com/agent-platform/gateways?project={GCP_PROJECT}")
     add_logo(s, RGBColor(0x88, 0x88, 0x88))
     add_notes(s, "CONSOLE DEMO: Show the business policies page. "
               "Walk through an example policy — how it's defined, what it enforces, and how violations are handled.")
@@ -984,6 +1022,7 @@ def build_deck():
              "Console: Model Armor", 32, bold=True, color=WHITE)
     add_image_safe(s, os.path.join(SCREENSHOTS, "session4_model_armor.png"),
                    Inches(0.8), Inches(1.3), width=Inches(11.5))
+    add_console_link(s, f"https://console.cloud.google.com/security/model-armor?project={GCP_PROJECT}")
     add_logo(s, RGBColor(0x88, 0x88, 0x88))
     add_notes(s, "CONSOLE DEMO: Show the Model Armor configuration page. "
               "Walk through a template: the screening rules, the severity thresholds, "

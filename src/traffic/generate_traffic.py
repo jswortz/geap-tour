@@ -5,7 +5,7 @@ import argparse
 import vertexai
 from vertexai import agent_engines
 
-from src.config import GCP_PROJECT_ID, GCP_REGION, AGENT_ENGINE_ID
+from src.config import GCP_PROJECT_ID, GCP_REGION, AGENT_ENGINE_ID, ROUTER_ENGINE_ID
 
 QUERIES = [
     # Travel — happy path
@@ -188,9 +188,82 @@ def generate_traffic(
     print(f"  Memory Bank events saved for users: alice, bob, charlie")
 
 
+def generate_router_traffic(
+    router_resource_name: str | None = None,
+    count: int = 1,
+):
+    """Send test queries to the multi-model router agent.
+
+    The router classifies query complexity and routes to Lite/Flash/Opus models.
+    We send the same queries so the router's complexity classifier is exercised
+    across all three tiers.
+    """
+    vertexai.init(project=GCP_PROJECT_ID, location=GCP_REGION)
+
+    if router_resource_name is None:
+        router_resource_name = (
+            f"projects/{GCP_PROJECT_ID}/locations/{GCP_REGION}"
+            f"/reasoningEngines/{ROUTER_ENGINE_ID}"
+        )
+
+    agent = agent_engines.get(router_resource_name)
+    sessions: dict[str, str] = {}
+    total_queries = len(QUERIES) * count
+    complexity_counts = {"low": 0, "medium": 0, "high": 0}
+    errors = 0
+    query_num = 0
+
+    print(f"\n{'=' * 60}")
+    print("MULTI-MODEL ROUTER TRAFFIC")
+    print(f"{'=' * 60}")
+    print(f"Generating traffic: {total_queries} queries ({count}x{len(QUERIES)})")
+    print(f"Router: {router_resource_name}\n")
+
+    for rep in range(count):
+        if count > 1:
+            print(f"\n--- Round {rep + 1}/{count} ---")
+
+        for query, user_id, complexity in QUERIES:
+            query_num += 1
+            print(f"[{query_num}/{total_queries}] ({complexity}) {query[:70]}")
+            complexity_counts[complexity] += 1
+
+            try:
+                if user_id not in sessions:
+                    session = agent.create_session(user_id=user_id)
+                    sessions[user_id] = session["id"]
+
+                response = agent.stream_query(
+                    user_id=user_id,
+                    session_id=sessions[user_id],
+                    message=query,
+                )
+                full_response = ""
+                for chunk in response:
+                    if hasattr(chunk, "text"):
+                        full_response += chunk.text
+                    elif isinstance(chunk, dict) and "text" in chunk:
+                        full_response += chunk["text"]
+                print(f"  -> {full_response[:100]}...")
+            except Exception as e:
+                errors += 1
+                print(f"  x Error: {e}")
+
+    print(f"\n  Router queries:  {total_queries}")
+    print(f"  Errors:          {errors}")
+    print(f"  By complexity:   low={complexity_counts['low']}  medium={complexity_counts['medium']}  high={complexity_counts['high']}")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate test traffic for OTel traces")
     parser.add_argument("agent", nargs="?", default=None, help="Agent resource name or engine ID")
     parser.add_argument("--count", type=int, default=1, help="Repeat query set N times (default: 1)")
+    parser.add_argument("--router", action="store_true", help="Also send traffic to the multi-model router")
+    parser.add_argument("--router-only", action="store_true", help="Only send traffic to the multi-model router")
     args = parser.parse_args()
-    generate_traffic(args.agent, count=args.count)
+    if args.router_only:
+        generate_router_traffic(count=args.count)
+    else:
+        generate_traffic(args.agent, count=args.count)
+        if args.router:
+            generate_router_traffic(count=args.count)
