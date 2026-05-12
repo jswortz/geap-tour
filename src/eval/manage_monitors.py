@@ -1,59 +1,55 @@
-"""Manage online evaluators — list, pause, resume, delete."""
+"""Manage model monitors — list, delete, view jobs."""
 
 import sys
 
-from google import genai
+from google.cloud.aiplatform_v1beta1 import ModelMonitoringServiceClient
 
 from src.config import GCP_PROJECT_ID, GCP_REGION
 
 
-def get_client() -> genai.Client:
-    return genai.Client(vertexai=True, project=GCP_PROJECT_ID, location=GCP_REGION)
+def _get_client() -> ModelMonitoringServiceClient:
+    return ModelMonitoringServiceClient(
+        client_options={"api_endpoint": f"{GCP_REGION}-aiplatform.googleapis.com"}
+    )
 
 
 def list_monitors():
-    """List all online evaluators."""
-    client = get_client()
-    monitors = list(client.evals.list_online_evals())
+    """List all model monitors and their jobs."""
+    client = _get_client()
+    parent = f"projects/{GCP_PROJECT_ID}/locations/{GCP_REGION}"
+    monitors = list(client.list_model_monitors(parent=parent))
     if not monitors:
-        print("No online monitors found.")
+        print("No model monitors found.")
         return
     print(f"Found {len(monitors)} monitor(s):")
     for m in monitors:
-        print(f"  - {m.name} | state={m.state} | agent={m.agent}")
-
-
-def pause_monitor(monitor_name: str):
-    """Pause an online evaluator."""
-    client = get_client()
-    client.evals.pause_online_eval(name=monitor_name)
-    print(f"✓ Paused: {monitor_name}")
-
-
-def resume_monitor(monitor_name: str):
-    """Resume a paused online evaluator."""
-    client = get_client()
-    client.evals.resume_online_eval(name=monitor_name)
-    print(f"✓ Resumed: {monitor_name}")
+        print(f"  - {m.name} | display_name={m.display_name}")
+        try:
+            jobs = list(client.list_model_monitoring_jobs(parent=m.name))
+            for j in jobs:
+                print(f"      job: {j.name} | state={j.state}")
+        except Exception:
+            pass
 
 
 def delete_monitor(monitor_name: str):
-    """Delete an online evaluator."""
-    client = get_client()
-    client.evals.delete_online_eval(name=monitor_name)
-    print(f"✓ Deleted: {monitor_name}")
+    """Delete a model monitor."""
+    client = _get_client()
+    op = client.delete_model_monitor(name=monitor_name)
+    op.result()
+    print(f"Deleted: {monitor_name}")
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python -m src.eval.manage_monitors <list|pause|resume|delete> [monitor-name]")
+        print("Usage: python -m src.eval.manage_monitors <list|delete> [monitor-name]")
         sys.exit(1)
 
     action = sys.argv[1]
     if action == "list":
         list_monitors()
-    elif action in ("pause", "resume", "delete") and len(sys.argv) >= 3:
-        {"pause": pause_monitor, "resume": resume_monitor, "delete": delete_monitor}[action](sys.argv[2])
+    elif action == "delete" and len(sys.argv) >= 3:
+        delete_monitor(sys.argv[2])
     else:
         print(f"Unknown action: {action}")
         sys.exit(1)

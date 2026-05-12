@@ -197,6 +197,15 @@ def add_notes(slide, text):
     tf.text = text
 
 
+REPO_URL = "github.com/jswortz/geap-tour"
+
+
+def add_repo_link(slide, code_path=None, y_pos=Inches(6.9)):
+    text = f"{REPO_URL}/{code_path}" if code_path else REPO_URL
+    add_text(slide, Inches(0.3), y_pos, Inches(7), Inches(0.3),
+             text, font_size=10, color=GRAY, align=PP_ALIGN.LEFT)
+
+
 def add_logo(slide, color=GRAY):
     add_text(slide, Inches(11), Inches(6.9), Inches(2), Inches(0.4),
              "Google Cloud", font_size=14, color=color, align=PP_ALIGN.RIGHT)
@@ -232,6 +241,7 @@ def build_deck():
     add_text(s, Inches(0.8), Inches(5.2), Inches(11), Inches(0.5),
              "ADK Agents  •  MCP Servers  •  Agent Gateway  •  Agent Registry  •  Model Armor  •  Evaluation Pipeline",
              18, color=RGBColor(0x99, 0x99, 0x99))
+    add_repo_link(s, y_pos=Inches(6.0))
     add_logo(s, RGBColor(0x88, 0x88, 0x88))
     add_notes(s, "Welcome everyone to the Gemini Enterprise Agent Platform workshop. "
               "Today we'll go from zero to a fully deployed, governed, and evaluated multi-agent system on Google Cloud. "
@@ -327,6 +337,7 @@ def build_deck():
                      "ADK agents deployed to Agent Runtime",
                      "SPIFFE-based workload identity"],
                     font_size=20, color=RGBColor(0xEE, 0xEE, 0xFF))
+    add_repo_link(s, y_pos=Inches(6.5))
     add_logo(s, RGBColor(0x88, 0x99, 0xCC))
     add_notes(s, "Session 1 is where we build everything. By the end of this session you'll have: "
               "three MCP tool servers running on Cloud Run, three ADK agents deployed to Agent Runtime, "
@@ -373,6 +384,7 @@ def build_deck():
     add_card(s, Inches(7), Inches(4.7), Inches(5.5), Inches(1.4),
              "1-to-Many Topology",
              "Multiple agents can share the same MCP server — no duplication needed", YELLOW)
+    add_repo_link(s, "src/mcp_servers/search/server.py")
     add_logo(s)
     add_notes(s, "FastMCP makes building tool servers trivial — it's a single decorator on a Python function. "
               "The @mcp.tool() decorator handles schema generation, input validation, and protocol compliance. "
@@ -386,7 +398,7 @@ def build_deck():
     add_text(s, Inches(0.8), Inches(1.1), Inches(5), Inches(0.4),
              "Agent Definition", 22, bold=True, color=BLUE)
     add_code_block(s, Inches(0.8), Inches(1.6), Inches(5.5), Inches(4.5),
-                   'from google.adk.agents import LlmAgent\nfrom google.adk.tools import McpToolset\n\ntravel_agent = LlmAgent(\n  name="travel_agent",\n  model="gemini-2.0-flash",\n  instruction="""You are a travel\n  assistant...""",\n  tools=[\n    McpToolset(\n      connection_params=\n        StreamableHTTPConnectionParams(\n          url="https://search-mcp-..."\n        )\n    )\n  ]\n)',
+                   'from google.adk.agents import LlmAgent\nfrom google.adk.integrations\\\n  .agent_registry import AgentRegistry\n\nregistry = AgentRegistry(\n  project_id=PROJECT, location="global"\n)\n\ntravel_agent = LlmAgent(\n  name="travel_agent",\n  model="gemini-2.0-flash",\n  instruction="""You are a travel\n  assistant...""",\n  tools=[\n    registry.get_mcp_toolset(\n      SEARCH_MCP_SERVER\n    )\n  ]\n)',
                    font_size=11)
     add_card(s, Inches(7), Inches(1.3), Inches(5.5), Inches(1.4),
              "Coordinator Pattern",
@@ -397,9 +409,11 @@ def build_deck():
     add_card(s, Inches(7), Inches(4.7), Inches(5.5), Inches(1.4),
              "OTel Tracing",
              "Every agent call produces OpenTelemetry spans — exported to Cloud Trace automatically", YELLOW)
+    add_repo_link(s, "src/agents/coordinator_agent.py")
     add_logo(s)
     add_notes(s, "ADK agents use LlmAgent as the base class. The key config: model, instruction, and tools. "
-              "McpToolset connects to remote MCP servers via StreamableHTTP — the agent discovers tools at runtime. "
+              "Agents discover MCP servers via the Agent Registry using registry.get_mcp_toolset() — "
+              "no hardcoded URLs. The registry resolves the server's resource name to a live connection. "
               "The Coordinator pattern uses sub_agents to delegate: it doesn't call tools directly, "
               "it routes to the specialist agent best suited for the user's intent. "
               "OTel tracing is built in — every agent call automatically generates spans.")
@@ -482,6 +496,7 @@ def build_deck():
     add_card(s, Inches(7), Inches(4.9), Inches(5.5), Inches(1.5),
              "Token Exchange",
              "External token → STS → short-lived GCP credential — no service account keys needed", YELLOW)
+    add_repo_link(s, "scripts/setup_agent_identity.sh")
     add_logo(s)
     add_notes(s, "Walk through the gcloud commands to create a workload identity pool and OIDC provider. "
               "Key concepts: the pool is a trust boundary (group external identities), "
@@ -504,6 +519,7 @@ def build_deck():
                      "Online monitors and failure cluster analysis",
                      "Agent optimization with GEPA algorithm"],
                     font_size=20, color=RGBColor(0xEE, 0xEE, 0xFF))
+    add_repo_link(s, y_pos=Inches(6.5))
     add_logo(s, RGBColor(0x88, 0x99, 0xCC))
     add_notes(s, "Session 2 builds on the deployed system from Session 1. "
               "We'll add governance (Agent Gateway controlling what agents can do), "
@@ -534,6 +550,7 @@ def build_deck():
              11, color=GRAY)
     add_image_safe(s, os.path.join(SCREENSHOTS, "session2_agent_gateway.png"),
                    Inches(7), Inches(1.3), width=Inches(5.8))
+    add_repo_link(s, "scripts/setup_agent_gateway.sh")
     add_logo(s)
     add_notes(s, "The dual-mode gateway is a key differentiator. Ingress gateway controls who can talk to your agents. "
               "Egress gateway controls what your agents can talk to — including Gemini model calls. "
@@ -581,6 +598,7 @@ def build_deck():
     add_code_block(s, Inches(7), Inches(4.1), Inches(5.5), Inches(2),
                    'name: "geap-expense-limit"\nconstraint: "Disallow expense\n  submissions exceeding $200\n  for meals, $500 for\n  entertainment"\nverdict: DENY',
                    font_size=11)
+    add_repo_link(s, "scripts/setup_governance_policies.sh")
     add_logo(s)
     add_notes(s, "Three layers of governance, each catching different problems. "
               "IAM Allow is static — CEL rules that restrict which services an agent can connect to. "
@@ -687,6 +705,7 @@ def build_deck():
     add_card(s, Inches(8.8), Inches(4.5), Inches(3.6), Inches(2),
              "Simulated (CI/CD)",
              "Automated eval gate on PRs — score ≥ 3.0 to merge, blocks otherwise", YELLOW)
+    add_repo_link(s, "src/eval/")
     add_logo(s)
     add_notes(s, "Three evaluation tiers, each serving a different purpose. "
               "One-Time Eval: manual, on-demand — you curate test cases and run PointwiseMetric rubrics. "
@@ -729,6 +748,38 @@ def build_deck():
               "and Cloud Monitoring alerts on anomalies. "
               "The failure cluster analysis is particularly useful — it groups similar errors to surface systemic issues "
               "rather than forcing you to debug individual traces.")
+
+    # ===== SLIDE 17b: FAILURE CLUSTERS & QUALITY ALERTS =====
+    s = prs.slides.add_slide(blank)
+    add_text(s, Inches(0.8), Inches(0.3), Inches(10), Inches(0.8),
+             "Failure Clusters & Quality Alerts", 36, bold=True)
+    add_text(s, Inches(0.8), Inches(1.1), Inches(5.5), Inches(0.4),
+             "Automated Error Analysis", 22, bold=True, color=BLUE)
+    add_code_block(s, Inches(0.8), Inches(1.6), Inches(5.5), Inches(3.0),
+                   'clusters = client.evals\n  .generate_loss_clusters(\n    src=eval_result_name\n  )\n\nfor cluster in clusters:\n  print(cluster.title)\n  print(cluster.description)\n  print(f"Samples: {cluster.sample_count}")\n  print(f"Avg score: {cluster.avg_score}")',
+                   font_size=12)
+    add_text(s, Inches(0.8), Inches(4.9), Inches(5.5), Inches(0.8),
+             "Groups similar failures by semantic similarity — surface systemic issues instead of debugging one trace at a time",
+             14, color=DARK)
+    add_card(s, Inches(7), Inches(1.3), Inches(5.5), Inches(2.0),
+             "Failure Clusters",
+             "Semantic grouping of eval failures into themes: tool misuse, routing errors, policy violations. "
+             "Each cluster includes sample count, avg score, and representative examples.", BLUE)
+    add_card(s, Inches(7), Inches(3.6), Inches(5.5), Inches(2.0),
+             "Quality Alerts",
+             "Cloud Monitoring alert policies fire when eval scores drop below threshold. "
+             "10-minute aggregation window with custom metric: agent_eval/{metric_name}.", RED)
+    add_repo_link(s, "src/eval/failure_clusters.py")
+    add_logo(s)
+    add_notes(s, "Failure cluster analysis is the bridge between raw eval results and actionable insights. "
+              "Instead of reviewing 20+ individual failure traces, clusters group semantically similar failures: "
+              "'tool misuse cluster', 'routing confusion cluster', 'policy violation cluster'. "
+              "Each cluster has a title, description, sample count, and average score. "
+              "Quality alerts complement this with proactive monitoring — "
+              "Cloud Monitoring alert policies fire when the custom metric "
+              "agent_eval/{metric_name} drops below your threshold. "
+              "The 10-minute aggregation window catches quality degradation before users notice. "
+              "Code: src/eval/failure_clusters.py and src/eval/quality_alerts.py")
 
     # ===== SLIDE 18: CONSOLE — CLOUD TRACE =====
     s = prs.slides.add_slide(blank)
@@ -780,12 +831,65 @@ def build_deck():
     add_code_block(s, Inches(7), Inches(1.6), Inches(5.5), Inches(3.5),
                    'optimizer = AgentOptimizer(\n  agent=coordinator_agent,\n  eval_dataset=eval_data,\n  metrics=[\n    "response_quality",\n    "tool_selection",\n    "safety"\n  ],\n  generations=5,\n  population_size=4\n)',
                    font_size=13)
+    add_repo_link(s, "src/optimize/run_optimize.py")
     add_logo(s)
     add_notes(s, "GEPA — Gemini Evolutionary Prompt Algorithm — automates prompt engineering. "
               "Instead of manually tuning agent instructions, GEPA generates prompt variants, "
               "evaluates each against test scenarios, selects top performers, and evolves over generations. "
               "Think of it as genetic algorithms applied to prompt optimization. "
               "The AgentOptimizer class wraps this: you provide the agent, eval data, and metrics — it finds better instructions.")
+
+    # ===== SLIDE 20b: MULTI-MODEL ROUTER =====
+    s = prs.slides.add_slide(blank)
+    add_text(s, Inches(0.8), Inches(0.3), Inches(10), Inches(0.8),
+             "Multi-Model Router", 36, bold=True)
+    add_text(s, Inches(0.8), Inches(1.1), Inches(5.5), Inches(0.4),
+             "Complexity-Based Routing Table", 20, bold=True, color=BLUE)
+    add_table(s, Inches(0.8), Inches(1.6), Inches(5.5), Inches(2.8),
+              ["Complexity", "Model", "Score Range", "Use Case"],
+              [["Low", "Flash Lite", "< 0.35", "Simple lookups"],
+               ["Medium", "Gemini Flash", "0.35 – 0.64", "Multi-step queries"],
+               ["High", "Claude Opus", "≥ 0.65", "Deep analysis"]],
+              font_size=13)
+    add_text(s, Inches(0.8), Inches(4.7), Inches(5.5), Inches(1),
+             "Cost savings: 60-80% by routing simple queries to lightweight models",
+             16, color=GRAY)
+    add_text(s, Inches(7), Inches(1.1), Inches(5.5), Inches(0.4),
+             "before_agent_callback", 20, bold=True, color=BLUE)
+    add_code_block(s, Inches(7), Inches(1.6), Inches(5.5), Inches(4),
+                   'async def complexity_router_callback(\n    callback_context=None, **kwargs\n):\n    user_message = ""\n    if callback_context.user_content:\n        for part in callback_context.user_content.parts:\n            if part.text:\n                user_message += part.text\n\n    result = await classify_complexity(user_message)\n    ctx = callback_context.state\n    ctx["complexity_level"] = result.level\n    ctx["complexity_score"] = result.score\n    return None',
+                   font_size=12)
+    add_repo_link(s, "src/router/agents.py")
+    add_logo(s)
+    add_notes(s, "The multi-model router uses a before_agent_callback to classify prompt complexity "
+              "before the agent runs. classify_complexity() uses a lightweight Gemini call to score 0-1. "
+              "Based on the score, the router delegates to lite_agent (Flash Lite), flash_agent (Flash), "
+              "or opus_agent (Claude Opus via LiteLLM). This cuts costs 60-80% by sending simple queries "
+              "to cheap models while reserving expensive models for complex reasoning. "
+              "The callback stores the classification in session state so the router agent's instruction can read it.")
+
+    # ===== SLIDE 20c: MEMORY BANK & USER NAMESPACES =====
+    s = prs.slides.add_slide(blank)
+    add_text(s, Inches(0.8), Inches(0.3), Inches(10), Inches(0.8),
+             "Memory Bank & User Namespaces", 36, bold=True)
+    add_code_block(s, Inches(0.8), Inches(1.3), Inches(5.5), Inches(4.2),
+                   'coordinator_agent = LlmAgent(\n    model=AGENT_MODEL,\n    name="coordinator_agent",\n    tools=[\n        get_mcp_tools(SEARCH_MCP_SERVER),\n        # Retrieves relevant memories at\n        # turn start, injects into system\n        # instruction\n        PreloadMemoryTool(),\n    ],\n    after_agent_callback=\n        save_memories_callback,\n)\n\nasync def save_memories_callback(ctx):\n    await ctx.add_session_to_memory()\n    return None',
+                   font_size=12)
+    add_card(s, Inches(7), Inches(1.3), Inches(5.5), Inches(2),
+             "Memory Recall",
+             "PreloadMemoryTool retrieves relevant memories at turn start and injects them into the system instruction — the agent has user context before it responds", BLUE)
+    add_card(s, Inches(7), Inches(3.6), Inches(5.5), Inches(2),
+             "User Namespaces",
+             "Memories are scoped to {user_id, app_name} — each user gets an isolated memory space with no cross-contamination", GREEN)
+    add_repo_link(s, "src/agents/coordinator_agent.py")
+    add_logo(s)
+    add_notes(s, "Memory Bank gives agents persistent memory across sessions. Two key pieces: "
+              "PreloadMemoryTool automatically retrieves relevant past interactions at turn start and "
+              "injects them into the system instruction — the agent sees user context before responding. "
+              "save_memories_callback runs after each turn via after_agent_callback, persisting new "
+              "session events to Memory Bank for future recall. "
+              "Critical: memories are scoped to {user_id, app_name} namespaces. "
+              "Each user gets isolated memory — no cross-contamination between users or apps.")
 
     # ===== SLIDE 21: SESSION 3 HEADER =====
     s = prs.slides.add_slide(blank)
@@ -796,6 +900,7 @@ def build_deck():
              "Agent Registry", 52, bold=True, color=WHITE)
     add_text(s, Inches(0.8), Inches(3.8), Inches(11), Inches(0.6),
              "Agent registration, discovery, and governance", 22, color=RGBColor(0x9A, 0xA0, 0xA6))
+    add_repo_link(s, y_pos=Inches(6.5))
     add_logo(s, RGBColor(0x88, 0x88, 0x88))
     add_notes(s, "Quick session on Agent Registry — the catalog for your agent fleet. "
               "If you have dozens of agents across teams, you need a way to discover, version, and govern them.")
@@ -844,6 +949,7 @@ def build_deck():
              "Model Security /\nModel Armor", 48, bold=True, color=WHITE)
     add_text(s, Inches(0.8), Inches(4.2), Inches(11), Inches(0.6),
              "Input/output screening, guardrails, and content safety", 22, color=RGBColor(0xFF, 0xCC, 0xCC))
+    add_repo_link(s, y_pos=Inches(6.5))
     add_logo(s, RGBColor(0xFF, 0x99, 0x99))
     add_notes(s, "Final session — the security layer. Model Armor provides content safety for your agent system. "
               "This is critical for production: agents that talk to users need protection against prompt injection, "
@@ -888,12 +994,12 @@ def build_deck():
     add_text(s, Inches(0.8), Inches(0.3), Inches(8), Inches(0.8),
              "Platform Summary", 42, bold=True)
     cards = [
-        ("Build", ["ADK agents with LlmAgent", "FastMCP tool servers", "Multi-agent coordination"], BLUE),
+        ("Build", ["ADK agents with LlmAgent", "FastMCP tool servers", "Memory Bank + Router"], BLUE),
         ("Deploy", ["Cloud Run (MCP servers)", "Agent Runtime (agents)", "One-command deployment"], GREEN),
         ("Govern", ["SPIFFE identity", "Agent Gateway (dual)", "Agent Registry"], YELLOW),
         ("Secure", ["Model Armor templates", "Input/output screening", "Guardrail callbacks"], RED),
-        ("Evaluate", ["One-time eval", "Online monitors", "CI/CD eval gate"], BLUE),
-        ("Optimize", ["GEPA algorithm", "Prompt evolution", "OTel observability"], GREEN),
+        ("Evaluate", ["One-time eval", "Failure clusters", "CI/CD eval gate"], BLUE),
+        ("Optimize", ["GEPA algorithm", "Multi-model routing", "OTel observability"], GREEN),
     ]
     for i, (title, items, color) in enumerate(cards):
         col = i % 3

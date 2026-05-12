@@ -1,64 +1,141 @@
-"""Setup online evaluators — continuous 10-minute cycle monitors using Cloud Trace telemetry."""
+"""Setup continuous evaluation for Agent Engine deployments.
 
-from google import genai
+Model Monitoring v2 requires registered Vertex AI models, so for Agent Engine
+(reasoning engines) we use a scheduled batch evaluation approach: run a compact
+evaluation dataset against the deployed agent periodically.
 
-from src.config import GCP_PROJECT_ID, GCP_REGION
-from src.eval.one_time_eval import HELPFULNESS_METRIC, TOOL_USE_METRIC, POLICY_COMPLIANCE_METRIC
+Usage:
+    uv run python -m src.eval.setup_online_monitors <agent-engine-id> [agent-name]
+    uv run python -m src.eval.setup_online_monitors 2479350891879071744
+
+For a true scheduled monitor, deploy this as a Cloud Function + Cloud Scheduler
+on a 10-minute cron. See docs/workshop_guide.md Section 2.6 for details.
+"""
+
+import json
+import sys
+import time
+from datetime import datetime
+
+import vertexai
+from vertexai import Client, types
+
+from src.config import GCP_PROJECT_ID, GCP_REGION, GCP_STAGING_BUCKET
+
+QUICK_EVAL_CASES = [
+    "Find flights from SFO to JFK on June 15",
+    "Search hotels in New York under $300",
+    "Check if a $50 meal expense is within policy",
+    "Submit a $100 meal expense for user EMP001",
+    "Book flight FL001 for Jane Doe",
+]
+
+EVAL_METRICS = [
+    types.RubricMetric.FINAL_RESPONSE_QUALITY,
+    types.RubricMetric.SAFETY,
+]
 
 
-def setup_online_monitors(
-    agent_resource_name: str,
-    agent_name: str = "coordinator_agent",
-) -> dict[str, str]:
-    """Create online evaluators on a 10-minute cycle.
+def _resolve_agent_resource_name(agent_id: str) -> str:
+    if agent_id.startswith("projects/"):
+        return agent_id
+    return f"projects/{GCP_PROJECT_ID}/locations/{GCP_REGION}/reasoningEngines/{agent_id}"
 
-    Returns dict of {metric_name: monitor_resource_name}.
-    """
-    client = genai.Client(
-        vertexai=True,
+
+def run_quick_eval(agent_id: str) -> dict:
+    """Run a quick 5-case evaluation against the deployed agent."""
+    agent_resource = _resolve_agent_resource_name(agent_id)
+    run_id = f"quick_eval_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+    print(f"Quick evaluation: {agent_resource}")
+    print(f"  Run ID: {run_id}")
+    print(f"  Cases: {len(QUICK_EVAL_CASES)}")
+
+    vertexai.init(
         project=GCP_PROJECT_ID,
         location=GCP_REGION,
+        staging_bucket=f"gs://{GCP_STAGING_BUCKET}",
+    )
+    client = Client(project=GCP_PROJECT_ID, location=GCP_REGION)
+
+    import pandas as pd
+
+    rows = [
+        {
+            "prompt": case,
+            "session_inputs": types.evals.SessionInput(user_id="monitor-user", state={}),
+        }
+        for case in QUICK_EVAL_CASES
+    ]
+    eval_df = pd.DataFrame(rows)
+
+    print("  Running inference...")
+    t0 = time.time()
+    inference_result = client.evals.run_inference(agent=agent_resource, src=eval_df)
+    elapsed = time.time() - t0
+    print(f"  Inference done in {elapsed:.1f}s")
+
+    print("  Running evaluation...")
+    from src.eval.batch_eval import _build_agent_info
+
+    evaluation_run = client.evals.create_evaluation_run(
+        dataset=inference_result,
+        agent_info=_build_agent_info(),
+        agent=agent_resource,
+        metrics=EVAL_METRICS,
+        dest=f"gs://{GCP_STAGING_BUCKET}/eval-results/monitors/",
     )
 
-    monitors = {}
-    metrics_to_create = [
-        ("helpfulness", HELPFULNESS_METRIC),
-        ("tool_use_accuracy", TOOL_USE_METRIC),
-        ("policy_compliance", POLICY_COMPLIANCE_METRIC),
-    ]
+    print("  Waiting for evaluation", end="", flush=True)
+    while True:
+        evaluation_run = client.evals.get_evaluation_run(name=evaluation_run.name)
+        state = str(getattr(evaluation_run, "state", ""))
+        if "SUCCEEDED" in state or "FAILED" in state or "CANCELLED" in state:
+            break
+        print(".", end="", flush=True)
+        time.sleep(10)
+    print(f" {state}")
 
-    if agent_name == "router_agent":
-        from src.eval.complexity_metrics import COMPLEXITY_ROUTING_METRIC
-        metrics_to_create.append(("complexity_routing", COMPLEXITY_ROUTING_METRIC))
+    sm = evaluation_run.evaluation_run_results.summary_metrics
+    raw_metrics = dict(sm.metrics) if sm.metrics else {}
+    total = sm.total_items or 0
+    failed = sm.failed_items or 0
+    averages = {
+        k.rsplit("/AVERAGE", 1)[0]: float(v)
+        for k, v in raw_metrics.items()
+        if "/AVERAGE" in k
+    }
 
-    print(f"Setting up online monitors for {agent_resource_name} ({agent_name})...")
+    result = {
+        "run_id": run_id,
+        "agent": agent_resource,
+        "timestamp": datetime.now().isoformat(),
+        "inference_seconds": round(elapsed, 1),
+        "total_items": total,
+        "failed_items": failed,
+        "metrics": averages,
+        "evaluation_run_name": evaluation_run.name,
+    }
 
-    for metric_name, metric in metrics_to_create:
-        print(f"  Creating {metric_name} monitor...")
-        try:
-            monitor = client.evals.create_online_eval(
-                agent=agent_resource_name,
-                config={
-                    "metrics": [metric],
-                    "schedule": {"interval_minutes": 10},
-                    "sample_rate": 1.0,
-                },
-            )
-            monitors[metric_name] = monitor.name
-            print(f"    {monitor.name}")
-        except Exception as e:
-            print(f"    Failed: {e}")
+    print()
+    print("  Results:")
+    for k, v in sorted(averages.items()):
+        print(f"    {k}: {v:.2f}")
+    print(f"  Items OK: {total - failed}/{total}")
 
-    print(f"\n  {len(monitors)} monitors active — eval results will flow to BigQuery")
-    print("  Verify: uv run python -m src.eval.verify_monitors")
+    output_path = f"eval_results_{run_id}.json"
+    with open(output_path, "w") as f:
+        json.dump(result, f, indent=2, default=str)
+    print(f"  Saved: {output_path}")
 
-    return monitors
+    return result
 
 
 if __name__ == "__main__":
-    import sys
     if len(sys.argv) < 2:
-        print("Usage: python -m src.eval.setup_online_monitors <agent-resource-name> [agent-name]")
+        print("Usage: python -m src.eval.setup_online_monitors <agent-engine-id>")
+        print()
+        print("Runs a quick 5-case evaluation against the deployed agent.")
+        print("For scheduled monitoring, deploy as Cloud Function + Cloud Scheduler.")
         sys.exit(1)
-    agent_name = sys.argv[2] if len(sys.argv) > 2 else "coordinator_agent"
-    setup_online_monitors(sys.argv[1], agent_name=agent_name)
+    run_quick_eval(sys.argv[1])

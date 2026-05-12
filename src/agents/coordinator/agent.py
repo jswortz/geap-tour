@@ -9,19 +9,33 @@ import re
 
 from google.adk.agents import LlmAgent
 from google.adk.agents.callback_context import CallbackContext
-from google.adk.tools import McpToolset
-from google.adk.tools.mcp_tool.mcp_toolset import StreamableHTTPConnectionParams
+from google.adk.integrations.agent_registry import AgentRegistry
 from google.adk.tools.preload_memory_tool import PreloadMemoryTool
 from google.genai.types import GenerateContentConfig, ModelArmorConfig, Content, Part
 
 AGENT_MODEL = os.environ.get("AGENT_MODEL", "gemini-2.0-flash")
-SEARCH_MCP_URL = os.environ.get("SEARCH_MCP_URL", "https://search-mcp-in2bk2mdwa-uc.a.run.app/mcp")
-BOOKING_MCP_URL = os.environ.get("BOOKING_MCP_URL", "https://booking-mcp-in2bk2mdwa-uc.a.run.app/mcp")
-EXPENSE_MCP_URL = os.environ.get("EXPENSE_MCP_URL", "https://expense-mcp-in2bk2mdwa-uc.a.run.app/mcp")
 
 GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "wortz-project-352116")
 GCP_REGION = os.environ.get("GCP_REGION", "us-central1")
 AGENT_ENGINE_ID = os.environ.get("AGENT_ENGINE_ID", "1316648131831529472")
+AGENT_REGISTRY_LOCATION = os.environ.get("AGENT_REGISTRY_LOCATION", "global")
+SEARCH_MCP_SERVER = os.environ.get("SEARCH_MCP_SERVER",
+    f"projects/{GCP_PROJECT_ID}/locations/global/mcpServers/agentregistry-00000000-0000-0000-0c51-2a7dc998220b")
+BOOKING_MCP_SERVER = os.environ.get("BOOKING_MCP_SERVER",
+    f"projects/{GCP_PROJECT_ID}/locations/global/mcpServers/agentregistry-00000000-0000-0000-a5e6-d1cf2bb18c63")
+EXPENSE_MCP_SERVER = os.environ.get("EXPENSE_MCP_SERVER",
+    f"projects/{GCP_PROJECT_ID}/locations/global/mcpServers/agentregistry-00000000-0000-0000-02e2-cd6d7450ab52")
+
+_registry = None
+
+def _get_registry() -> AgentRegistry:
+    global _registry
+    if _registry is None:
+        _registry = AgentRegistry(project_id=GCP_PROJECT_ID, location=AGENT_REGISTRY_LOCATION)
+    return _registry
+
+def _get_mcp_tools(server_name: str):
+    return _get_registry().get_mcp_toolset(server_name)
 
 PROMPT_TEMPLATE = os.environ.get(
     "MODEL_ARMOR_PROMPT_TEMPLATE",
@@ -78,8 +92,8 @@ When a user asks about travel:
 3. When the user chooses, use the booking tools to confirm.
 If the user asks about expenses, let them know to ask the expense assistant.""",
     tools=[
-        McpToolset(connection_params=StreamableHTTPConnectionParams(url=SEARCH_MCP_URL)),
-        McpToolset(connection_params=StreamableHTTPConnectionParams(url=BOOKING_MCP_URL)),
+        _get_mcp_tools(SEARCH_MCP_SERVER),
+        _get_mcp_tools(BOOKING_MCP_SERVER),
     ],
     generate_content_config=generate_config,
     before_agent_callback=input_guardrail_callback,
@@ -96,7 +110,7 @@ Policy limits: meals ($75), transport ($200), lodging ($400), supplies ($100), e
 3. View history with get_user_expenses.
 If the user asks about travel, direct them to the travel assistant.""",
     tools=[
-        McpToolset(connection_params=StreamableHTTPConnectionParams(url=EXPENSE_MCP_URL)),
+        _get_mcp_tools(EXPENSE_MCP_SERVER),
     ],
     generate_content_config=generate_config,
     before_agent_callback=input_guardrail_callback,
@@ -129,9 +143,7 @@ similar, the memory tool will have that context.
 
 Greet the user and ask how you can help if intent is unclear.""",
     tools=[
-        McpToolset(connection_params=StreamableHTTPConnectionParams(url=SEARCH_MCP_URL)),
-        # PreloadMemoryTool retrieves relevant memories at the start of each
-        # turn and injects them into the system instruction.
+        _get_mcp_tools(SEARCH_MCP_SERVER),
         PreloadMemoryTool(),
     ],
     sub_agents=[travel_agent, expense_agent],

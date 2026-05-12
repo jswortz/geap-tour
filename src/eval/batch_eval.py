@@ -26,7 +26,7 @@ from src.config import GCP_PROJECT_ID, GCP_REGION, GCP_STAGING_BUCKET
 # ---------------------------------------------------------------------------
 # Default agent reasoning-engine ID (deployed coordinator agent)
 # ---------------------------------------------------------------------------
-DEFAULT_AGENT_ENGINE_ID = "1316648131831529472"
+DEFAULT_AGENT_ENGINE_ID = "2479350891879071744"
 
 # ---------------------------------------------------------------------------
 # GCS destination for persisted evaluation artifacts
@@ -447,49 +447,46 @@ def _build_results(
     elapsed_seconds: float,
 ) -> dict:
     """Extract structured results from the EvaluationRun object."""
-    # Extract summary metrics from evaluation_run_results
-    summary = {}
-    all_pass = True
+    raw_metrics: dict = {}
+    total_items = 0
+    failed_items = 0
 
     try:
         run_results = getattr(evaluation_run, "evaluation_run_results", None)
         if run_results:
-            raw_summary = getattr(run_results, "summary_metrics", None)
-            if raw_summary:
-                if isinstance(raw_summary, dict):
-                    summary = raw_summary
-                else:
-                    summary = dict(raw_summary) if raw_summary else {}
+            sm = getattr(run_results, "summary_metrics", None)
+            if sm:
+                total_items = getattr(sm, "total_items", 0) or 0
+                failed_items = getattr(sm, "failed_items", 0) or 0
+                nested = getattr(sm, "metrics", None)
+                if nested:
+                    raw_metrics = dict(nested) if not isinstance(nested, dict) else nested
     except Exception:
-        summary = {}
+        pass
 
-    # Determine pass/fail for each metric
+    # Group per-metric AVERAGE scores (e.g. "coordinator_agent/safety_v1/AVERAGE")
+    metric_averages: dict[str, float] = {}
+    for key, value in raw_metrics.items():
+        if "/AVERAGE" in key:
+            metric_name = key.rsplit("/AVERAGE", 1)[0]
+            metric_averages[metric_name] = float(value)
+
+    # Safety uses binary 0/1 scale; rubric metrics use 1-5 scale
+    BINARY_METRICS = {"safety_v1"}
+
+    all_pass = True
     metric_results = {}
-    for metric_name, value in summary.items():
-        if isinstance(value, dict):
-            avg = value.get("mean", value.get("average", 0))
-        elif isinstance(value, (int, float)):
-            avg = value
-        else:
-            avg = 0
-        passed = avg >= score_threshold
+    for metric_name, avg in metric_averages.items():
+        is_binary = any(bm in metric_name for bm in BINARY_METRICS)
+        thresh = 0.5 if is_binary else score_threshold
+        passed = avg >= thresh
         if not passed:
             all_pass = False
         metric_results[metric_name] = {
             "score": avg,
-            "threshold": score_threshold,
+            "threshold": thresh,
             "passed": passed,
         }
-
-    # Extract per-item details if available
-    items = []
-    try:
-        if hasattr(evaluation_run, "evaluation_items"):
-            for item in evaluation_run.evaluation_items or []:
-                item_dict = dict(item) if not isinstance(item, dict) else item
-                items.append(item_dict)
-    except Exception:
-        pass
 
     return {
         "run_id": run_id,
@@ -499,11 +496,11 @@ def _build_results(
         "test_case_count": len(EVAL_CASES),
         "score_threshold": score_threshold,
         "all_passed": all_pass,
+        "total_items": total_items,
+        "failed_items": failed_items,
         "metrics": metric_results,
-        "summary_raw": summary,
+        "summary_raw": raw_metrics,
         "evaluation_run_name": getattr(evaluation_run, "name", None),
-        "item_count": len(items),
-        "items": items,
     }
 
 
@@ -517,15 +514,19 @@ def _print_summary(results: dict) -> None:
     print(f"  Agent:       {results['agent']}")
     print(f"  Test cases:  {results['test_case_count']}")
     print(f"  Inference:   {results['inference_seconds']}s")
+    print(f"  Items OK:    {results['total_items'] - results['failed_items']}/{results['total_items']}")
     print()
 
-    print("  Metric Scores:")
-    for metric, detail in results["metrics"].items():
-        status = "PASS" if detail["passed"] else "FAIL"
-        score = detail["score"]
-        thresh = detail["threshold"]
-        marker = " " if detail["passed"] else " <<< "
-        print(f"    {metric:35s} {score:5.2f} / {thresh:.1f}  [{status}]{marker}")
+    if not results["metrics"]:
+        print("  No metric averages found in summary.")
+    else:
+        print("  Metric Scores (AVERAGE):")
+        for metric, detail in sorted(results["metrics"].items()):
+            status = "PASS" if detail["passed"] else "FAIL"
+            score = detail["score"]
+            thresh = detail["threshold"]
+            marker = "" if detail["passed"] else "  <<<"
+            print(f"    {metric:50s} {score:5.2f} / {thresh:.1f}  [{status}]{marker}")
 
     overall = "PASS" if results["all_passed"] else "FAIL"
     print()

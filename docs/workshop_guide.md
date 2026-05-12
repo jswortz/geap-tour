@@ -18,6 +18,8 @@ A hands-on walkthrough of the Gemini Enterprise Agent Platform — from building
 | Vertex AI Evaluation | [Evaluation Overview](https://cloud.google.com/vertex-ai/generative-ai/docs/evaluation/overview) |
 | Workload Identity Federation | [Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation) |
 
+> For component-level FAQs (what each piece does, how it works, why it matters), see [docs/faq.md](faq.md).
+
 ---
 
 ## Prerequisites
@@ -827,8 +829,8 @@ Online monitors evaluate live agent traffic on a 10-minute cycle:
 4. Results flow to BigQuery for analysis
 
 ```bash
-# Generate traffic first
-uv run python src/traffic/generate_traffic.py
+# Generate traffic first (20 queries + 3 memory conversations)
+uv run python -m src.traffic.generate_traffic
 
 # Setup monitors
 uv run python -m src.eval.setup_online_monitors <agent-resource-name>
@@ -1034,12 +1036,20 @@ uv run python src/deploy/deploy_agents.py all
 
 #### Testing with Complexity-Tagged Traffic
 
-The traffic generator includes queries tagged by expected complexity:
+The traffic generator sends 20 single queries (tagged by complexity) plus 3 multi-turn conversations that exercise Memory Bank (save + recall):
 
 ```bash
-# Generate traffic across all complexity levels
-uv run python src/traffic/generate_traffic.py
+# Generate traffic: 20 single queries + 3 memory conversations (32 total)
+uv run python -m src.traffic.generate_traffic
+
+# Target a specific agent by ID
+uv run python -m src.traffic.generate_traffic 2479350891879071744
+
+# Repeat the single-query set multiple times (memory convos always run once)
+uv run python -m src.traffic.generate_traffic --count 3
 ```
+
+The memory conversations establish user preferences in early turns ("I prefer Delta flights", "My employee ID is EMP002") and ask the agent to recall them in later turns — verifying that `save_memories_callback` and `PreloadMemoryTool` work end-to-end.
 
 Queries are tagged with expected complexity so you can verify routing accuracy in Cloud Trace.
 
@@ -1336,6 +1346,10 @@ uv run python scripts/capture_screenshots.py
 # 9. Cleanup when done
 bash scripts/cleanup.sh
 ```
+
+---
+
+> For a quick reference on each component (ADK Agents, MCP Servers, Router, Memory Bank, Gateway, Identity, Evaluation, Model Armor, Registry, GEPA), see [docs/faq.md](faq.md).
 
 ---
 

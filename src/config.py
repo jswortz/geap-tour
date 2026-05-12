@@ -13,6 +13,21 @@ SEARCH_MCP_URL = os.environ.get("SEARCH_MCP_URL", "http://localhost:8001/mcp")
 BOOKING_MCP_URL = os.environ.get("BOOKING_MCP_URL", "http://localhost:8002/mcp")
 EXPENSE_MCP_URL = os.environ.get("EXPENSE_MCP_URL", "http://localhost:8003/mcp")
 
+# Agent Registry — MCP server resource names (global location)
+AGENT_REGISTRY_LOCATION = os.environ.get("AGENT_REGISTRY_LOCATION", "global")
+SEARCH_MCP_SERVER = os.environ.get(
+    "SEARCH_MCP_SERVER",
+    f"projects/{GCP_PROJECT_ID}/locations/global/mcpServers/agentregistry-00000000-0000-0000-0c51-2a7dc998220b",
+)
+BOOKING_MCP_SERVER = os.environ.get(
+    "BOOKING_MCP_SERVER",
+    f"projects/{GCP_PROJECT_ID}/locations/global/mcpServers/agentregistry-00000000-0000-0000-a5e6-d1cf2bb18c63",
+)
+EXPENSE_MCP_SERVER = os.environ.get(
+    "EXPENSE_MCP_SERVER",
+    f"projects/{GCP_PROJECT_ID}/locations/global/mcpServers/agentregistry-00000000-0000-0000-02e2-cd6d7450ab52",
+)
+
 OTEL_ENV_VARS = {
     "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
     "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY",

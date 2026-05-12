@@ -12,9 +12,20 @@ A hands-on workshop demonstrating the full Gemini Enterprise Agent Platform (GEA
 | **Evaluation** | One-time, continuous (online monitors), and simulated evaluation pipelines |
 | **Model Armor** | Model Armor templates for input/output screening + client-side guardrails |
 | **Governance** | Agent identity (SPIFFE), agent gateway (ingress + egress), agent registry, Semantic Governance Policies (SGP) |
+| **Multi-Model Router** | Complexity-based routing across Flash Lite, Flash, and Opus |
 | **Optimization** | Agent optimization via GEPA algorithm |
 | **CI/CD** | GitHub Actions workflow running simulated evals on PRs |
 | **Diagrams** | Architecture diagrams generated with Paper Banana |
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Workshop Guide](docs/workshop_guide.md) | Full 4-session hands-on walkthrough |
+| [Component FAQ](docs/faq.md) | What each component does and why it matters |
+| [Evaluation Guide](docs/eval_operations.md) | Evaluation pipeline operations |
+| [Cost Comparison](docs/multi_model_cost_comparison.md) | Multi-model routing cost analysis |
+| [Slides](docs/slides.pptx) | Workshop deck (34 slides) |
 
 ## Quick Start
 
@@ -60,7 +71,7 @@ All screenshots are captured from real deployed GCP resources:
 
 ## Workshop Guide
 
-See [docs/workshop_guide.md](docs/workshop_guide.md) for the full workshop organized into 4 sessions:
+See [docs/workshop_guide.md](docs/workshop_guide.md) for the full workshop organized into 4 sessions. For component-level details, see the [Component FAQ](docs/faq.md).
 
 | Session | Topic | Duration |
 |---------|-------|----------|
@@ -111,6 +122,7 @@ src/
 ├── deploy/          # Deployment scripts for Cloud Run + Agent Runtime
 ├── eval/            # Evaluation pipeline (one-time, online, simulated)
 ├── optimize/        # Agent optimization (GEPA algorithm)
+├── router/          # Multi-model complexity router
 └── traffic/         # Traffic generation for OTel traces
 scripts/             # Shell scripts for identity, gateway, registry setup
 diagrams/            # Paper Banana architectural diagrams

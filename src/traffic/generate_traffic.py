@@ -52,6 +52,34 @@ QUERIES = [
     ),
 ]
 
+# Multi-turn conversations that exercise Memory Bank (save + recall).
+# Each conversation is a list of (query, user_id) tuples sent to the SAME
+# session so that after_agent_callback persists memories and PreloadMemoryTool
+# retrieves them on subsequent turns.
+CONVERSATIONS = [
+    # Alice: establish preferences, then recall them
+    [
+        ("Hi! I'm Alice and I always prefer window seats and Delta flights when possible.", "alice"),
+        ("Find me flights from SFO to JFK on June 15th", "alice"),
+        ("Remember that I have a corporate rate at Marriott hotels", "alice"),
+        ("Search for hotels in New York — do you remember my hotel preference?", "alice"),
+    ],
+    # Bob: expense history recall
+    [
+        ("I'm Bob from the engineering team. My employee ID is EMP002.", "bob"),
+        ("Submit a $75 meals expense for client dinner, user ID EMP002", "bob"),
+        ("Submit a $120 transportation expense for airport shuttle, user ID EMP002", "bob"),
+        ("Can you summarize what expenses I've submitted so far this session?", "bob"),
+    ],
+    # Charlie: cross-domain memory
+    [
+        ("I'm Charlie, I travel frequently to London and Tokyo for work.", "charlie"),
+        ("Find flights from SFO to London for next month", "charlie"),
+        ("Check if a $200 entertainment expense is within policy", "charlie"),
+        ("Based on our conversation, what do you know about my travel patterns?", "charlie"),
+    ],
+]
+
 
 def generate_traffic(
     agent_resource_name: str | None = None,
@@ -111,17 +139,53 @@ def generate_traffic(
                 errors += 1
                 print(f"  x Error: {e}")
 
+    # --- Multi-turn conversations (Memory Bank exercise) ---
+    print(f"\n{'=' * 60}")
+    print("MEMORY BANK CONVERSATIONS")
+    print(f"{'=' * 60}")
+
+    for conv_idx, conversation in enumerate(CONVERSATIONS, 1):
+        user_id = conversation[0][1]
+        print(f"\n--- Conversation {conv_idx}/{len(CONVERSATIONS)} (user: {user_id}) ---")
+
+        conv_session = agent.create_session(user_id=user_id)
+        conv_session_id = conv_session["id"]
+
+        for turn_idx, (query, uid) in enumerate(conversation, 1):
+            query_num += 1
+            total_queries += 1
+            print(f"  [{turn_idx}/{len(conversation)}] {query[:80]}")
+
+            try:
+                response = agent.stream_query(
+                    user_id=uid,
+                    session_id=conv_session_id,
+                    message=query,
+                )
+                full_response = ""
+                for chunk in response:
+                    if hasattr(chunk, "text"):
+                        full_response += chunk.text
+                    elif isinstance(chunk, dict) and "text" in chunk:
+                        full_response += chunk["text"]
+                print(f"     -> {full_response[:120]}...")
+            except Exception as e:
+                errors += 1
+                print(f"     x Error: {e}")
+
     # Summary
+    conv_queries = sum(len(c) for c in CONVERSATIONS)
     print(f"\n{'=' * 60}")
     print(f"TRAFFIC SUMMARY")
     print(f"{'=' * 60}")
+    print(f"  Single queries: {len(QUERIES) * count}")
+    print(f"  Memory conversations: {len(CONVERSATIONS)} ({conv_queries} turns)")
     print(f"  Total queries:  {total_queries}")
     print(f"  Errors:         {errors}")
     print(f"  Users:          {', '.join(sessions.keys())}")
     print(f"  By complexity:  low={complexity_counts['low']}  medium={complexity_counts['medium']}  high={complexity_counts['high']}")
     print(f"\n  Check Cloud Trace for spans.")
-    if total_queries > 0:
-        print(f"  Online monitors will evaluate in ~10 minutes.")
+    print(f"  Memory Bank events saved for users: alice, bob, charlie")
 
 
 if __name__ == "__main__":

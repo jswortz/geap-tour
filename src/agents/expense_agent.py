@@ -1,10 +1,9 @@
 """Expense Agent — submits expenses and checks corporate policy via MCP tool server."""
 
 from google.adk.agents import LlmAgent
-from google.adk.tools import McpToolset
-from google.adk.tools.mcp_tool.mcp_toolset import StreamableHTTPConnectionParams
 
-from src.config import AGENT_MODEL, EXPENSE_MCP_URL
+from src.config import AGENT_MODEL, EXPENSE_MCP_SERVER
+from src.registry import get_mcp_tools
 from src.armor.config import get_armored_generate_config, input_guardrail_callback
 
 INSTRUCTION = """\
@@ -29,7 +28,7 @@ expense_agent = LlmAgent(
     name="expense_agent",
     instruction=INSTRUCTION,
     tools=[
-        McpToolset(connection_params=StreamableHTTPConnectionParams(url=EXPENSE_MCP_URL)),
+        get_mcp_tools(EXPENSE_MCP_SERVER),
     ],
     generate_content_config=get_armored_generate_config(),
     before_agent_callback=input_guardrail_callback,

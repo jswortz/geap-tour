@@ -6,11 +6,10 @@ interactions (past bookings, expense submissions, preferences) across sessions.
 
 from google.adk.agents import LlmAgent
 from google.adk.agents.callback_context import CallbackContext
-from google.adk.tools import McpToolset
-from google.adk.tools.mcp_tool.mcp_toolset import StreamableHTTPConnectionParams
 from google.adk.tools.preload_memory_tool import PreloadMemoryTool
 
-from src.config import AGENT_MODEL, SEARCH_MCP_URL
+from src.config import AGENT_MODEL, SEARCH_MCP_SERVER
+from src.registry import get_mcp_tools
 from src.armor.config import get_armored_generate_config, input_guardrail_callback
 from src.agents.travel_agent import travel_agent
 from src.agents.expense_agent import expense_agent
@@ -50,10 +49,7 @@ coordinator_agent = LlmAgent(
     name="coordinator_agent",
     instruction=INSTRUCTION,
     tools=[
-        McpToolset(connection_params=StreamableHTTPConnectionParams(url=SEARCH_MCP_URL)),
-        # PreloadMemoryTool retrieves relevant memories at the start of each
-        # turn and injects them into the system instruction, giving the agent
-        # context about the user's history before it responds.
+        get_mcp_tools(SEARCH_MCP_SERVER),
         PreloadMemoryTool(),
     ],
     sub_agents=[travel_agent, expense_agent],

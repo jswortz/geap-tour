@@ -14,6 +14,34 @@ resolution-markers = [
 ]
 
 [[package]]
+name = "a2a-sdk"
+version = "0.3.26"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-api-core" },
+    { name = "httpx" },
+    { name = "httpx-sse" },
+    { name = "protobuf" },
+    { name = "pydantic" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/be/97/a6840e01795b182ce751ca165430d46459927cde9bfab838087cbb24aef7/a2a_sdk-0.3.26.tar.gz", hash = "sha256:44068e2d037afbb07ab899267439e9bc7eaa7ac2af94f1e8b239933c993ad52d", size = 274598, upload-time = "2026-04-09T15:21:13.902Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/dd/d5/51f4ee1bf3b736add42a542d3c8a3fd3fa85f3d36c17972127defc46c26f/a2a_sdk-0.3.26-py3-none-any.whl", hash = "sha256:754e0573f6d33b225c1d8d51f640efa69cbbed7bdfb06ce9c3540ea9f58d4a91", size = 151016, upload-time = "2026-04-09T15:21:12.35Z" },
+]
+
+[[package]]
+name = "a2a-types"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/80/1e/2fa0c5f12fc2e91e73fbe005b3cfbf80d3eb5a36c840cdf7fd7841baae79/a2a_types-0.1.0.tar.gz", hash = "sha256:f94097ed4425d9aacd55c508d77897937e14f56a89c974024abf9f31b280a355", size = 12070, upload-time = "2025-04-13T11:21:27.53Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/68/7f/4764b079816e2d4d0727841945ebc96b251d6a8517e1895b601af46833c7/a2a_types-0.1.0-py3-none-any.whl", hash = "sha256:37291afcf903cbf36e43112b7cf73d17db80fc8d410603b67ff3b7ff75bdde0d", size = 4589, upload-time = "2025-04-13T11:21:26.051Z" },
+]
+
+[[package]]
 name = "aiofile"
 version = "3.9.0"
 source = { registry = "https://pypi.org/simple" }
@@ -839,7 +867,10 @@ name = "geap-tour"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "a2a-sdk" },
+    { name = "a2a-types" },
     { name = "fastmcp" },
+    { name = "google-adk", extra = ["agent-identity"] },
     { name = "google-cloud-aiplatform", extra = ["adk", "agent-engines"] },
     { name = "google-cloud-bigquery" },
     { name = "google-cloud-monitoring" },
@@ -858,7 +889,10 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "a2a-sdk", specifier = ">=0.3.4,<0.4" },
+    { name = "a2a-types", specifier = ">=0.1.0" },
     { name = "fastmcp", specifier = ">=2.0.0" },
+    { name = "google-adk", extras = ["agent-identity"], specifier = ">=1.33.0" },
     { name = "google-cloud-aiplatform", extras = ["adk", "agent-engines"], specifier = ">=1.88.0" },
     { name = "google-cloud-bigquery", specifier = ">=3.0.0" },
     { name = "google-cloud-monitoring", specifier = ">=2.0.0" },
@@ -926,6 +960,11 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/55/f1/cc4a4e06084aa625c257caead4c765686e92e64f204a316b5623a91524a9/google_adk-1.33.0.tar.gz", hash = "sha256:2fe6f8c3d02307e3763999649378620457f294ebbce62fddf4162cddca43db32", size = 2426900, upload-time = "2026-05-08T21:12:32.338Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/2d/83520bc153499ff007aa17f85348f5cbf36ad58b23a1d5a40f04ae5cf12f/google_adk-1.33.0-py3-none-any.whl", hash = "sha256:9ff6b2c219bfd119fef18dcfff34082148768949a9c75a0a9786218c384e2345", size = 2871285, upload-time = "2026-05-08T21:12:30.477Z" },
+]
+
+[package.optional-dependencies]
+agent-identity = [
+    { name = "google-cloud-iamconnectorcredentials" },
 ]
 
 [[package]]
@@ -1184,6 +1223,22 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/0d/5f/128a1462354e0f8f0b7baff34b5a1a4e5cd7aee100d8db0eb39843b43d1d/google_cloud_iam-2.23.0.tar.gz", hash = "sha256:49246f6221026d381cff4f8d804daf1bb6416153f2504bf5ef54d4af2450b828", size = 561685, upload-time = "2026-05-07T08:04:16.253Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/3f/ee/470f0c337a235b12c6a880df25809b8b11b33986510d66450cb5ef540a83/google_cloud_iam-2.23.0-py3-none-any.whl", hash = "sha256:a123ac45080a5c1735218a6b3db4c6e6ea12a1cdc86feec1c30ad1ede6c91fc6", size = 515952, upload-time = "2026-05-07T08:02:48.144Z" },
+]
+
+[[package]]
+name = "google-cloud-iamconnectorcredentials"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-api-core", extra = ["grpc"] },
+    { name = "google-auth" },
+    { name = "grpcio" },
+    { name = "proto-plus" },
+    { name = "protobuf" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/52/37/accd35fac02ced6df6a6b7e581b71987e5c8b0d181061bcebd5ab358b68d/google_cloud_iamconnectorcredentials-0.1.0.tar.gz", hash = "sha256:7b94186bad6ae106c232bae795475eb9214dbc03cccf62cb117a43fe9169d675", size = 55493, upload-time = "2026-04-10T00:41:16.358Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/30/2e/deaca830008189c5c939f0e30c68eaa05c4d0d27cbdbcc73929632723a13/google_cloud_iamconnectorcredentials-0.1.0-py3-none-any.whl", hash = "sha256:38239d5cd2b71c090a06e2dd5e21ee0308799d39fb4095dcea918e35575a750c", size = 57792, upload-time = "2026-04-10T00:41:06.01Z" },
 ]
 
 [[package]]

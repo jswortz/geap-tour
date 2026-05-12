@@ -3,21 +3,15 @@
 from google.adk.agents import LlmAgent
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.models.lite_llm import LiteLlm
-from google.adk.tools import McpToolset
-from google.adk.tools.mcp_tool.mcp_toolset import StreamableHTTPConnectionParams
 from google.adk.tools.preload_memory_tool import PreloadMemoryTool
 from google.genai.types import Content, Part
 
-from .config import (
-    LITE_MODEL,
-    FLASH_MODEL,
-    OPUS_MODEL,
-    SEARCH_MCP_URL,
-    BOOKING_MCP_URL,
-    EXPENSE_MCP_URL,
-)
+from .config import LITE_MODEL, FLASH_MODEL, OPUS_MODEL
 from .armor import get_armored_generate_config, input_guardrail_callback
 from .complexity import classify_complexity
+
+from src.config import SEARCH_MCP_SERVER, BOOKING_MCP_SERVER, EXPENSE_MCP_SERVER
+from src.registry import get_mcp_tools
 
 
 def _resolve_model(model_str: str):
@@ -29,9 +23,9 @@ def _resolve_model(model_str: str):
 
 def _mcp_tools():
     return [
-        McpToolset(connection_params=StreamableHTTPConnectionParams(url=SEARCH_MCP_URL)),
-        McpToolset(connection_params=StreamableHTTPConnectionParams(url=BOOKING_MCP_URL)),
-        McpToolset(connection_params=StreamableHTTPConnectionParams(url=EXPENSE_MCP_URL)),
+        get_mcp_tools(SEARCH_MCP_SERVER),
+        get_mcp_tools(BOOKING_MCP_SERVER),
+        get_mcp_tools(EXPENSE_MCP_SERVER),
     ]
 
 

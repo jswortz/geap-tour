@@ -1,10 +1,9 @@
 """Travel Agent — searches and books flights and hotels via MCP tool servers."""
 
 from google.adk.agents import LlmAgent
-from google.adk.tools import McpToolset
-from google.adk.tools.mcp_tool.mcp_toolset import StreamableHTTPConnectionParams
 
-from src.config import AGENT_MODEL, SEARCH_MCP_URL, BOOKING_MCP_URL
+from src.config import AGENT_MODEL, SEARCH_MCP_SERVER, BOOKING_MCP_SERVER
+from src.registry import get_mcp_tools
 from src.armor.config import get_armored_generate_config, input_guardrail_callback
 
 INSTRUCTION = """\
@@ -26,8 +25,8 @@ travel_agent = LlmAgent(
     name="travel_agent",
     instruction=INSTRUCTION,
     tools=[
-        McpToolset(connection_params=StreamableHTTPConnectionParams(url=SEARCH_MCP_URL)),
-        McpToolset(connection_params=StreamableHTTPConnectionParams(url=BOOKING_MCP_URL)),
+        get_mcp_tools(SEARCH_MCP_SERVER),
+        get_mcp_tools(BOOKING_MCP_SERVER),
     ],
     generate_content_config=get_armored_generate_config(),
     before_agent_callback=input_guardrail_callback,
