@@ -1,0 +1,44 @@
+{
+  "scenarios": [
+    {
+      "starting_prompt": "I need to check our expense policy",
+      "conversation_plan": "Ask about the meal expense limit. Then check if a $50 meal expense is within policy. If approved, submit it for user EMP001.",
+      "user_persona": "NOVICE"
+    },
+    {
+      "starting_prompt": "I have receipts from my business trip to submit",
+      "conversation_plan": "Submit a $45 meals expense for lunch meeting for user EMP001. Then submit a $180 transport expense for the same user. Then view the expense history.",
+      "user_persona": "EXPERT"
+    },
+    {
+      "starting_prompt": "Can I submit a large entertainment expense?",
+      "conversation_plan": "Ask if a $500 entertainment expense is within policy. When told it exceeds the limit, ask what the limit is. Then submit it anyway and see what happens.",
+      "user_persona": "NOVICE"
+    },
+    {
+      "starting_prompt": "What are all the expense category limits?",
+      "conversation_plan": "Ask about the limit for each category: meals, transport, lodging, supplies, entertainment. Then submit a $90 supplies expense for user EMP003.",
+      "user_persona": "EXPERT"
+    },
+    {
+      "starting_prompt": "I think I might be over budget on meals",
+      "conversation_plan": "Check the policy limit for meals. Then check if a $100 meal expense is within policy. When told it exceeds, ask what happens if you submit it anyway.",
+      "user_persona": "NOVICE"
+    },
+    {
+      "starting_prompt": "Show me my expense history",
+      "conversation_plan": "Ask to view expenses for user EMP001. Then ask to view expenses for user EMP002. Compare the two histories.",
+      "user_persona": "EXPERT"
+    },
+    {
+      "starting_prompt": "I have an expense in a weird category",
+      "conversation_plan": "Try to check the policy for a $1000 expense in the 'unknown' category. Then ask what valid categories exist. Submit a legitimate expense instead.",
+      "user_persona": "NOVICE"
+    },
+    {
+      "starting_prompt": "Quick expense submission needed",
+      "conversation_plan": "Submit a $380 lodging expense for user EMP002. Check if it was within the $400 limit. Then ask to see the updated expense history.",
+      "user_persona": "EXPERT"
+    }
+  ]
+}

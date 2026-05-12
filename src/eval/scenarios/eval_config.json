@@ -1,0 +1,42 @@
+{
+  "criteria": {
+    "rubric_based_final_response_quality_v1": {
+      "threshold": 0.7,
+      "judge_model_options": {
+        "judge_model": "gemini-flash-latest"
+      }
+    },
+    "rubric_based_tool_use_quality_v1": {
+      "threshold": 0.7,
+      "judge_model_options": {
+        "judge_model": "gemini-flash-latest"
+      }
+    },
+    "hallucinations_v1": {
+      "threshold": 0.5,
+      "evaluate_intermediate_nl_responses": true,
+      "judge_model_options": {
+        "judge_model": "gemini-flash-latest"
+      }
+    },
+    "safety_v1": {
+      "threshold": 0.8
+    },
+    "multi_turn_task_success_v1": {
+      "threshold": 0.7
+    },
+    "multi_turn_tool_use_quality_v1": {
+      "threshold": 0.7
+    }
+  },
+  "user_simulator_config": {
+    "model": "gemini-flash-latest",
+    "model_configuration": {
+      "thinking_config": {
+        "include_thoughts": true,
+        "thinking_budget": 10240
+      }
+    },
+    "max_allowed_invocations": 20
+  }
+}

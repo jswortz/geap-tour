@@ -1,0 +1,44 @@
+{
+  "scenarios": [
+    {
+      "starting_prompt": "I need help with a work trip",
+      "conversation_plan": "Ask to search flights from SFO to JFK on June 15. After seeing results, ask to book the cheapest option. Then submit a $45 meal expense from the trip for user EMP001.",
+      "user_persona": "NOVICE"
+    },
+    {
+      "starting_prompt": "I have several things to handle for my Chicago trip",
+      "conversation_plan": "Ask about hotel options in Chicago under $300. Then ask about the expense policy for entertainment. Finally submit a $120 entertainment expense for user EMP002.",
+      "user_persona": "EXPERT"
+    },
+    {
+      "starting_prompt": "Can you help me with travel and expenses?",
+      "conversation_plan": "First ask to search hotels in New York. Then ask to check if a $50 meal expense is within policy. Accept the answers and thank the agent.",
+      "user_persona": "NOVICE"
+    },
+    {
+      "starting_prompt": "I need to plan my upcoming business trip to Miami",
+      "conversation_plan": "Ask about available flights to Miami. Then ask about hotel options. Finally ask about the lodging expense limit and whether the hotel prices fit within policy.",
+      "user_persona": "EXPERT"
+    },
+    {
+      "starting_prompt": "Hi, I have a quick expense question",
+      "conversation_plan": "Ask if a $200 transport expense is within corporate policy. If it is, ask to submit it for user EMP003. Then ask to see the expense history for EMP003.",
+      "user_persona": "NOVICE"
+    },
+    {
+      "starting_prompt": "I need to handle my trip logistics",
+      "conversation_plan": "Ask to search flights from LAX to Chicago. Then ask to book the best option for Jane Smith. After booking, ask to submit the flight cost as a transport expense.",
+      "user_persona": "EXPERT"
+    },
+    {
+      "starting_prompt": "What can you help me with for corporate travel?",
+      "conversation_plan": "Ask the agent what services it provides. Then ask to search for hotels in London. Finally ask about the expense policy for supplies.",
+      "user_persona": "NOVICE"
+    },
+    {
+      "starting_prompt": "I need to submit several expenses from my recent trip",
+      "conversation_plan": "Submit a $65 meal expense for user EMP001. Then submit a $350 lodging expense. Then ask to see the full expense history for EMP001.",
+      "user_persona": "EXPERT"
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "eval_set_id": "coordinator_eval_set",
+  "eval_cases": [
+    {
+      "eval_id": "flight_search_sfo_jfk",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Find flights from SFO to JFK on June 15"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I found several flight options from SFO to JFK on June 15. Flight FL001 with United Airlines departs at 8:00 AM for $350, and FL002 with Delta departs at 2:00 PM for $420."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "search_flights", "args": {"origin": "SFO", "destination": "JFK", "date": "2026-06-15"}}]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "flight_search_lax_chicago",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Search for flights from LAX to Chicago on June 16"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Here are flights from LAX to Chicago (ORD) on June 16. Flight FL003 with American Airlines is available."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "search_flights", "args": {"origin": "LAX", "destination": "ORD", "date": "2026-06-16"}}]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "hotel_search_nyc",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Search for hotels in New York under $350 per night"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I found hotels in New York under $350: Grand Hyatt at $299/night and Budget Inn at $149/night."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "search_hotels", "args": {"city": "New York", "max_price": 350}}]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "book_flight",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Book flight FL001 for Alice Johnson"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Flight FL001 has been booked for Alice Johnson. Booking confirmed."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "book_flight", "args": {"flight_id": "FL001", "passenger_name": "Alice Johnson"}}]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "expense_policy_check_within",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Check if a $50 meal expense is within policy"}], "role": "user"},
+        "final_response": {"parts": [{"text": "A $50 meal expense is within the corporate policy. The meal expense limit is $75."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "check_expense_policy", "args": {"category": "meals", "amount": 50}}]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "expense_policy_over_limit",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Check policy for a $500 entertainment expense"}], "role": "user"},
+        "final_response": {"parts": [{"text": "A $500 entertainment expense exceeds the corporate policy limit of $150 for entertainment."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "check_expense_policy", "args": {"category": "entertainment", "amount": 500}}]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "expense_submit_within",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Submit a $45 meals expense for lunch meeting, user ID EMP001"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Expense submitted: $45 meals for EMP001. Status: approved (within $75 meal policy limit)."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "submit_expense", "args": {"user_id": "EMP001", "category": "meals", "amount": 45, "description": "lunch meeting"}}]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "expense_history",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Show all expenses for user EMP001"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Here are the expenses for user EMP001."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "get_user_expenses", "args": {"user_id": "EMP001"}}]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "multi_intent_routing",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "I need to book a trip to Chicago and submit my last meal receipt for $30"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I'll help with both. Let me search for travel options to Chicago and submit your meal expense."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [
+            {"name": "search_flights", "args": {"destination": "ORD"}},
+            {"name": "submit_expense", "args": {"category": "meals", "amount": 30}}
+          ]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "hotel_search_miami",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Find me a hotel in Miami"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I found hotels in Miami including the Fontainebleau."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "search_hotels", "args": {"city": "Miami"}}]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    }
+  ]
+}

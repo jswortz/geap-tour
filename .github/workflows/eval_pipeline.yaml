@@ -1,0 +1,284 @@
+name: Comprehensive Eval Pipeline
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/agents/**'
+      - 'src/eval/**'
+      - 'src/router/**'
+      - 'src/mcp_servers/**'
+  workflow_dispatch:
+    inputs:
+      agent_id:
+        description: 'Agent Engine ID (leave empty to use default)'
+        required: false
+      skip_traffic:
+        description: 'Skip traffic generation'
+        type: boolean
+        default: false
+      batch_only:
+        description: 'Only run batch evals'
+        type: boolean
+        default: false
+
+env:
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID || 'wortz-project-352116' }}
+  GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
+  AGENT_ENGINE_ID: ${{ inputs.agent_id || vars.AGENT_ENGINE_ID || '1316648131831529472' }}
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Run eval infrastructure tests
+        run: uv run python -m pytest tests/test_multi_agent_eval.py -v
+
+  batch-evals:
+    name: Batch Evaluations
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      eval_passed: ${{ steps.eval.outputs.passed }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+
+      - name: Generate traffic
+        if: ${{ !inputs.skip_traffic }}
+        run: |
+          uv run python -c "
+          from src.traffic.generate_traffic import generate_traffic
+          generate_traffic(count=1)
+          "
+        timeout-minutes: 10
+
+      - name: Wait for trace ingestion
+        if: ${{ !inputs.skip_traffic }}
+        run: sleep 30
+
+      - name: Run batch evaluations
+        id: eval
+        run: |
+          uv run python -m src.eval.multi_agent_batch_eval \
+            --threshold 3.0 \
+            --output eval_outputs/batch_results.json 2>&1 | tee eval_output.log
+
+          if [ $? -eq 0 ]; then
+            echo "passed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "passed=false" >> "$GITHUB_OUTPUT"
+          fi
+        timeout-minutes: 15
+
+      - name: Upload eval results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: batch-eval-results
+          path: |
+            eval_outputs/
+            eval_output.log
+
+  complexity-evals:
+    name: Complexity Routing Evaluation
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+
+      - name: Run complexity accuracy eval
+        run: |
+          uv run python -c "
+          import asyncio
+          from src.eval.complexity_metrics import run_complexity_accuracy_eval, run_cost_efficiency_eval
+          from src.eval.agent_eval_configs import ROUTER_EVAL_CASES
+          import json
+
+          accuracy = asyncio.run(run_complexity_accuracy_eval(ROUTER_EVAL_CASES))
+          cost = asyncio.run(run_cost_efficiency_eval(ROUTER_EVAL_CASES))
+
+          results = {'accuracy': accuracy, 'cost_efficiency': cost}
+          print(json.dumps(results, indent=2, default=str))
+
+          with open('complexity_eval.json', 'w') as f:
+              json.dump(results, f, indent=2, default=str)
+
+          pct = float(accuracy['accuracy_pct'].rstrip('%'))
+          if pct < 60:
+              print(f'WARN: Classifier accuracy {pct}% is below 60% threshold')
+              exit(1)
+          "
+        timeout-minutes: 5
+
+      - name: Upload complexity results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: complexity-eval-results
+          path: complexity_eval.json
+
+  monitor-check:
+    name: Monitor Verification
+    needs: [batch-evals]
+    if: ${{ !inputs.batch_only }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+
+      - name: Verify online monitors
+        run: |
+          uv run python -c "
+          from src.eval.verify_monitors import verify_monitor_results, generate_markdown_report
+          import json
+
+          data = verify_monitor_results(output_format='json')
+          print(json.dumps(data, indent=2, default=str))
+
+          with open('monitor_status.json', 'w') as f:
+              json.dump(data, f, indent=2, default=str)
+
+          if data and data.get('status') == 'ok':
+              print(generate_markdown_report(data))
+          "
+        timeout-minutes: 5
+
+      - name: Upload monitor results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: monitor-results
+          path: monitor_status.json
+
+  report:
+    name: Generate Report
+    needs: [batch-evals, complexity-evals, monitor-check]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: eval_outputs/
+
+      - name: Generate summary
+        run: |
+          echo "## Eval Pipeline Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f eval_outputs/batch-eval-results/batch_results.json ]; then
+            echo "### Batch Evaluations" >> $GITHUB_STEP_SUMMARY
+            python3 -c "
+          import json
+          with open('eval_outputs/batch-eval-results/batch_results.json') as f:
+              data = json.load(f)
+          agents = data.get('agents', {})
+          if agents:
+              print('| Agent | Status | Test Cases |')
+              print('|-------|--------|-----------|')
+              for name, r in agents.items():
+                  status = r.get('status', 'N/A')
+                  cases = r.get('test_cases', 0)
+                  print(f'| {name} | {status} | {cases} |')
+          " >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ -f eval_outputs/complexity-eval-results/complexity_eval.json ]; then
+            echo "### Complexity Routing" >> $GITHUB_STEP_SUMMARY
+            python3 -c "
+          import json
+          with open('eval_outputs/complexity-eval-results/complexity_eval.json') as f:
+              data = json.load(f)
+          acc = data.get('accuracy', {})
+          cost = data.get('cost_efficiency', {})
+          print(f'- Classifier accuracy: {acc.get(\"accuracy_pct\", \"N/A\")}')
+          print(f'- Cost savings vs all-Opus: {cost.get(\"savings_pct\", \"N/A\")}%')
+          " >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload full report
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report
+          path: eval_outputs/
