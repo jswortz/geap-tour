@@ -592,6 +592,86 @@ def build_deck():
               "SGP verdicts are ALLOW, DENY, or ALLOW_IF_CONFIRMED (human-in-the-loop pause). "
               "Note: SGP evaluates tool calls, not raw prompts — it sees context but targets tool-call behavior.")
 
+    # ===== SLIDE 14d: DELEGATION AUTHORIZATION =====
+    s = prs.slides.add_slide(blank)
+    add_text(s, Inches(0.8), Inches(0.3), Inches(10), Inches(0.8),
+             "Delegating Authorization to the Gateway", 36, bold=True)
+    add_text(s, Inches(0.8), Inches(1.0), Inches(6), Inches(0.4),
+             "Authz Extensions wire governance into the request path", 18, bold=True, color=BLUE)
+
+    # Request flow diagram via table
+    add_table(s, Inches(0.8), Inches(1.6), Inches(6), Inches(2.6),
+              ["Extension", "Profile", "What It Sees", "Service"],
+              [["IAP", "REQUEST_AUTHZ", "Headers only", "iap.googleapis.com"],
+               ["Model Armor", "CONTENT_AUTHZ", "Full request + response body", "modelarmor.REGION.rep.googleapis.com"],
+               ["SGP", "CONTENT_AUTHZ", "Full request + response body", "SGP engine (VPC DNS)"],
+               ["Custom", "Either", "Configurable", "Your FQDN (VPC)"]],
+              font_size=12)
+
+    add_text(s, Inches(0.8), Inches(4.5), Inches(6), Inches(0.8),
+             "Max 4 policies per gateway  |  REQUEST_AUTHZ runs first  |  CONTENT_AUTHZ sees bodies",
+             13, color=DARK)
+
+    # Right side: architecture flow
+    add_text(s, Inches(7.2), Inches(1.0), Inches(5.5), Inches(0.4),
+             "Request Flow Through Gateway", 18, bold=True, color=BLUE)
+    add_code_block(s, Inches(7.2), Inches(1.5), Inches(5.5), Inches(3.2),
+                   'Request arrives\n'
+                   '  │\n'
+                   '  ├─ REQUEST_AUTHZ ◄── IAP\n'
+                   '  │   (identity + CEL conditions)\n'
+                   '  │\n'
+                   '  ├─ Route to agent/MCP\n'
+                   '  │\n'
+                   '  ├─ CONTENT_AUTHZ ◄── Model Armor\n'
+                   '  │   (prompt/response screening)\n'
+                   '  │\n'
+                   '  └─ CONTENT_AUTHZ ◄── SGP\n'
+                   '      (semantic business rules)',
+                   font_size=11)
+
+    # Bottom: MCP tool-level policies
+    add_text(s, Inches(0.8), Inches(5.3), Inches(5.5), Inches(0.4),
+             "MCP Tool-Level Policies (inline, no extension)", 16, bold=True, color=BLUE)
+    add_code_block(s, Inches(0.8), Inches(5.8), Inches(5.5), Inches(1.5),
+                   'httpRules:\n'
+                   '  - to:\n'
+                   '      operations:\n'
+                   '        - mcp:\n'
+                   '            baseProtocolMethodsOption:\n'
+                   '              MATCH_BASE_PROTOCOL_METHODS\n'
+                   '            methods:\n'
+                   '              - name: "tools/call"\n'
+                   '                params: ["search_flights"]',
+                   font_size=10)
+
+    add_text(s, Inches(7.2), Inches(5.0), Inches(5.5), Inches(0.4),
+             "Setup (REST API)", 16, bold=True, color=BLUE)
+    add_code_block(s, Inches(7.2), Inches(5.5), Inches(5.5), Inches(1.8),
+                   '# 1. Create extension\n'
+                   'POST networkservices/v1beta1/\n'
+                   '  .../authzExtensions\n'
+                   '  {service, failOpen, timeout}\n\n'
+                   '# 2. Create policy\n'
+                   'POST networksecurity/v1beta1/\n'
+                   '  .../authzPolicies\n'
+                   '  {target, policyProfile, action}',
+                   font_size=10)
+
+    add_logo(s)
+    add_notes(s, "This slide explains the WIRING — how you connect IAP, Model Armor, and SGP to the gateway. "
+              "Each governance layer runs as an authz extension, intercepting traffic at the gateway. "
+              "Two profiles: REQUEST_AUTHZ sees headers only (fast, for identity checks like IAP), "
+              "CONTENT_AUTHZ sees full request and response bodies (for content screening like Model Armor and SGP). "
+              "Key limits: max 4 authz policies per gateway. REQUEST_AUTHZ always runs first. "
+              "For Google API services (IAP, Model Armor), omit the 'authority' field and use REST API — "
+              "the gcloud CLI requires an undocumented 'loadBalancingScheme' field. "
+              "MCP tool-level policies can ALLOW/DENY specific tools without needing an extension. "
+              "Always include baseProtocolMethodsOption: MATCH_BASE_PROTOCOL_METHODS in ALLOW rules "
+              "or the MCP session will break (initialize, ping, notifications blocked). "
+              "Defense-in-depth: combine REQUEST_AUTHZ (IAP for who) + CONTENT_AUTHZ (Model Armor for what content + SGP for what behavior). "
+              "Docs: https://cloud.google.com/gemini-enterprise-agent-platform/govern/gateways/delegate-authorization")
+
     # ===== SLIDE 15: EVAL PIPELINE =====
     s = prs.slides.add_slide(blank)
     add_text(s, Inches(0.8), Inches(0.3), Inches(10), Inches(0.8),
