@@ -339,26 +339,95 @@ remote = agent_engines.create(
 
 ![Agent Gateway](screenshots/session2_agent_gateway.png)
 
-#### Semantic Governance Policies (Business Policies)
-
-Agent Gateway integrates with **Semantic Governance Policies (SGP)** — natural language rules that govern agent behavior at the platform level without embedding logic in agent code.
+#### Governance Policies
 
 **Script**: `scripts/setup_governance_policies.sh`
 
-Three governance layers enforced at the gateway:
+The Agent Gateway enforces three governance layers. The setup script handles the first two; Model Armor is configured separately.
 
 | Layer | Type | Enforcement | Example |
 |-------|------|-------------|---------|
-| **IAM Allow Policies** | Static egress control | CEL expressions on tool attributes | "Travel agent can only use non-destructive booking tools" |
-| **Semantic Governance (SGP)** | Runtime business rules | Natural language constraints | "Deny expenses over $200 for meals category" |
-| **Model Armor** | Content screening | Prompt/response templates | "Block prompt injection attempts" |
+| **Layer 1: IAM Allow Policies** | Static egress control | CEL expressions on tool attributes | "Travel agent can only use non-destructive booking tools" |
+| **Layer 2: Semantic Governance (SGP)** | Runtime business rules | Natural language constraints | "Deny expenses over $200 for meals category" |
+| **Layer 3: Model Armor** | Content screening | Prompt/response templates | "Block prompt injection attempts" (see Session 4) |
 
-Navigate to Agent Platform -> Policies -> Business Policies to:
-- Define constraints in plain English (e.g., "Only book economy class flights unless explicitly approved")
-- Scope policies to specific agents, MCP servers, or individual tools
-- Enforce compliance without redeploying agents
+**Screenshot**: `docs/screenshots/session3_policies_iam.png`
 
-> **Note**: SGP requires the policy engine to be provisioned (~15-20 min setup with VPC networking and DNS peering). See `scripts/setup_governance_policies.sh` for full setup including VPC, DNS zone, and SGP engine provisioning.
+![IAM Policies](screenshots/session3_policies_iam.png)
+
+##### Layer 1: IAM Allow Policies
+
+IAM Allow policies are **static** rules that control which agents can access which MCP servers and tools. They use CEL (Common Expression Language) conditions evaluated by Identity-Aware Proxy at the gateway boundary. These always run — no extra provisioning required.
+
+The script creates three IAM policies:
+
+| Policy | Agent | MCP Server | Condition |
+|--------|-------|------------|-----------|
+| Coordinator read-only | Coordinator | Search MCP | `isReadOnly == true` |
+| Travel non-destructive | Travel Agent | Booking MCP | `isDestructive == false` |
+| Expense tool-level | Expense Agent | Expense MCP | `toolName in ['submit_expense', 'check_expense_policy', 'get_expenses']` |
+
+CEL attributes available for conditions include `mcp.toolName`, `mcp.tool.isReadOnly`, `mcp.tool.isDestructive`, `mcp.tool.isIdempotent`, and `mcp.tool.isOpenWorld`.
+
+```bash
+# Run Layer 1 only (IAM policies):
+bash scripts/setup_governance_policies.sh
+```
+
+##### Layer 2: Semantic Governance Policies (SGP)
+
+SGP takes governance beyond static rules. Where IAM answers "Can this agent call this tool?", SGP answers "Should this tool call be allowed **given the current context**?" — evaluating the user prompt, chat history, and proposed tool parameters against natural language business rules at runtime.
+
+**Key differences from IAM:**
+
+| | IAM Allow Policies | Semantic Governance (SGP) |
+|-|-------------------|--------------------------|
+| **When evaluated** | Before tool dispatch | During tool dispatch, with full request context |
+| **Rule language** | CEL expressions | Plain English (up to 5,000 characters) |
+| **What it sees** | Tool attributes only | User prompt, chat history, tool parameters |
+| **Scope** | Agent + MCP server | Agent-scope or tool-scope (specific MCP server + tool) |
+| **Provisioning** | None (built-in) | Requires SGP engine (~15-20 min setup) |
+
+**Three SGP verdicts:**
+
+| Verdict | Behavior |
+|---------|----------|
+| **ALLOW** | Tool call proceeds normally |
+| **DENY** | Tool call is blocked; the user sees the rationale |
+| **ALLOW_IF_CONFIRMED** | Tool call is paused; the user must explicitly confirm before it executes |
+
+**Running the script with SGP enabled:**
+
+```bash
+# Run Layer 1 (IAM) + Layer 2 (SGP):
+bash scripts/setup_governance_policies.sh --sgp
+
+# Preview commands without executing:
+bash scripts/setup_governance_policies.sh --sgp --dry-run
+```
+
+When `--sgp` is passed, the script performs these additional steps:
+1. Creates a VPC network and subnet for SGP engine connectivity
+2. Creates a private DNS zone for internal resolution
+3. Provisions the SGP engine (takes ~15-20 minutes to become ACTIVE)
+4. Creates 5 example SGP policies (once the engine is ACTIVE)
+5. Connects the SGP engine to both gateways via an authorization extension and policy
+
+> **Note:** The SGP engine provisioning is a one-time step. If the engine is still provisioning (state: CREATING), re-run the script with `--sgp` after it becomes ACTIVE to create the policies and connect the gateway.
+
+**Five example SGP policies:**
+
+| ID | Name | Scope | Constraint | Likely Verdict |
+|----|------|-------|------------|----------------|
+| SGP-1 | Business Hours Enforcement | Agent-scope | No booking or expense operations outside 9 AM - 6 PM PT, Mon-Fri. Searches allowed anytime. | DENY (outside hours) |
+| SGP-2 | Expense Amount Guardrail | Tool-scope (`submit_expense`) | Meals over $200 denied. Entertainment over $500 denied. Any category over $1,000 denied. | DENY |
+| SGP-3 | Booking Confirmation Required | Tool-scope (`book_flight`) | Must present flight details and receive explicit user confirmation before booking. | ALLOW_IF_CONFIRMED |
+| SGP-4 | Anti-Exfiltration Guard | Agent-scope | Never transmit personal data (employee IDs, emails, expense details) from one tool context to another. | DENY |
+| SGP-5 | Multi-Intent Complexity Guard | Agent-scope | If a single user message bundles multiple unrelated actions (e.g., book + expense + search), require confirmation. Guards against bundled injection attacks. | ALLOW_IF_CONFIRMED |
+
+Notice the pattern: SGP-1, SGP-4, and SGP-5 use **agent-scope** (they apply to all tool calls from the coordinator agent), while SGP-2 and SGP-3 use **tool-scope** (they target specific MCP server + tool combinations).
+
+Navigate to Agent Platform -> Policies -> Business Policies to view active SGP rules, their scopes, and enforcement logs.
 
 **Screenshot**: `docs/screenshots/session3_business_policies.png`
 
@@ -750,6 +819,8 @@ bash scripts/setup_agent_identity.sh
 bash scripts/setup_agent_gateway.sh
 bash scripts/setup_model_armor.sh
 bash scripts/setup_logging_sink.sh
+bash scripts/setup_governance_policies.sh          # IAM policies only
+bash scripts/setup_governance_policies.sh --sgp    # Optional: add SGP engine + policies
 
 # 3. Deploy MCP servers to Cloud Run
 uv run python src/deploy/deploy_mcp_servers.py

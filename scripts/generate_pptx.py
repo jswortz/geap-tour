@@ -191,6 +191,12 @@ def add_table(slide, left, top, width, height, headers, rows, font_size=14):
     return table_shape
 
 
+def add_notes(slide, text):
+    notes_slide = slide.notes_slide
+    tf = notes_slide.notes_text_frame
+    tf.text = text
+
+
 def add_logo(slide, color=GRAY):
     add_text(slide, Inches(11), Inches(6.9), Inches(2), Inches(0.4),
              "Google Cloud", font_size=14, color=color, align=PP_ALIGN.RIGHT)
@@ -227,21 +233,58 @@ def build_deck():
              "ADK Agents  •  MCP Servers  •  Agent Gateway  •  Agent Registry  •  Model Armor  •  Evaluation Pipeline",
              18, color=RGBColor(0x99, 0x99, 0x99))
     add_logo(s, RGBColor(0x88, 0x88, 0x88))
+    add_notes(s, "Welcome everyone to the Gemini Enterprise Agent Platform workshop. "
+              "Today we'll go from zero to a fully deployed, governed, and evaluated multi-agent system on Google Cloud. "
+              "We'll build real ADK agents, connect them via MCP servers, deploy to Agent Runtime, "
+              "set up dual-mode gateway governance, run evaluations, and configure Model Armor for content safety. "
+              "This is a hands-on workshop — you'll be writing and deploying code throughout.")
 
-    # ===== SLIDE 2: AGENDA =====
+    # ===== SLIDE 2: TABLE OF CONTENTS =====
     s = prs.slides.add_slide(blank)
-    add_text(s, Inches(0.8), Inches(0.5), Inches(6), Inches(0.8), "Agenda", 42, bold=True)
-    add_table(s, Inches(0.8), Inches(1.6), Inches(11.5), Inches(4),
-              ["Session", "Topic", "Duration", "Key Activities"],
-              [
-                  ["1", "AI Gateway / MCP Gateway", "~90 min", "Architecture, MCP servers, ADK agents, deployment, identity"],
-                  ["", "Lunch Break", "~45 min", ""],
-                  ["2", "AI Gateway / MCP Gateway (cont.)", "~75 min", "Agent Gateway, evaluation, observability, optimization"],
-                  ["3", "Agent Registry", "~15 min", "Agent registration, discovery, governance"],
-                  ["4", "Model Security / Model Armor", "~15 min", "Input/output screening, guardrails, content safety"],
-                  ["", "Break", "~15 min", ""],
-              ])
+    add_text(s, Inches(0.8), Inches(0.3), Inches(8), Inches(0.8),
+             "Table of Contents", 42, bold=True)
+    add_text(s, Inches(0.8), Inches(1.1), Inches(10), Inches(0.4),
+             "Four sessions — from building agents to securing them in production", 20, color=GRAY)
+
+    toc_items = [
+        (BLUE,   "1", "AI Gateway / MCP Gateway",
+         "Multi-agent architecture  •  MCP tool servers  •  ADK agents  •  Deployment  •  Workload identity"),
+        (BLUE,   "2", "AI Gateway — Governance & Eval",
+         "Agent Gateway (dual mode)  •  Three-tier evaluation  •  Observability  •  GEPA optimization"),
+        (YELLOW, "3", "Agent Registry",
+         "Agent registration & discovery  •  Toolspec association  •  Lifecycle governance"),
+        (RED,    "4", "Model Security / Model Armor",
+         "Input/output screening  •  Prompt injection detection  •  Guardrail callbacks"),
+    ]
+    for i, (color, num, title, desc) in enumerate(toc_items):
+        y = Inches(1.8 + i * 1.35)
+        # Number circle
+        circle = s.shapes.add_shape(MSO_SHAPE.OVAL, Inches(0.8), y, Inches(0.7), Inches(0.7))
+        circle.fill.solid()
+        circle.fill.fore_color.rgb = color
+        circle.line.fill.background()
+        tf = circle.text_frame
+        tf.word_wrap = False
+        p = tf.paragraphs[0]
+        p.text = num
+        p.font.size = Pt(24)
+        p.font.bold = True
+        p.font.color.rgb = WHITE
+        p.font.name = FONT
+        p.alignment = PP_ALIGN.CENTER
+        tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+        # Title
+        add_text(s, Inches(1.8), y, Inches(10), Inches(0.5),
+                 title, 24, bold=True, color=DARK)
+        # Description
+        add_text(s, Inches(1.8), Emu(y + Inches(0.45)),
+                 Inches(10), Inches(0.5),
+                 desc, 16, color=GRAY)
     add_logo(s)
+    add_notes(s, "Four sessions today. Session 1 is the longest — we'll build the full agent stack from scratch. "
+              "Session 2 continues with governance, evaluation, and observability. "
+              "Sessions 3 and 4 are shorter focused deep-dives on Agent Registry and Model Armor. "
+              "There's a lunch break between sessions 1 and 2, and a short break before the final wrap-up.")
 
     # ===== SLIDE 3: ARCHITECTURE =====
     s = prs.slides.add_slide(blank)
@@ -252,6 +295,10 @@ def build_deck():
              "User → Frontend → Agent Gateway → Agent Identity (Runtime) → Agent Gateway → Agents, Tools, Models, APIs",
              16, color=GRAY, align=PP_ALIGN.CENTER)
     add_logo(s)
+    add_notes(s, "This is the high-level architecture of GEAP. Key point: the Agent Gateway sits at the network boundary — "
+              "all traffic between users, agents, and external services flows through it. "
+              "The Agent Identity layer (powered by SPIFFE) gives each agent its own cryptographic identity. "
+              "This means we can write policies about WHICH agent can call WHICH tool — not just which user.")
 
     # ===== SLIDE 4: IDENTITY MODEL =====
     s = prs.slides.add_slide(blank)
@@ -259,6 +306,11 @@ def build_deck():
     add_image_safe(s, os.path.join(SCREENSHOTS, "identity_types.png"),
                    Inches(1), Inches(1.3), width=Inches(11))
     add_logo(s)
+    add_notes(s, "Three identity types are critical to understand. "
+              "ID-1 is the human user's identity — standard OAuth/OIDC. "
+              "ID-2 is the agent's own identity — a SPIFFE ID issued at deploy time. "
+              "ID-3 is delegated — the agent acting on behalf of a user with constrained permissions. "
+              "This tri-modal identity model is what makes fine-grained governance possible.")
 
     # ===== SLIDE 5: SESSION 1 HEADER =====
     s = prs.slides.add_slide(blank)
@@ -276,6 +328,10 @@ def build_deck():
                      "SPIFFE-based workload identity"],
                     font_size=20, color=RGBColor(0xEE, 0xEE, 0xFF))
     add_logo(s, RGBColor(0x88, 0x99, 0xCC))
+    add_notes(s, "Session 1 is where we build everything. By the end of this session you'll have: "
+              "three MCP tool servers running on Cloud Run, three ADK agents deployed to Agent Runtime, "
+              "and workload identity configured for secure agent-to-service communication. "
+              "We'll start with the architecture, then write code, then deploy.")
 
     # ===== SLIDE 6: MULTI-AGENT TOPOLOGY =====
     s = prs.slides.add_slide(blank)
@@ -294,6 +350,10 @@ def build_deck():
                      "Expense MCP — expense submission + policy checks"],
                     title="Three MCP Servers", title_color=BLUE)
     add_logo(s)
+    add_notes(s, "Our workshop builds a corporate travel assistant. The Coordinator agent routes requests "
+              "to either the Travel agent (flights, hotels) or the Expense agent (reimbursements). "
+              "Notice the MCP servers are shared — the Search MCP is used by both Travel and Coordinator. "
+              "This is a key MCP advantage: tools are deployed once and shared across agents.")
 
     # ===== SLIDE 7: MCP SERVER DEV =====
     s = prs.slides.add_slide(blank)
@@ -314,6 +374,10 @@ def build_deck():
              "1-to-Many Topology",
              "Multiple agents can share the same MCP server — no duplication needed", YELLOW)
     add_logo(s)
+    add_notes(s, "FastMCP makes building tool servers trivial — it's a single decorator on a Python function. "
+              "The @mcp.tool() decorator handles schema generation, input validation, and protocol compliance. "
+              "We use StreamableHTTP transport so these run as standard HTTP services on Cloud Run. "
+              "DEMO: Walk through the search_flights tool code and show how MCP introspection exposes the tool schema.")
 
     # ===== SLIDE 8: ADK AGENTS =====
     s = prs.slides.add_slide(blank)
@@ -334,6 +398,11 @@ def build_deck():
              "OTel Tracing",
              "Every agent call produces OpenTelemetry spans — exported to Cloud Trace automatically", YELLOW)
     add_logo(s)
+    add_notes(s, "ADK agents use LlmAgent as the base class. The key config: model, instruction, and tools. "
+              "McpToolset connects to remote MCP servers via StreamableHTTP — the agent discovers tools at runtime. "
+              "The Coordinator pattern uses sub_agents to delegate: it doesn't call tools directly, "
+              "it routes to the specialist agent best suited for the user's intent. "
+              "OTel tracing is built in — every agent call automatically generates spans.")
 
     # ===== SLIDE 9: DEPLOYMENT =====
     s = prs.slides.add_slide(blank)
@@ -351,6 +420,10 @@ def build_deck():
              "One command deploy: bash scripts/deploy_all.sh\nDeploys 3 MCP servers + coordinator agent in sequence",
              16, color=DARK)
     add_logo(s)
+    add_notes(s, "Two deployment targets: Cloud Run for MCP servers (stateless HTTP services) "
+              "and Agent Runtime (Vertex AI Agent Engine) for ADK agents (stateful, with session management). "
+              "The deploy_all.sh script deploys everything in sequence — MCP servers first, then agents. "
+              "DEMO: Run the deployment script and show the output as services come online.")
 
     # ===== SLIDE 10: CONSOLE — AGENT ENGINE =====
     s = prs.slides.add_slide(blank)
@@ -360,6 +433,9 @@ def build_deck():
     add_image_safe(s, os.path.join(SCREENSHOTS, "session1_agent_engine.png"),
                    Inches(0.8), Inches(1.3), width=Inches(11.5))
     add_logo(s, RGBColor(0x88, 0x88, 0x88))
+    add_notes(s, "CONSOLE DEMO: Show the Agent Engine console page. Point out the deployed agent, "
+              "its status, the model it's using, and the session management configuration. "
+              "Highlight that Agent Runtime handles scaling, session persistence, and health checks automatically.")
 
     # ===== SLIDE 11: IDENTITY (SPIFFE) =====
     s = prs.slides.add_slide(blank)
@@ -379,15 +455,39 @@ def build_deck():
                ["ID-3: Delegated", "Agent on behalf of user"]],
               font_size=14)
     add_logo(s)
+    add_notes(s, "SPIFFE gives every agent a cryptographic identity — not just a service account. "
+              "This enables fine-grained policies: 'Agent X can call Tool Y but Agent Z cannot.' "
+              "The three identity types map to real scenarios: user browsing the app (ID-1), "
+              "agent autonomously running a scheduled task (ID-2), agent booking a flight for a specific user (ID-3). "
+              "Agent Gateway enforces these identities at the network boundary.")
 
-    # ===== SLIDE 12: CONSOLE — WORKLOAD IDENTITY =====
+    # ===== SLIDE 12: WORKLOAD IDENTITY SETUP =====
     s = prs.slides.add_slide(blank)
-    set_bg(s, DARK)
     add_text(s, Inches(0.8), Inches(0.3), Inches(10), Inches(0.8),
-             "Console: Workload Identity Pools", 32, bold=True, color=WHITE)
-    add_image_safe(s, os.path.join(SCREENSHOTS, "session1_workload_identity.png"),
-                   Inches(0.8), Inches(1.3), width=Inches(11.5))
-    add_logo(s, RGBColor(0x88, 0x88, 0x88))
+             "Workload Identity — Setup & Verification", 36, bold=True)
+    add_text(s, Inches(0.8), Inches(1.1), Inches(5.5), Inches(0.4),
+             "Create Identity Pool & Provider", 22, bold=True, color=BLUE)
+    add_code_block(s, Inches(0.8), Inches(1.6), Inches(5.5), Inches(3.5),
+                   '# Create workload identity pool\ngcloud iam workload-identity-pools \\\n  create geap-agent-pool \\\n  --location="global" \\\n  --display-name="GEAP Agent Pool"\n\n# Create OIDC provider\ngcloud iam workload-identity-pools \\\n  providers create-oidc agent-provider \\\n  --workload-identity-pool=geap-agent-pool \\\n  --issuer-uri="https://accounts.google.com" \\\n  --location="global"',
+                   font_size=11)
+    add_text(s, Inches(0.8), Inches(5.3), Inches(5.5), Inches(0.5),
+             "Verify token exchange: IAM & Admin > Workload Identity Federation",
+             14, color=GRAY)
+    add_card(s, Inches(7), Inches(1.3), Inches(5.5), Inches(1.5),
+             "Pool = Trust Boundary",
+             "Each pool groups external identities from one trust domain — agents get their own pool", BLUE)
+    add_card(s, Inches(7), Inches(3.1), Inches(5.5), Inches(1.5),
+             "Provider = Auth Source",
+             "OIDC or SAML provider that issues tokens to agents — verified at runtime by GCP", GREEN)
+    add_card(s, Inches(7), Inches(4.9), Inches(5.5), Inches(1.5),
+             "Token Exchange",
+             "External token → STS → short-lived GCP credential — no service account keys needed", YELLOW)
+    add_logo(s)
+    add_notes(s, "Walk through the gcloud commands to create a workload identity pool and OIDC provider. "
+              "Key concepts: the pool is a trust boundary (group external identities), "
+              "the provider is the auth source (OIDC token issuer). "
+              "The token exchange flow: external token goes through STS and comes back as a short-lived GCP credential. "
+              "No long-lived service account keys needed — this is the security win.")
 
     # ===== SLIDE 13: SESSION 2 HEADER =====
     s = prs.slides.add_slide(blank)
@@ -405,6 +505,12 @@ def build_deck():
                      "Agent optimization with GEPA algorithm"],
                     font_size=20, color=RGBColor(0xEE, 0xEE, 0xFF))
     add_logo(s, RGBColor(0x88, 0x99, 0xCC))
+    add_notes(s, "Session 2 builds on the deployed system from Session 1. "
+              "We'll add governance (Agent Gateway controlling what agents can do), "
+              "evaluation (three-tier pipeline from manual to CI/CD), "
+              "observability (Cloud Trace + BigQuery analytics), "
+              "and optimization (GEPA evolutionary prompt tuning). "
+              "This is where the platform becomes production-ready.")
 
     # ===== SLIDE 14: AGENT GATEWAY =====
     s = prs.slides.add_slide(blank)
@@ -429,6 +535,12 @@ def build_deck():
     add_image_safe(s, os.path.join(SCREENSHOTS, "session2_agent_gateway.png"),
                    Inches(7), Inches(1.3), width=Inches(5.8))
     add_logo(s)
+    add_notes(s, "The dual-mode gateway is a key differentiator. Ingress gateway controls who can talk to your agents. "
+              "Egress gateway controls what your agents can talk to — including Gemini model calls. "
+              "This means ALL outbound traffic flows through governance: IAM Allow policies, "
+              "Semantic Governance Policies, and Model Armor screening. "
+              "Note: Egress gateway requires Private Preview access — the attachment uses a REST API PATCH. "
+              "DEMO: Show the gateway configuration and the console view.")
 
     # ===== SLIDE 14b: AGENT TRACES =====
     s = prs.slides.add_slide(blank)
@@ -441,6 +553,10 @@ def build_deck():
              "Session view showing model calls, tool calls, token usage, and duration per trace",
              16, color=RGBColor(0xAA, 0xAA, 0xAA), align=PP_ALIGN.CENTER)
     add_logo(s, RGBColor(0x88, 0x88, 0x88))
+    add_notes(s, "CONSOLE DEMO: Show the Cloud Trace view of an agent interaction. "
+              "Point out the trace waterfall: the root span is the user request, child spans show agent routing, "
+              "model calls, and tool invocations. Highlight token usage and latency per span. "
+              "This is where you debug slow responses or unexpected agent behavior.")
 
     # ===== SLIDE 14c: GOVERNANCE POLICIES =====
     s = prs.slides.add_slide(blank)
@@ -463,16 +579,25 @@ def build_deck():
     add_text(s, Inches(7), Inches(3.6), Inches(5.5), Inches(0.4),
              "Semantic Governance Policy", 18, bold=True, color=BLUE)
     add_code_block(s, Inches(7), Inches(4.1), Inches(5.5), Inches(2),
-                   'name: "booking-limit"\nrule: "Booking amounts must\n  not exceed $5,000 per\n  transaction"\naction: BLOCK',
+                   'name: "geap-expense-limit"\nconstraint: "Disallow expense\n  submissions exceeding $200\n  for meals, $500 for\n  entertainment"\nverdict: DENY',
                    font_size=11)
     add_logo(s)
+    add_notes(s, "Three layers of governance, each catching different problems. "
+              "IAM Allow is static — CEL rules that restrict which services an agent can connect to. "
+              "SGP (Semantic Governance Policies) is runtime — natural language rules evaluated against live tool calls. "
+              "Model Armor is content screening — catching prompt injection, jailbreaks, and harmful content. "
+              "Together they form defense-in-depth: where you connect, what you do, and how content is screened. "
+              "We have 5 SGP policies configured: (1) business hours restriction, (2) expense amount limits, "
+              "(3) booking confirmation required, (4) anti-exfiltration guard, (5) multi-intent complexity guard. "
+              "SGP verdicts are ALLOW, DENY, or ALLOW_IF_CONFIRMED (human-in-the-loop pause). "
+              "Note: SGP evaluates tool calls, not raw prompts — it sees context but targets tool-call behavior.")
 
     # ===== SLIDE 15: EVAL PIPELINE =====
     s = prs.slides.add_slide(blank)
     add_text(s, Inches(0.8), Inches(0.3), Inches(10), Inches(0.8),
              "Three-Tier Evaluation Pipeline", 36, bold=True)
     add_image_safe(s, os.path.join(DIAGRAMS, "03_eval_pipeline.png"),
-                   Inches(1.5), Inches(1.1), width=Inches(10), height=Inches(3))
+                   Inches(3.8), Inches(1.1), height=Inches(3))
     add_card(s, Inches(0.8), Inches(4.5), Inches(3.6), Inches(2),
              "One-Time Eval",
              "Manual, on-demand evaluation with PointwiseMetric rubrics against a curated dataset", BLUE)
@@ -483,6 +608,11 @@ def build_deck():
              "Simulated (CI/CD)",
              "Automated eval gate on PRs — score ≥ 3.0 to merge, blocks otherwise", YELLOW)
     add_logo(s)
+    add_notes(s, "Three evaluation tiers, each serving a different purpose. "
+              "One-Time Eval: manual, on-demand — you curate test cases and run PointwiseMetric rubrics. "
+              "Online Monitors: continuous — evaluates live production traffic on 10-minute cycles using Cloud Trace data. "
+              "Simulated (CI/CD): automated gate — blocks PRs that score below 3.0 on eval metrics. "
+              "The progression is: manual validation → continuous monitoring → automated enforcement.")
 
     # ===== SLIDE 16: CONSOLE — EVALUATION =====
     s = prs.slides.add_slide(blank)
@@ -492,6 +622,9 @@ def build_deck():
     add_image_safe(s, os.path.join(SCREENSHOTS, "session2_evaluation.png"),
                    Inches(0.8), Inches(1.3), width=Inches(11.5))
     add_logo(s, RGBColor(0x88, 0x88, 0x88))
+    add_notes(s, "CONSOLE DEMO: Show the Evaluation Experiments page. "
+              "Walk through an experiment: the eval dataset, the metrics used, and the score distribution. "
+              "Point out how you can compare different agent versions side-by-side.")
 
     # ===== SLIDE 17: OBSERVABILITY =====
     s = prs.slides.add_slide(blank)
@@ -511,6 +644,11 @@ def build_deck():
                      "Failure cluster analysis groups error patterns"],
                     title="Data Pipeline", title_color=BLUE)
     add_logo(s)
+    add_notes(s, "The observability pipeline: agent calls produce OTel spans automatically (built into ADK), "
+              "spans are exported to Cloud Trace, a log sink copies structured data to BigQuery for analytics, "
+              "and Cloud Monitoring alerts on anomalies. "
+              "The failure cluster analysis is particularly useful — it groups similar errors to surface systemic issues "
+              "rather than forcing you to debug individual traces.")
 
     # ===== SLIDE 18: CONSOLE — CLOUD TRACE =====
     s = prs.slides.add_slide(blank)
@@ -520,6 +658,9 @@ def build_deck():
     add_image_safe(s, os.path.join(SCREENSHOTS, "session2_cloud_trace.png"),
                    Inches(0.8), Inches(1.3), width=Inches(11.5))
     add_logo(s, RGBColor(0x88, 0x88, 0x88))
+    add_notes(s, "CONSOLE DEMO: Open Cloud Trace and show a real agent trace. "
+              "Walk through the span hierarchy, point out model call latency, tool call duration, "
+              "and token counts. This is the single most useful debugging tool for agent systems.")
 
     # ===== SLIDE 19: CI/CD =====
     s = prs.slides.add_slide(blank)
@@ -536,6 +677,10 @@ def build_deck():
              "✅  Pass — Merge allowed\n❌  Fail — PR blocked with failure report",
              18, color=DARK)
     add_logo(s)
+    add_notes(s, "The CI/CD eval gate is the automated enforcement layer. "
+              "When a PR is opened, GitHub Actions generates test scenarios, runs inference against the agent, "
+              "evaluates responses using PointwiseMetric rubrics, and blocks the merge if score < 3.0. "
+              "This prevents regressions from shipping — the same principle as unit tests but for agent quality.")
 
     # ===== SLIDE 20: GEPA =====
     s = prs.slides.add_slide(blank)
@@ -556,6 +701,11 @@ def build_deck():
                    'optimizer = AgentOptimizer(\n  agent=coordinator_agent,\n  eval_dataset=eval_data,\n  metrics=[\n    "response_quality",\n    "tool_selection",\n    "safety"\n  ],\n  generations=5,\n  population_size=4\n)',
                    font_size=13)
     add_logo(s)
+    add_notes(s, "GEPA — Gemini Evolutionary Prompt Algorithm — automates prompt engineering. "
+              "Instead of manually tuning agent instructions, GEPA generates prompt variants, "
+              "evaluates each against test scenarios, selects top performers, and evolves over generations. "
+              "Think of it as genetic algorithms applied to prompt optimization. "
+              "The AgentOptimizer class wraps this: you provide the agent, eval data, and metrics — it finds better instructions.")
 
     # ===== SLIDE 21: SESSION 3 HEADER =====
     s = prs.slides.add_slide(blank)
@@ -567,6 +717,8 @@ def build_deck():
     add_text(s, Inches(0.8), Inches(3.8), Inches(11), Inches(0.6),
              "Agent registration, discovery, and governance", 22, color=RGBColor(0x9A, 0xA0, 0xA6))
     add_logo(s, RGBColor(0x88, 0x88, 0x88))
+    add_notes(s, "Quick session on Agent Registry — the catalog for your agent fleet. "
+              "If you have dozens of agents across teams, you need a way to discover, version, and govern them.")
 
     # ===== SLIDE 22: AGENT REGISTRY =====
     s = prs.slides.add_slide(blank)
@@ -586,6 +738,11 @@ def build_deck():
     add_image_safe(s, os.path.join(SCREENSHOTS, "session3_agent_registry_mcp.png"),
                    Inches(7), Inches(1.3), width=Inches(5.8))
     add_logo(s)
+    add_notes(s, "Agent Registry provides four capabilities: registration (with metadata and versioning), "
+              "discovery (search by capability), toolspec association (link MCP specs to agents), "
+              "and lifecycle governance (access control on who can deploy or modify agents). "
+              "The gcloud command shows how to associate an MCP toolspec with a registered agent. "
+              "DEMO: Show the registry console and the MCP toolspec association.")
 
     # ===== SLIDE 23: CONSOLE — POLICIES =====
     s = prs.slides.add_slide(blank)
@@ -595,6 +752,8 @@ def build_deck():
     add_image_safe(s, os.path.join(SCREENSHOTS, "session3_policies.png"),
                    Inches(0.8), Inches(1.3), width=Inches(11.5))
     add_logo(s, RGBColor(0x88, 0x88, 0x88))
+    add_notes(s, "CONSOLE DEMO: Show the business policies page. "
+              "Walk through an example policy — how it's defined, what it enforces, and how violations are handled.")
 
     # ===== SLIDE 24: SESSION 4 HEADER =====
     s = prs.slides.add_slide(blank)
@@ -606,6 +765,9 @@ def build_deck():
     add_text(s, Inches(0.8), Inches(4.2), Inches(11), Inches(0.6),
              "Input/output screening, guardrails, and content safety", 22, color=RGBColor(0xFF, 0xCC, 0xCC))
     add_logo(s, RGBColor(0xFF, 0x99, 0x99))
+    add_notes(s, "Final session — the security layer. Model Armor provides content safety for your agent system. "
+              "This is critical for production: agents that talk to users need protection against prompt injection, "
+              "jailbreaks, PII leakage, and harmful content generation.")
 
     # ===== SLIDE 25: MODEL ARMOR =====
     s = prs.slides.add_slide(blank)
@@ -623,6 +785,11 @@ def build_deck():
              "ADK Guardrail Callbacks",
              "before_model_callback and after_model_callback hooks integrated into agent lifecycle", GREEN)
     add_logo(s)
+    add_notes(s, "Model Armor works at two points: input screening (before the model call) and output screening (after). "
+              "Input: catches prompt injection, jailbreak attempts, PII in prompts. "
+              "Output: filters harmful content, flags hallucinations, enforces safety scores. "
+              "In ADK, this integrates via before_model_callback and after_model_callback — "
+              "the guardrails run as part of the agent lifecycle, not as a separate service.")
 
     # ===== SLIDE 26: CONSOLE — MODEL ARMOR =====
     s = prs.slides.add_slide(blank)
@@ -632,6 +799,9 @@ def build_deck():
     add_image_safe(s, os.path.join(SCREENSHOTS, "session4_model_armor.png"),
                    Inches(0.8), Inches(1.3), width=Inches(11.5))
     add_logo(s, RGBColor(0x88, 0x88, 0x88))
+    add_notes(s, "CONSOLE DEMO: Show the Model Armor configuration page. "
+              "Walk through a template: the screening rules, the severity thresholds, "
+              "and what happens when content is flagged (block vs. warn vs. log).")
 
     # ===== SLIDE 27: SUMMARY =====
     s = prs.slides.add_slide(blank)
@@ -673,6 +843,10 @@ def build_deck():
             p2.font.name = FONT
             p2.space_before = Pt(4)
     add_logo(s)
+    add_notes(s, "Recap the six pillars: Build (ADK + MCP), Deploy (Cloud Run + Agent Runtime), "
+              "Govern (SPIFFE + Gateway + Registry), Secure (Model Armor), Evaluate (three-tier pipeline), "
+              "Optimize (GEPA). Each pillar connects to the others — "
+              "this is an integrated platform, not a collection of standalone tools.")
 
     # ===== SLIDE 28: RESOURCES =====
     s = prs.slides.add_slide(blank)
@@ -693,6 +867,10 @@ def build_deck():
     add_text(s, Inches(0.8), Inches(6.0), Inches(11), Inches(0.5),
              "Thank you!", 22, color=RGBColor(0xAA, 0xBB, 0xDD), align=PP_ALIGN.LEFT)
     add_logo(s, RGBColor(0x88, 0x99, 0xCC))
+    add_notes(s, "Share these resources with attendees. The workshop repo has all the code they ran today. "
+              "The workshop guide has step-by-step instructions they can follow at their own pace. "
+              "ADK docs and MCP protocol specs are the canonical references for building new agents. "
+              "Thank everyone for their time and open the floor for Q&A.")
 
     prs.save(OUTPUT)
     print(f"Saved {len(prs.slides)} slides to {OUTPUT}")

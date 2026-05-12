@@ -31,6 +31,12 @@ uv run pytest tests/
 
 # Deploy everything in one command
 bash scripts/deploy_all.sh
+
+# Setup governance policies (IAM only)
+bash scripts/setup_governance_policies.sh
+
+# Setup governance policies with SGP (IAM + Semantic Governance Policies)
+bash scripts/setup_governance_policies.sh --sgp
 ```
 
 ## Screenshots

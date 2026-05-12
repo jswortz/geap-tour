@@ -1,11 +1,17 @@
-"""GEAP Coordinator Agent — self-contained module for ADK CLI deployment."""
+"""GEAP Coordinator Agent — self-contained module for ADK CLI deployment.
+
+Integrates Vertex AI Agent Engine Memory Bank so the agent remembers user
+interactions (past bookings, expense submissions, preferences) across sessions.
+"""
 
 import os
 import re
 
 from google.adk.agents import LlmAgent
+from google.adk.agents.callback_context import CallbackContext
 from google.adk.tools import McpToolset
 from google.adk.tools.mcp_tool.mcp_toolset import StreamableHTTPConnectionParams
+from google.adk.tools.preload_memory_tool import PreloadMemoryTool
 from google.genai.types import GenerateContentConfig, ModelArmorConfig, Content, Part
 
 AGENT_MODEL = os.environ.get("AGENT_MODEL", "gemini-2.0-flash")
@@ -15,6 +21,7 @@ EXPENSE_MCP_URL = os.environ.get("EXPENSE_MCP_URL", "https://expense-mcp-in2bk2m
 
 GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "wortz-project-352116")
 GCP_REGION = os.environ.get("GCP_REGION", "us-central1")
+AGENT_ENGINE_ID = os.environ.get("AGENT_ENGINE_ID", "1316648131831529472")
 
 PROMPT_TEMPLATE = os.environ.get(
     "MODEL_ARMOR_PROMPT_TEMPLATE",
@@ -95,6 +102,16 @@ If the user asks about travel, direct them to the travel assistant.""",
     before_agent_callback=input_guardrail_callback,
 )
 
+async def save_memories_callback(callback_context: CallbackContext):
+    """after_agent_callback: persist this session's events to Memory Bank.
+
+    Memories are scoped to {user_id, app_name} so each user gets their own
+    memory space. The agent can recall past bookings, expenses, and preferences.
+    """
+    await callback_context.add_session_to_memory()
+    return None
+
+
 root_agent = LlmAgent(
     model=AGENT_MODEL,
     name="coordinator_agent",
@@ -103,11 +120,22 @@ You are a corporate assistant coordinator. Route requests to the right specialis
 - Flight/hotel search and booking → delegate to travel_agent
 - Expense submission, policy checks → delegate to expense_agent
 - General travel info → use search tools directly
+
+You have access to Memory Bank, which stores information from past conversations \
+with each user. Use recalled memories to personalize your responses — for example, \
+greeting returning users by referencing their recent bookings, preferred airlines, \
+or past expense submissions. If a user asks "what did I book last time?" or \
+similar, the memory tool will have that context.
+
 Greet the user and ask how you can help if intent is unclear.""",
     tools=[
         McpToolset(connection_params=StreamableHTTPConnectionParams(url=SEARCH_MCP_URL)),
+        # PreloadMemoryTool retrieves relevant memories at the start of each
+        # turn and injects them into the system instruction.
+        PreloadMemoryTool(),
     ],
     sub_agents=[travel_agent, expense_agent],
     generate_content_config=generate_config,
     before_agent_callback=input_guardrail_callback,
+    after_agent_callback=save_memories_callback,
 )

@@ -30,3 +30,14 @@ packages = ["src"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[tool.agents]
+agent_module = "src.agents.coordinator_agent"
+agent_object = "coordinator_agent"
+
+[tool.agents.deploy]
+target = "agent_runtime"
+project = "wortz-project-352116"
+region = "us-central1"
+display_name = "GEAP Coordinator Agent"
+staging_bucket = "wortz-project-352116-geap-staging"

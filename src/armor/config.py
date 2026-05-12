@@ -51,7 +51,7 @@ BLOCKED_PATTERNS = [
 REJECTION_MESSAGE = "I'm sorry, I can't process that request. Please rephrase your question about travel or expenses."
 
 
-def input_guardrail_callback(context):
+def input_guardrail_callback(callback_context):
     """before_agent_callback that rejects suspicious or oversized inputs.
 
     Returns a Content rejection if the input fails validation, or None to proceed.
@@ -60,13 +60,13 @@ def input_guardrail_callback(context):
     from google.genai.types import Content, Part
 
     user_message = ""
-    if context.user_content:
-        if isinstance(context.user_content, Content):
-            for part in context.user_content.parts or []:
+    if callback_context.user_content:
+        if isinstance(callback_context.user_content, Content):
+            for part in callback_context.user_content.parts or []:
                 if part.text:
                     user_message += part.text
-        elif isinstance(context.user_content, str):
-            user_message = context.user_content
+        elif isinstance(callback_context.user_content, str):
+            user_message = callback_context.user_content
 
     if not user_message:
         return None
