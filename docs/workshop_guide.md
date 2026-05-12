@@ -273,16 +273,49 @@ config = {"identity_type": types.IdentityType.AGENT_IDENTITY}
 
 **Script**: `scripts/setup_agent_gateway.sh`
 
-The Agent Gateway is the central networking and security component for all agentic interactions. It operates in two modes:
+The Agent Gateway is the central networking and security component for all agentic interactions. Unlike a traditional API gateway that handles only inbound requests, the Agent Gateway controls traffic in **both directions** — into and out of your agents. This dual-mode design is critical because agents are active participants that make outbound calls (to models, tools, and external APIs), not just passive services that receive requests.
 
-| Mode | Gateway Name | Purpose |
-|------|-------------|---------|
-| **Client-to-Agent (ingress)** | `geap-workshop-gateway` | Controls what external clients can call your agents |
-| **Agent-to-Anywhere (egress)** | `geap-workshop-gateway-egress` | Routes all outbound agent traffic (Gemini model calls, MCP tool calls, external APIs) through governance |
+#### Why Two Gateways?
+
+Each gateway enforces a different security boundary:
+
+| Gateway | `governedAccessPath` | Direction | What It Controls |
+|---------|---------------------|-----------|-----------------|
+| **Ingress** | `CLIENT_TO_AGENT` | Inbound | Who can talk **to** your agents — user auth, rate limiting, access control |
+| **Egress** | `AGENT_TO_ANYWHERE` | Outbound | What your agents can talk **to** — model calls, MCP tools, external APIs |
+
+**Traffic flow with both gateways:**
+
+```
+User Request                         External Services
+     │                                      ▲
+     ▼                                      │
+┌─────────────────────┐          ┌─────────────────────┐
+│  Ingress Gateway    │          │  Egress Gateway      │
+│  (CLIENT_TO_AGENT)  │          │  (AGENT_TO_ANYWHERE) │
+│                     │          │                      │
+│  • Auth / mTLS      │          │  • IAM Allow Policy  │
+│  • Rate limiting    │          │  • SGP business rules│
+│  • Access control   │          │  • Audit logging     │
+└────────┬────────────┘          └──────────▲───────────┘
+         │                                  │
+         ▼                                  │
+    ┌────────────────────────────────────────┤
+    │         Agent Runtime                 │
+    │                                       │
+    │  Coordinator ──► Travel Agent ────────┤──► MCP Tools (Cloud Run)
+    │       │                               │
+    │       └──► Expense Agent ─────────────┤──► Gemini / Claude models
+    └───────────────────────────────────────┘
+```
+
+Without the egress gateway, an agent could call any external endpoint — a compromised or misbehaving agent could exfiltrate data to arbitrary URLs. The egress gateway ensures every outbound call (including Gemini model calls) passes through governance policies.
 
 #### Creating Both Gateways
 
-The ingress gateway controls inbound access:
+Both gateways use the `networkservices.googleapis.com/v1alpha1` API. They are separate resources with different `governedAccessPath` values.
+
+**Ingress gateway** — controls inbound access:
 
 ```bash
 curl -X POST \
@@ -292,7 +325,7 @@ curl -X POST \
   -d '{"protocols": ["MCP"], "googleManaged": {"governedAccessPath": "CLIENT_TO_AGENT"}}'
 ```
 
-The egress gateway intercepts all outbound traffic — including Gemini model calls:
+**Egress gateway** — intercepts all outbound traffic, including Gemini model calls:
 
 ```bash
 curl -X POST \
@@ -308,18 +341,22 @@ Or use the setup script which creates both:
 bash scripts/setup_agent_gateway.sh
 ```
 
+Each gateway gets its own mTLS endpoint and can be managed independently. The `protocols: ["MCP"]` field means the gateway understands MCP tool semantics — it can inspect tool names, parameters, and attributes for policy enforcement.
+
 #### Connecting Agents to Both Gateways
 
-When deploying to Agent Runtime, pass `agent_gateway_config` to route traffic through both gateways:
+Once created, both gateways are attached to the agent during deployment via `agent_gateway_config`. This tells Agent Runtime to route the agent's inbound and outbound traffic through the respective gateways:
 
 ```python
 remote = agent_engines.create(
     agent_engine=agent,
     config={
         "agent_gateway_config": {
+            # Inbound: users → agent
             "client_to_agent_config": {
                 "agent_gateway": f"projects/{PROJECT_ID}/locations/{REGION}/agentGateways/geap-workshop-gateway"
             },
+            # Outbound: agent → models, tools, APIs
             "agent_to_anywhere_config": {
                 "agent_gateway": f"projects/{PROJECT_ID}/locations/{REGION}/agentGateways/geap-workshop-gateway-egress"
             },
@@ -329,7 +366,13 @@ remote = agent_engines.create(
 )
 ```
 
-> **Note:** Inline gateway config requires Private Preview enrollment. The workshop deploy script (`src/deploy/deploy_agents.py`) uses a REST API fallback — see `_attach_gateway()`.
+> **Private Preview note:** The `agentGatewayConfig` field on ReasoningEngine requires separate Private Preview enrollment on the AI Platform API. This is a different enrollment than the Network Services API (which controls gateway creation). Your project may be enrolled in one but not the other.
+>
+> - **Network Services API enrolled** → gateways create successfully with mTLS endpoints
+> - **AI Platform API enrolled** → `agentGatewayConfig` is accepted during agent deployment
+> - **AI Platform API NOT enrolled** → gateways exist but can't be attached to agents (400 error)
+>
+> The workshop deploy script (`src/deploy/deploy_agents.py`) handles this gracefully via `_attach_gateway()`, which tries v1beta1 then v1 and logs a note if attachment fails.
 
 **Key insight**: With egress gateway enabled, every Gemini model call, MCP tool invocation, and external API request flows through the gateway. This means IAM Allow Policies and SGP business rules apply to model traffic — not just tool calls.
 
