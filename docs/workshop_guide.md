@@ -1,15 +1,31 @@
 # GEAP Workshop Guide
 
-A hands-on walkthrough of the Gemini Enterprise Agent Platform — from building agents to production governance. Organized into 4 focused sessions with breaks. Estimated time: ~3.5 hours (including lunch and break).
+A hands-on walkthrough of the Gemini Enterprise Agent Platform — from building agents to production governance. Organized into 4 focused sessions. Estimated time: ~3.5 hours.
+
+---
+
+## Reference Documentation
+
+| Topic | Google Cloud Docs |
+|-------|-------------------|
+| Agent Development Kit (ADK) | [ADK Overview](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-development-kit/overview) |
+| Agent Engine (Agent Runtime) | [Agent Engine](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/overview) |
+| Model Context Protocol (MCP) | [MCP on Vertex AI](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-development-kit/mcp-tools) |
+| Agent Gateway | [Agent Gateway](https://cloud.google.com/products/agent-gateway) |
+| Cloud Run | [Cloud Run Docs](https://cloud.google.com/run/docs) |
+| Model Armor | [Model Armor](https://cloud.google.com/security/products/model-armor) |
+| Cloud Trace | [Cloud Trace](https://cloud.google.com/trace/docs) |
+| Vertex AI Evaluation | [Evaluation Overview](https://cloud.google.com/vertex-ai/generative-ai/docs/evaluation/overview) |
+| Workload Identity Federation | [Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation) |
 
 ---
 
 ## Prerequisites
 
 - Google Cloud project with billing enabled
-- `gcloud` CLI authenticated (`gcloud auth application-default login`)
-- Python 3.11+ with `uv` installed
-- APIs enabled: Vertex AI, Cloud Run, Cloud Monitoring, Cloud Logging, BigQuery
+- `gcloud` CLI authenticated ([Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials))
+- Python 3.11+ with [`uv`](https://docs.astral.sh/uv/) installed
+- APIs enabled: [Vertex AI](https://cloud.google.com/vertex-ai/docs), [Cloud Run](https://cloud.google.com/run/docs), [Cloud Monitoring](https://cloud.google.com/monitoring/docs), [Cloud Logging](https://cloud.google.com/logging/docs), [BigQuery](https://cloud.google.com/bigquery/docs)
 
 ```bash
 gcloud services enable \
@@ -27,11 +43,9 @@ gcloud services enable \
 | Session | Topic | Duration | Key Activities |
 |---------|-------|----------|----------------|
 | **Session 1** | AI Gateway / MCP Gateway | ~90 min | Architecture, MCP servers, ADK agents, deployment, identity |
-| | *Lunch Break* | ~45 min | |
 | **Session 2** | AI Gateway / MCP Gateway (continued) | ~75 min | Agent Gateway, evaluation pipeline, observability, optimization |
 | **Session 3** | Agent Registry | ~15 min | Agent registration, discovery, governance |
 | **Session 4** | Model Security / Model Armor | ~15 min | Input/output screening, guardrails, content safety |
-| | *Break* | ~15 min | |
 
 ---
 
@@ -66,17 +80,15 @@ Our workshop system has three ADK agents sharing three MCP tool servers:
 
 **Key insight**: Multiple agents can share the same MCP server (e.g., both Travel Agent and Coordinator use the Search MCP), demonstrating the 1-to-many topology.
 
-**Screenshot**: `docs/screenshots/session1_architecture_overview.png`
-
-![Architecture Overview](screenshots/session1_architecture_overview.png)
+![Multi-Agent Topology](../diagrams/outputs/01_multi_agent_topology.png)
 
 ---
 
 ### 1.2 MCP Server Development (~15 min)
 
-**Code**: `src/mcp_servers/search/server.py`
+**Code**: [`src/mcp_servers/search/server.py:8-25`](../src/mcp_servers/search/server.py) | **Docs**: [MCP Tools in ADK](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-development-kit/mcp-tools)
 
-MCP servers expose tools via the Model Context Protocol. We use FastMCP:
+MCP servers expose tools via the [Model Context Protocol](https://modelcontextprotocol.io/). We use [FastMCP](https://github.com/jlowin/fastmcp):
 
 ```python
 from fastmcp import FastMCP
@@ -105,9 +117,9 @@ uv run python -m src.mcp_servers.search.server
 
 ### 1.3 Building ADK Agents with MCP Tools (~15 min)
 
-**Code**: `src/agents/travel_agent.py`
+**Code**: [`src/agents/travel_agent.py:24`](../src/agents/travel_agent.py) | **Docs**: [ADK Agent Definition](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-development-kit/build-agents)
 
-ADK agents are defined with `LlmAgent` — a model, a name, instructions, and tools:
+ADK agents are defined with [`LlmAgent`](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-development-kit/build-agents) — a model, a name, instructions, and tools:
 
 ```python
 from google.adk.agents import LlmAgent
@@ -125,7 +137,7 @@ travel_agent = LlmAgent(
 )
 ```
 
-**Multi-agent orchestration** (`src/agents/coordinator_agent.py`):
+**Multi-agent orchestration** ([`src/agents/coordinator_agent.py:48`](../src/agents/coordinator_agent.py)):
 ```python
 coordinator_agent = LlmAgent(
     ...
@@ -153,9 +165,9 @@ The topology demonstrates key GEAP patterns:
 
 ### 1.5 Deploying MCP Servers to Cloud Run (~15 min)
 
-**Code**: `src/deploy/deploy_mcp_servers.py`
+**Code**: [`src/deploy/deploy_mcp_servers.py:15`](../src/deploy/deploy_mcp_servers.py) | **Docs**: [Deploy to Cloud Run](https://cloud.google.com/run/docs/deploying)
 
-MCP servers deploy as standard Cloud Run services:
+MCP servers deploy as standard [Cloud Run](https://cloud.google.com/run/docs) services:
 
 ```bash
 uv run python src/deploy/deploy_mcp_servers.py
@@ -175,9 +187,9 @@ This runs `gcloud run deploy` for each server with its Dockerfile.
 
 ### 1.6 Deploying Agents to Agent Runtime (~15 min)
 
-**Code**: `src/deploy/deploy_agents.py`
+**Code**: [`src/deploy/deploy_agents.py:93`](../src/deploy/deploy_agents.py) | **Docs**: [Deploy Agents to Agent Engine](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/deploy)
 
-Agents deploy to Vertex AI Agent Engine using the ADK CLI:
+Agents deploy to [Vertex AI Agent Engine](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/overview) using the ADK CLI:
 
 ```bash
 # Self-contained agent directory structure:
@@ -209,9 +221,9 @@ Key deployment considerations:
 
 ### 1.7 Agent Identity (SPIFFE) (~10 min)
 
-**Script**: `scripts/setup_agent_identity.sh`
+**Script**: [`scripts/setup_agent_identity.sh`](../scripts/setup_agent_identity.sh) | **Docs**: [Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation), [SPIFFE](https://spiffe.io/)
 
-Each agent gets a SPIFFE-based identity when deployed with `identity_type=AGENT_IDENTITY`:
+Each agent gets a [SPIFFE](https://spiffe.io/)-based identity when deployed with `identity_type=AGENT_IDENTITY`:
 
 ```
 principal://agents.global.org-{ORG_ID}.system.id.goog/agent/{AGENT_ID}
@@ -238,16 +250,6 @@ config = {"identity_type": types.IdentityType.AGENT_IDENTITY}
 
 ---
 
-> **Suggested 5-minute stretch break** before lunch if running ahead of schedule.
-
----
-
-# Lunch Break
-
-*~45-60 minutes. Morning MCP servers and agents remain deployed for the afternoon sessions.*
-
----
-
 # Session 2: AI Gateway / MCP Gateway (continued)
 
 **Duration:** ~75 min | **Theme:** Govern, evaluate, and optimize deployed agents
@@ -271,7 +273,7 @@ config = {"identity_type": types.IdentityType.AGENT_IDENTITY}
 
 ### 2.1 Agent Gateway (~15 min)
 
-**Script**: `scripts/setup_agent_gateway.sh`
+**Script**: [`scripts/setup_agent_gateway.sh`](../scripts/setup_agent_gateway.sh) | **Docs**: [Agent Gateway](https://cloud.google.com/products/agent-gateway)
 
 The Agent Gateway is the central networking and security component for all agentic interactions. Unlike a traditional API gateway that handles only inbound requests, the Agent Gateway controls traffic in **both directions** — into and out of your agents. This dual-mode design is critical because agents are active participants that make outbound calls (to models, tools, and external APIs), not just passive services that receive requests.
 
@@ -384,7 +386,7 @@ remote = agent_engines.create(
 
 #### Governance Policies
 
-**Script**: `scripts/setup_governance_policies.sh`
+**Script**: [`scripts/setup_governance_policies.sh`](../scripts/setup_governance_policies.sh)
 
 The Agent Gateway enforces three governance layers. The setup script handles the first two; Model Armor is configured separately.
 
@@ -480,7 +482,7 @@ Navigate to Agent Platform -> Policies -> Business Policies to view active SGP r
 
 ### 2.2 One-Time Evaluation (~15 min)
 
-**Code**: `src/eval/one_time_eval.py`
+**Code**: [`src/eval/one_time_eval.py:79`](../src/eval/one_time_eval.py) | **Docs**: [Vertex AI Evaluation](https://cloud.google.com/vertex-ai/generative-ai/docs/evaluation/overview)
 
 One-time evaluation uses custom metrics with prompt templates for rubric-based scoring:
 
@@ -512,7 +514,7 @@ uv run python -m src.eval.one_time_eval <agent-resource-name>
 
 ### 2.3 Online Monitors (Continuous Eval) (~15 min)
 
-**Code**: `src/eval/setup_online_monitors.py`
+**Code**: [`src/eval/setup_online_monitors.py`](../src/eval/setup_online_monitors.py) | **Docs**: [Online Evaluation Monitors](https://cloud.google.com/vertex-ai/generative-ai/docs/evaluation/online-evaluation)
 
 Online monitors evaluate live agent traffic on a 10-minute cycle:
 
@@ -547,7 +549,7 @@ uv run python -m src.eval.manage_monitors resume <monitor-name>
 
 ### 2.4 Simulated Evaluation for CI/CD (~15 min)
 
-**Code**: `src/eval/simulated_eval.py`
+**Code**: [`src/eval/simulated_eval.py`](../src/eval/simulated_eval.py) | **Docs**: [Simulated Evaluation](https://cloud.google.com/vertex-ai/generative-ai/docs/evaluation/simulate-evaluation)
 
 Simulated evaluation generates synthetic test scenarios and runs them through the agent:
 
@@ -587,7 +589,7 @@ uv run python -m src.eval.simulated_eval <agent-resource-name> 3.0
 
 #### Failure Clusters
 
-**Code**: `src/eval/failure_clusters.py`
+**Code**: [`src/eval/failure_clusters.py`](../src/eval/failure_clusters.py)
 
 Instead of reviewing failures individually, `generate_loss_clusters()` groups similar failure patterns:
 
@@ -599,9 +601,9 @@ Output shows clusters with titles, descriptions, sample counts, and average scor
 
 #### Quality Alerts
 
-**Code**: `src/eval/quality_alerts.py`
+**Code**: [`src/eval/quality_alerts.py`](../src/eval/quality_alerts.py) | **Docs**: [Cloud Monitoring Alerting](https://cloud.google.com/monitoring/alerts)
 
-Set up Cloud Monitoring alerts that fire when eval scores drop:
+Set up [Cloud Monitoring](https://cloud.google.com/monitoring/docs) alerts that fire when eval scores drop:
 
 ```bash
 # Create alert for helpfulness score dropping below 3.0
@@ -633,7 +635,7 @@ uv run python -m src.eval.quality_alerts list
 
 ### 2.6 Agent Optimization (GEPA) (~10 min)
 
-**Code**: `src/optimize/run_optimize.py`
+**Code**: [`src/optimize/run_optimize.py`](../src/optimize/run_optimize.py) | **Docs**: [ADK Optimize](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-development-kit/optimize-agents)
 
 The `adk optimize` command uses the GEPA algorithm to iteratively improve agent system instructions:
 
@@ -666,7 +668,7 @@ Key trace metrics: session duration, model calls, tool calls, token usage, and e
 
 ### 2.8 Multi-Model Router (~15 min)
 
-**Code**: `src/router/agents.py`, `src/router/complexity.py`
+**Code**: [`src/router/agents.py:38-128`](../src/router/agents.py), [`src/router/complexity.py:55`](../src/router/complexity.py) | **Docs**: [Multi-Agent Systems](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-development-kit/multi-agents)
 
 The multi-model router dynamically selects the best model for each user prompt based on complexity. Instead of sending every request to a single model, a lightweight classifier scores the prompt and routes to the appropriate specialist:
 
@@ -742,7 +744,7 @@ Queries are tagged with expected complexity so you can verify routing accuracy i
 
 ### 2.9 Memory Bank & User Namespaces (~10 min)
 
-**Code**: `src/agents/coordinator_agent.py`, `src/router/agents.py`
+**Code**: [`src/agents/coordinator_agent.py:37-57`](../src/agents/coordinator_agent.py), [`src/router/agents.py:103-107`](../src/router/agents.py) | **Docs**: [Agent Engine Memory](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/manage-memory)
 
 Memory Bank gives agents persistent memory across sessions. Each conversation is stored and recalled so the agent remembers user preferences, past bookings, and prior interactions.
 
@@ -823,7 +825,7 @@ memory_service = VertexAiMemoryBankService(
 
 ### 3.1 Agent Registration & Discovery (~10 min)
 
-**Script**: `scripts/register_agent_registry.sh`
+**Script**: [`scripts/register_agent_registry.sh`](../scripts/register_agent_registry.sh) | **Docs**: [Agent Registry](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/agent-registry)
 
 When agents are deployed to Agent Engine, they are automatically registered in the Agent Registry. MCP servers can also be registered manually to make their tools discoverable.
 
@@ -903,7 +905,7 @@ gcloud ai agent-engines describe <AGENT_RESOURCE_NAME> \
 
 ### 4.1 Model Armor (Content Safety) (~15 min)
 
-**Code**: `src/armor/config.py` | **Script**: `scripts/setup_model_armor.sh`
+**Code**: [`src/armor/config.py:17-65`](../src/armor/config.py) | **Script**: [`scripts/setup_model_armor.sh`](../scripts/setup_model_armor.sh) | **Docs**: [Model Armor](https://cloud.google.com/security/products/model-armor)
 
 Model Armor protects agents at two layers:
 
@@ -969,12 +971,6 @@ uv run pytest tests/test_armor.py -v
 ![Model Armor](screenshots/session4_model_armor.png)
 
 **Diagram**: `diagrams/outputs/07_agent_armor.png`
-
----
-
-# Break
-
-*~15 minutes.*
 
 ---
 
