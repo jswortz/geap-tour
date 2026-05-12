@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from google import genai
 from google.genai.types import GenerateContentConfig
 
-from .config import GCP_PROJECT_ID, GCP_REGION, COMPLEXITY_THRESHOLD_HIGH
+from src.config import GCP_PROJECT_ID, GCP_REGION, COMPLEXITY_THRESHOLD_HIGH
 
 CLASSIFIER_PROMPT_TEMPLATE = (
     "Rate the complexity of this user prompt on a 0-1 scale.\n\n"

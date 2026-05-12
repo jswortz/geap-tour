@@ -1,0 +1,179 @@
+{
+  "eval_set_id": "router_agent_eval_set",
+  "eval_cases": [
+    {
+      "eval_id": "low_simple_flight",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "What flights go to JFK?"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Here are available flights to JFK. Flight FL001 with United at 8:00 AM and FL002 with Delta at 2:00 PM."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "search_flights", "args": {"destination": "JFK"}}],
+          "expected_complexity": "low"
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "low_meal_policy",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "What's the meal expense limit?"}], "role": "user"},
+        "final_response": {"parts": [{"text": "The corporate meal expense limit is $75 per meal."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "check_expense_policy", "args": {"category": "meals"}}],
+          "expected_complexity": "low"
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "low_hotel_search",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Find hotels in Miami"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I found hotels in Miami including the Fontainebleau."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "search_hotels", "args": {"city": "Miami"}}],
+          "expected_complexity": "low"
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "low_expense_submit",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Submit a $30 meals expense for coffee, user EMP001"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Expense submitted: $30 meals for EMP001. Status: approved."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "submit_expense", "args": {"user_id": "EMP001", "category": "meals", "amount": 30, "description": "coffee"}}],
+          "expected_complexity": "low"
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "medium_compare_flights",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Find flights to NYC and compare the cheapest options by airline"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Here are flights to NYC sorted by price: United FL001 at $350 is the cheapest, followed by Delta FL002 at $420. United offers the best value for this route."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "search_flights", "args": {"destination": "JFK"}}],
+          "expected_complexity": "medium"
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "medium_hotel_policy_check",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Search hotels in Boston, then check if the nightly rate fits our lodging policy"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I found hotels in Boston. The Holiday Inn at $179/night is within the $400 lodging policy. Budget Lodge at $129/night also fits within policy."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [
+            {"name": "search_hotels", "args": {"city": "Boston"}},
+            {"name": "check_expense_policy", "args": {"category": "lodging"}}
+          ],
+          "expected_complexity": "medium"
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "medium_expense_history_review",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Show my expense history and flag any items that exceeded policy limits"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Here is your expense history. One item flagged: $500 entertainment (exceeds $150 limit). All other expenses are within policy."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "get_user_expenses", "args": {"user_id": "eval_user"}}],
+          "expected_complexity": "medium"
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "medium_book_and_expense",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Book flight FL001 for me and submit a $45 meal receipt from today"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Done. Flight FL001 is booked and your $45 meal expense has been submitted and approved."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [
+            {"name": "book_flight", "args": {"flight_id": "FL001", "passenger_name": "eval_user"}},
+            {"name": "submit_expense", "args": {"category": "meals", "amount": 45}}
+          ],
+          "expected_complexity": "medium"
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "high_team_trip_planning",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Plan a 5-day trip to Tokyo for a team of 4: find flights, hotels near Shibuya, estimate daily meal expenses, and check entertainment policy"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Here's a comprehensive plan for your Tokyo trip: Flights from SFO average $1200pp. Hotels near Shibuya: Park Hyatt at $350/night (within $400 lodging policy). Daily meals budget: $75pp (within policy). Entertainment: $150 limit per person. Total estimated cost for 4 people, 5 days: ~$12,800."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [
+            {"name": "search_flights", "args": {"destination": "TYO"}},
+            {"name": "search_hotels", "args": {"city": "Tokyo"}},
+            {"name": "check_expense_policy", "args": {"category": "meals"}},
+            {"name": "check_expense_policy", "args": {"category": "entertainment"}}
+          ],
+          "expected_complexity": "high"
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "high_group_booking_comparison",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Compare individual vs group flight bookings for Denver, factoring in cancellation policies, per-diem meals, and hotel location trade-offs"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Individual bookings to Denver: $280pp with flexible cancellation. Group rate (4+): $240pp but non-refundable. Per-diem meals: $75/day within policy. Hotels: Downtown at $299/night (within $400 lodging) vs Airport at $149/night. Recommendation: group booking saves $160 total but individual offers cancellation flexibility."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [
+            {"name": "search_flights", "args": {"destination": "DEN"}},
+            {"name": "search_hotels", "args": {"city": "Denver"}},
+            {"name": "check_expense_policy", "args": {"category": "meals"}},
+            {"name": "check_expense_policy", "args": {"category": "lodging"}}
+          ],
+          "expected_complexity": "high"
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "high_expense_analysis",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Analyze EMP001's expense history for overspending on entertainment, draft a policy recommendation, and submit my $45 lunch receipt"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Analysis for EMP001: 2 entertainment expenses totaling $650, both exceeding the $150 limit. Recommendation: Implement pre-approval for entertainment expenses over $100. Your $45 lunch receipt has been submitted and approved (within $75 meal limit)."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [
+            {"name": "get_user_expenses", "args": {"user_id": "EMP001"}},
+            {"name": "check_expense_policy", "args": {"category": "entertainment"}},
+            {"name": "submit_expense", "args": {"category": "meals", "amount": 45, "description": "lunch"}}
+          ],
+          "expected_complexity": "high"
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "high_multi_city_optimization",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "I need to visit NYC, Chicago, and Boston over 2 weeks. Find the cheapest flight route, compare hotel costs in each city under the lodging policy, and estimate total trip expenses including meals and transport"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Multi-city itinerary: SFO→JFK ($350) → ORD ($180) → BOS ($150) → SFO ($310) = $990 total flights. Hotels: NYC $299/night, Chicago $199/night, Boston $179/night — all within $400 lodging policy. Meals: $75/day x 14 days = $1,050. Transport: ~$50/day x 14 = $700. Grand total estimate: ~$6,090."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [
+            {"name": "search_flights", "args": {"origin": "SFO", "destination": "JFK"}},
+            {"name": "search_flights", "args": {"origin": "JFK", "destination": "ORD"}},
+            {"name": "search_flights", "args": {"origin": "ORD", "destination": "BOS"}},
+            {"name": "search_flights", "args": {"origin": "BOS", "destination": "SFO"}},
+            {"name": "search_hotels", "args": {"city": "New York"}},
+            {"name": "search_hotels", "args": {"city": "Chicago"}},
+            {"name": "search_hotels", "args": {"city": "Boston"}},
+            {"name": "check_expense_policy", "args": {"category": "lodging"}},
+            {"name": "check_expense_policy", "args": {"category": "meals"}}
+          ],
+          "expected_complexity": "high"
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    }
+  ]
+}

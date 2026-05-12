@@ -1,0 +1,44 @@
+{
+  "scenarios": [
+    {
+      "starting_prompt": "I need to fly to New York next week",
+      "conversation_plan": "Ask to search flights from SFO to JFK on June 15. After seeing options, ask about the price differences between airlines. Then book the cheapest flight for Alice Johnson.",
+      "user_persona": "NOVICE"
+    },
+    {
+      "starting_prompt": "I'm looking for a hotel in New York",
+      "conversation_plan": "Ask to search hotels in New York under $350. Compare the options. Then book hotel HT002 for Bob Smith with check-in June 15 and check-out June 18.",
+      "user_persona": "EXPERT"
+    },
+    {
+      "starting_prompt": "Can you search for flights from LAX?",
+      "conversation_plan": "Search for flights from LAX to Chicago on June 16. Ask about connections or direct flights. Then ask about flights to a different city like Miami.",
+      "user_persona": "NOVICE"
+    },
+    {
+      "starting_prompt": "I need a hotel in Miami for a conference",
+      "conversation_plan": "Search for hotels in Miami. Ask about which ones are near the convention center. Then try to book one of them for 3 nights.",
+      "user_persona": "EXPERT"
+    },
+    {
+      "starting_prompt": "Are there any cheap flights available?",
+      "conversation_plan": "Ask about flights from SFO to Los Angeles on June 15. Then ask to compare that with flights from SFO to JFK. Choose the cheaper destination.",
+      "user_persona": "NOVICE"
+    },
+    {
+      "starting_prompt": "I want to search for travel options to a made-up place",
+      "conversation_plan": "Ask about flights from XYZ to ABC. When no results are found, ask about flights from a real airport instead. Then search for hotels in Atlantis to see how the agent handles non-existent cities.",
+      "user_persona": "EXPERT"
+    },
+    {
+      "starting_prompt": "Help me plan accommodation for my team trip",
+      "conversation_plan": "Search hotels in Chicago under $200. Ask if there are options for multiple rooms. Then ask about hotels in a different city for comparison.",
+      "user_persona": "NOVICE"
+    },
+    {
+      "starting_prompt": "I'd like to book a round trip",
+      "conversation_plan": "Search flights from SFO to JFK. Book the first available flight. Then ask about return flights from JFK to SFO.",
+      "user_persona": "EXPERT"
+    }
+  ]
+}

@@ -5,7 +5,7 @@ import re
 
 from google.genai.types import GenerateContentConfig, ModelArmorConfig
 
-from .config import GCP_PROJECT_ID, GCP_REGION
+from src.config import GCP_PROJECT_ID, GCP_REGION
 
 
 def get_model_armor_config() -> ModelArmorConfig:

@@ -72,10 +72,38 @@ def list_quality_alerts():
         print(f"    {p.name}")
 
 
+ALL_MONITORED_METRICS = [
+    ("helpfulness", 3.0),
+    ("tool_use_accuracy", 3.0),
+    ("policy_compliance", 3.0),
+    ("complexity_routing_accuracy", 3.0),
+]
+
+
+def setup_all_alerts(notification_channel: str | None = None) -> list:
+    """Create alert policies for all monitored metrics."""
+    results = []
+    print("Setting up quality alerts for all metrics...")
+    for metric_name, threshold in ALL_MONITORED_METRICS:
+        try:
+            result = create_quality_alert(
+                metric_name=metric_name,
+                threshold=threshold,
+                notification_channel=notification_channel,
+            )
+            results.append(result)
+        except Exception as e:
+            print(f"  Warning: failed to create alert for {metric_name}: {e}")
+    print(f"\n  {len(results)} alert policies created")
+    return results
+
+
 if __name__ == "__main__":
     import sys
     if len(sys.argv) > 1 and sys.argv[1] == "list":
         list_quality_alerts()
+    elif len(sys.argv) > 1 and sys.argv[1] == "all":
+        setup_all_alerts()
     else:
         metric = sys.argv[1] if len(sys.argv) > 1 else "helpfulness"
         threshold = float(sys.argv[2]) if len(sys.argv) > 2 else 3.0

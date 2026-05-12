@@ -1,0 +1,54 @@
+{
+  "scenarios": [
+    {
+      "starting_prompt": "What's the meal expense limit?",
+      "conversation_plan": "This is a simple single-intent query. Just ask the question and verify you get a direct answer about the $75 meal limit. The agent should route this to the lightweight model.",
+      "user_persona": "NOVICE"
+    },
+    {
+      "starting_prompt": "Find flights from SFO to JFK",
+      "conversation_plan": "Simple flight search. Ask the question and verify results are returned. This should be handled by the lightweight model tier.",
+      "user_persona": "NOVICE"
+    },
+    {
+      "starting_prompt": "Search hotels in Chicago under $200",
+      "conversation_plan": "Simple hotel search with price filter. Verify results. Should route to lightweight model.",
+      "user_persona": "EXPERT"
+    },
+    {
+      "starting_prompt": "I need to compare hotel options",
+      "conversation_plan": "Ask to compare hotels in NYC vs Boston under $300 per night. This requires searching two cities and comparing results, which is moderate complexity. Should route to mid-tier model.",
+      "user_persona": "EXPERT"
+    },
+    {
+      "starting_prompt": "Can you check my expense history and flag issues?",
+      "conversation_plan": "Ask to show expense history for EMP001 and flag any items that exceeded policy limits. This requires retrieval plus analysis. Should route to mid-tier model.",
+      "user_persona": "NOVICE"
+    },
+    {
+      "starting_prompt": "I need help planning flights and checking if the cost fits our policy",
+      "conversation_plan": "Search flights to Boston, then check if the ticket price fits within the transport policy. Two related intents — moderate complexity.",
+      "user_persona": "EXPERT"
+    },
+    {
+      "starting_prompt": "I need a comprehensive trip plan for my team",
+      "conversation_plan": "Ask to plan a 5-day trip to Tokyo for 4 people including flights, hotels near Shibuya, daily meal budgets, and entertainment policy. This is high complexity requiring multi-step planning across domains. Should route to the frontier model.",
+      "user_persona": "EXPERT"
+    },
+    {
+      "starting_prompt": "I need a detailed cost comparison for our retreat",
+      "conversation_plan": "Ask to compare individual vs group bookings for a team retreat to Denver, factoring in cancellation policies, per-diem meals, and hotel location trade-offs. High complexity multi-factor analysis.",
+      "user_persona": "EXPERT"
+    },
+    {
+      "starting_prompt": "I have a complex expense situation",
+      "conversation_plan": "Ask to analyze EMP001's expense history, identify overspending on entertainment, draft a policy recommendation, and submit a $45 lunch receipt. Multi-step analysis + action. High complexity.",
+      "user_persona": "EXPERT"
+    },
+    {
+      "starting_prompt": "Help me with end-to-end trip booking and expenses",
+      "conversation_plan": "Ask to book the cheapest SFO-JFK flight, find a nearby hotel, check lodging policy, and submit a pre-approval expense for the total estimated cost. High complexity pipeline.",
+      "user_persona": "EXPERT"
+    }
+  ]
+}

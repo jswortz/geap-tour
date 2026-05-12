@@ -6,7 +6,7 @@ from google.adk.tools import McpToolset
 from google.adk.tools.mcp_tool.mcp_toolset import StreamableHTTPConnectionParams
 from google.genai.types import Content, Part
 
-from .config import (
+from src.config import (
     LITE_MODEL,
     FLASH_MODEL,
     OPUS_MODEL,
