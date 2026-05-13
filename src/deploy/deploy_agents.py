@@ -13,6 +13,10 @@ from src.config import (
     SEARCH_MCP_URL,
     BOOKING_MCP_URL,
     EXPENSE_MCP_URL,
+    SEARCH_MCP_SERVER,
+    BOOKING_MCP_SERVER,
+    EXPENSE_MCP_SERVER,
+    AGENT_REGISTRY_LOCATION,
     AGENT_GATEWAY_PATH,
     AGENT_GATEWAY_EGRESS_PATH,
     AGENT_ENGINE_ID,
@@ -23,11 +27,15 @@ from src.config import (
 )
 
 REQUIREMENTS = [
-    "google-cloud-aiplatform[adk,agent_engines]>=1.88.0",
-    "google-genai>=1.14.0",
+    "google-cloud-aiplatform[adk,agent-engines]>=1.152.0",
+    "google-genai>=1.66.0",
+    "google-auth>=2.52.0",
+    "google-adk[agent-identity]>=1.33.0",
     "fastmcp>=2.0.0",
+    "pydantic>=2.12.5",
     "python-dotenv>=1.0.0",
-    "litellm>=1.0.0",
+    "litellm>=1.83.14",
+    "a2a-sdk==0.3.26",
 ]
 
 SRC_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -84,6 +92,12 @@ def deploy_agent(agent, display_name: str | None = None) -> str:
         "FLASH_MODEL": FLASH_MODEL,
         "COMPLEXITY_THRESHOLD_HIGH": str(COMPLEXITY_THRESHOLD_HIGH),
         "GOOGLE_API_PREVENT_AGENT_TOKEN_SHARING_FOR_GCP_SERVICES": "false",
+        "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
+        "GOOGLE_GENAI_USE_VERTEXAI": "1",
+        "SEARCH_MCP_SERVER": SEARCH_MCP_SERVER,
+        "BOOKING_MCP_SERVER": BOOKING_MCP_SERVER,
+        "EXPENSE_MCP_SERVER": EXPENSE_MCP_SERVER,
+        "AGENT_REGISTRY_LOCATION": AGENT_REGISTRY_LOCATION,
     }
 
     # Build create() config — gateway + identity are set here, not post-deploy
@@ -91,13 +105,22 @@ def deploy_agent(agent, display_name: str | None = None) -> str:
         "requirements": REQUIREMENTS,
         "display_name": display_name or agent.name,
         "env_vars": env_vars,
-        "extra_packages": [os.path.join(SRC_DIR, "src")],
+        "extra_packages": ["src"],
     }
 
+    # Agent Gateway and AGENT_IDENTITY require IdentityType and
+    # agent_gateway_config support in agent_engines.create(). These were added
+    # in a newer SDK version than google-cloud-aiplatform==1.152.0. When
+    # available, gateway attachment and SPIFFE-based identity are configured
+    # at deploy time. Otherwise we deploy without them.
     gateway_config = _build_gateway_config()
     if gateway_config:
-        create_config["agent_gateway_config"] = gateway_config
-        create_config["identity_type"] = types.IdentityType.AGENT_IDENTITY
+        if hasattr(types, "IdentityType"):
+            create_config["agent_gateway_config"] = gateway_config
+            create_config["identity_type"] = types.IdentityType.AGENT_IDENTITY
+        else:
+            print("  Warning: IdentityType not available in this SDK version — deploying without gateway/identity")
+            gateway_config = None
 
     remote = agent_engines.create(
         agent_engine=agent,
