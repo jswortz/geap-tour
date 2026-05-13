@@ -72,17 +72,28 @@ for tmpl in geap-workshop-prompt geap-workshop-response; do
     fi
 done
 
-# ─── 3. Agent Gateway ────────────────────────────────────────────
+# ─── 3. Agent Gateways ───────────────────────────────────────────
 echo ""
-echo "━━━ [3/7] Agent Gateway ━━━"
-GW=$(gcloud alpha agent-gateway gateways describe geap-workshop-gateway \
-    --project "$PROJECT_ID" --location "$REGION" --format json 2>/dev/null || echo "")
-if [[ -n "$GW" ]]; then
-    ok "geap-workshop-gateway exists"
-    echo "$GW" > "$REPORT_DIR/agent_gateway.json"
-else
-    warn "Agent Gateway not found (alpha API may not be available)"
-fi
+echo "━━━ [3/7] Agent Gateways ━━━"
+ACCESS_TOKEN=$(gcloud auth print-access-token 2>/dev/null)
+API_BASE="https://networkservices.googleapis.com/v1beta1"
+
+for gw_entry in \
+    "${REGION}:geap-workshop-gateway:Regional ingress" \
+    "${REGION}:geap-workshop-gateway-egress:Regional egress" \
+    "global:geap-workshop-ge-gateway:GE ingress" \
+    "global:geap-workshop-ge-gateway-egress:GE egress"; do
+    IFS=: read -r gw_loc gw_id gw_label <<< "$gw_entry"
+    GW=$(curl -s \
+        "${API_BASE}/projects/${PROJECT_ID}/locations/${gw_loc}/agentGateways/${gw_id}" \
+        -H "Authorization: Bearer ${ACCESS_TOKEN}" 2>/dev/null)
+    if echo "$GW" | grep -q '"name"'; then
+        ok "${gw_label} (${gw_id})"
+        echo "$GW" > "$REPORT_DIR/agent_gateway_${gw_id}.json"
+    else
+        warn "${gw_label} (${gw_id}) not found"
+    fi
+done
 
 # ─── 4. BigQuery Logging Sink ──────────────────────────────────────
 echo ""

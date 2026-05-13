@@ -1,3 +1,5 @@
+"""Mock booking database — in-memory store for flight and hotel reservations."""
+
 import uuid
 from datetime import datetime
 

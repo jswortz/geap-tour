@@ -1,3 +1,5 @@
+"""Global configuration — GCP project settings, MCP server URLs, model configs, and eval params."""
+
 import os
 from dotenv import load_dotenv
 

@@ -502,50 +502,66 @@ adk eval_set generate_eval_cases src/agents/coordinator eval_set_coordinator_gen
 
 ---
 
-## 5. Online Monitors
+## 5. Online Evaluators
 
-[Online monitors](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/evaluate#online-evaluation) continuously evaluate agent responses using [Cloud Trace](https://cloud.google.com/trace/docs/overview) telemetry on a 10-minute cycle. Results flow to [BigQuery](https://cloud.google.com/bigquery/docs/introduction) for trend analysis.
+[Online evaluators](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/evaluate#online-evaluation) continuously score agent responses using [Cloud Trace](https://cloud.google.com/trace/docs/overview) OTel telemetry on a 10-minute cycle. Results appear in the Agent Engine Evaluation tab, [Cloud Logging](https://cloud.google.com/logging/docs/overview), and [Cloud Monitoring](https://cloud.google.com/monitoring/docs/monitoring-overview).
 
-### Monitor Setup
+### Evaluator Setup
 
-> **Source:** [`src/eval/setup_online_monitors.py:9-55`](https://github.com/jswortz/geap-tour/blob/main/src/eval/setup_online_monitors.py#L9-L55)
+> **Source:** [`src/eval/setup_online_evaluators.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/setup_online_evaluators.py)
+
+Each evaluator uses 6 metrics — 4 predefined and 2 custom rubrics registered via the v1beta1 Metric Registry:
 
 ```python
-# src/eval/setup_online_monitors.py:24-47
-metrics_to_create = [
-    ("helpfulness", HELPFULNESS_METRIC),
-    ("tool_use_accuracy", TOOL_USE_METRIC),
-    ("policy_compliance", POLICY_COMPLIANCE_METRIC),
+# Predefined metrics (inline)
+PREDEFINED_METRICS = [
+    "final_response_quality_v1",
+    "hallucination_v1",
+    "safety_v1",
+    "tool_use_quality_v1",
 ]
 
-for metric_name, metric in metrics_to_create:
-    monitor = client.evals.create_online_eval(
-        agent=agent_resource_name,
-        config={
-            "metrics": [metric],
-            "schedule": {"interval_minutes": 10},
-            "sample_rate": 1.0,
-        },
-    )
+# Custom metrics (registered in Metric Registry with scoreRange)
+CUSTOM_METRICS = [
+    "GEAP Task Quality",      # Tool selection, parameter accuracy, actionable output
+    "GEAP Policy Compliance",  # Expense limits, booking confirmation, data boundaries
+]
 ```
 
-> **API:** [`client.evals.create_online_eval()`](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/evaluate#online-evaluation)
-
-### Monitor Verification
+Evaluators are created for both the coordinator and router agents via REST API:
 
 ```bash
-# Check monitor status and recent scores
-uv run python -m src.eval.verify_monitors --format json
-
-# View BigQuery results
-bq query --use_legacy_sql=false \
-  "SELECT metric_name, AVG(score) as avg_score, COUNT(*) as n
-   FROM \`wortz-project-352116.geap_workshop_logs.online_eval_results\`
-   WHERE timestamp > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 24 HOUR)
-   GROUP BY metric_name"
+# Register custom metrics + create evaluators for both GEAP agents
+uv run python -m src.eval.setup_online_evaluators create
 ```
 
-> **Source:** [`src/eval/verify_monitors.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/verify_monitors.py)
+> **API:** v1beta1 `onlineEvaluators` REST endpoint + `evaluationMetrics` for custom metric registration
+
+### Evaluator Verification
+
+```bash
+# List evaluators and their state (ACTIVE / WARNING)
+uv run python -m src.eval.setup_online_evaluators list
+
+# Check evaluator status + Cloud Logging for eval results
+uv run python -m src.eval.setup_online_evaluators verify
+```
+
+The `verify` command checks two things:
+1. Evaluator state is ACTIVE for both GEAP agents
+2. Cloud Logging contains `gen_ai.evaluation.result` entries with per-metric scores
+
+> **Source:** [`src/eval/setup_online_evaluators.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/setup_online_evaluators.py)
+
+### Cleanup
+
+```bash
+# Delete a specific evaluator
+uv run python -m src.eval.setup_online_evaluators delete <evaluator-id>
+
+# Delete all GEAP evaluators and registered custom metrics
+uv run python -m src.eval.setup_online_evaluators cleanup
+```
 
 ### Quality Alerts
 

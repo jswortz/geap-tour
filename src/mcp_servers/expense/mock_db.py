@@ -1,3 +1,5 @@
+"""Mock expense database — in-memory store with corporate policy limit enforcement."""
+
 import uuid
 from datetime import datetime
 

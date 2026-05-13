@@ -9,7 +9,7 @@ A hands-on workshop demonstrating the full Gemini Enterprise Agent Platform (GEA
 | **ADK Agents** | Three agents (travel, expense, coordinator) built with Google Agent Development Kit |
 | **MCP Servers** | Three FastMCP tool servers deployed to Cloud Run (search, booking, expense) |
 | **Deployment** | Agent Runtime deployment with identity, gateway, and OTel tracing |
-| **Evaluation** | One-time, continuous (online monitors), and simulated evaluation pipelines |
+| **Evaluation** | One-time, continuous (online evaluators with custom rubrics), and simulated evaluation pipelines |
 | **Model Armor** | Model Armor templates for input/output screening + client-side guardrails |
 | **Governance** | Agent identity (SPIFFE), agent gateway (ingress + egress), agent registry, Semantic Governance Policies (SGP) |
 | **Multi-Model Router** | Complexity-based routing across Flash Lite, Flash, and Opus |

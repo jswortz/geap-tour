@@ -1,8 +1,6 @@
 """Deploy ADK agents to Vertex AI Agent Runtime with identity, gateway, and Memory Bank."""
 
-import json
 import os
-import subprocess
 
 import vertexai
 from vertexai import agent_engines
@@ -35,44 +33,19 @@ REQUIREMENTS = [
 SRC_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 
-def _attach_gateway(resource_name: str) -> None:
-    """Attach gateway config to a deployed agent via REST API (Private Preview).
+def _build_gateway_config() -> dict | None:
+    """Build the agent_gateway_config dict for agent_engines.create().
 
-    Tries v1beta1 first, falls back to v1. If the API doesn't support
-    agentGatewayConfig yet (requires Private Preview), logs a note and continues.
+    Gateway attachment happens at deploy time via the config parameter,
+    not via post-deploy PATCH. The egress gateway must have a registries
+    link to the regional Agent Registry for agent discovery.
     """
     gateway_config = {}
-    if AGENT_GATEWAY_PATH:
-        gateway_config["clientToAgentConfig"] = {"agentGateway": AGENT_GATEWAY_PATH}
     if AGENT_GATEWAY_EGRESS_PATH:
-        gateway_config["agentToAnywhereConfig"] = {"agentGateway": AGENT_GATEWAY_EGRESS_PATH}
-    if not gateway_config:
-        return
-
-    token = subprocess.check_output(
-        ["gcloud", "auth", "print-access-token"], text=True
-    ).strip()
-
-    for api_version in ("v1beta1", "v1"):
-        url = f"https://{GCP_REGION}-aiplatform.googleapis.com/{api_version}/{resource_name}"
-        body = {"agentGatewayConfig": gateway_config}
-
-        result = subprocess.run(
-            ["curl", "-s", "-X", "PATCH", f"{url}?updateMask=agentGatewayConfig",
-             "-H", f"Authorization: Bearer {token}",
-             "-H", "Content-Type: application/json",
-             "-d", json.dumps(body)],
-            capture_output=True, text=True,
-        )
-        if result.returncode == 0 and result.stdout:
-            resp = json.loads(result.stdout)
-            if "error" not in resp:
-                print(f"  Gateway attached ({api_version}): ingress={bool(AGENT_GATEWAY_PATH)}, egress={bool(AGENT_GATEWAY_EGRESS_PATH)}")
-                return
-
-    print("  Gateway attachment requires Private Preview enrollment — gateways exist but are not yet attached to this agent.")
-    print(f"  Ingress: {AGENT_GATEWAY_PATH}")
-    print(f"  Egress:  {AGENT_GATEWAY_EGRESS_PATH}")
+        gateway_config["agent_to_anywhere_config"] = {"agent_gateway": AGENT_GATEWAY_EGRESS_PATH}
+    if AGENT_GATEWAY_PATH:
+        gateway_config["client_to_agent_config"] = {"agent_gateway": AGENT_GATEWAY_PATH}
+    return gateway_config or None
 
 
 def _memory_service_builder():
@@ -91,7 +64,13 @@ def _memory_service_builder():
 
 
 def deploy_agent(agent, display_name: str | None = None) -> str:
-    """Deploy a single agent to Agent Runtime. Returns the resource name."""
+    """Deploy a single agent to Agent Runtime with gateway and identity.
+
+    Gateway config and AGENT_IDENTITY are passed at create time via the
+    config parameter per the Agent Gateway SDK docs.
+    """
+    from google.genai import types
+
     print(f"\n--- Deploying {agent.name} ---")
 
     env_vars = {
@@ -107,18 +86,31 @@ def deploy_agent(agent, display_name: str | None = None) -> str:
         "GOOGLE_API_PREVENT_AGENT_TOKEN_SHARING_FOR_GCP_SERVICES": "false",
     }
 
+    # Build create() config — gateway + identity are set here, not post-deploy
+    create_config = {
+        "requirements": REQUIREMENTS,
+        "display_name": display_name or agent.name,
+        "env_vars": env_vars,
+        "extra_packages": [os.path.join(SRC_DIR, "src")],
+    }
+
+    gateway_config = _build_gateway_config()
+    if gateway_config:
+        create_config["agent_gateway_config"] = gateway_config
+        create_config["identity_type"] = types.IdentityType.AGENT_IDENTITY
+
     remote = agent_engines.create(
         agent_engine=agent,
-        requirements=REQUIREMENTS,
-        display_name=display_name or agent.name,
-        env_vars=env_vars,
-        extra_packages=[os.path.join(SRC_DIR, "src")],
+        **create_config,
     )
     print(f"  {agent.name} deployed: {remote.resource_name}")
     print(f"  Memory Bank: enabled (engine_id={AGENT_ENGINE_ID})")
 
-    if AGENT_GATEWAY_PATH or AGENT_GATEWAY_EGRESS_PATH:
-        _attach_gateway(remote.resource_name)
+    if gateway_config:
+        print(f"  Gateway: ingress={bool(AGENT_GATEWAY_PATH)}, egress={bool(AGENT_GATEWAY_EGRESS_PATH)}")
+        print(f"  Identity: AGENT_IDENTITY (SPIFFE-based)")
+    else:
+        print(f"  Gateway: not configured (set AGENT_GATEWAY_PATH / AGENT_GATEWAY_EGRESS_PATH)")
 
     return remote.resource_name
 

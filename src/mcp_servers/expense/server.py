@@ -1,3 +1,5 @@
+"""Expense MCP server — exposes expense submission, policy checks, and history over StreamableHTTP."""
+
 from fastmcp import FastMCP
 
 try:

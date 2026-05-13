@@ -817,36 +817,36 @@ uv run python -m src.eval.one_time_eval <agent-resource-name>
 
 ---
 
-### 2.3 Online Monitors (Continuous Eval) (~15 min)
+### 2.3 Online Evaluators (Continuous Eval) (~15 min)
 
-**Code**: [`src/eval/setup_online_monitors.py`](../src/eval/setup_online_monitors.py) | **Docs**: [Online Evaluation Monitors](https://cloud.google.com/vertex-ai/generative-ai/docs/evaluation/online-evaluation)
+**Code**: [`src/eval/setup_online_evaluators.py`](../src/eval/setup_online_evaluators.py) | **Docs**: [Online Evaluation](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/evaluate#online-evaluation)
 
-Online monitors evaluate live agent traffic on a 10-minute cycle:
+Online evaluators run every 10 minutes against OTel traces, scoring them with predefined metrics and custom rubrics:
 
-1. Agent handles user requests -> OTel traces flow to Cloud Trace
-2. Every 10 minutes, the monitor samples recent traces
-3. Runs the same metric rubrics
-4. Results flow to BigQuery for analysis
+1. Agent handles user requests → OTel traces flow to Cloud Trace
+2. Every 10 minutes, the evaluator samples recent traces
+3. Scores each trace against 6 metrics (4 predefined + 2 custom rubrics)
+4. Results appear in the Agent Engine Evaluation tab, Cloud Logging, and Cloud Monitoring
 
 ```bash
 # Generate traffic first (20 queries + 3 memory conversations)
 uv run python -m src.traffic.generate_traffic
 
-# Setup monitors
-uv run python -m src.eval.setup_online_monitors <agent-resource-name>
+# Register custom metrics and create evaluators for both agents
+uv run python -m src.eval.setup_online_evaluators create
 
-# Wait 10+ minutes, then verify
-uv run python -m src.eval.verify_monitors
+# Wait 10+ minutes, then verify scores in Cloud Logging
+uv run python -m src.eval.setup_online_evaluators verify
 ```
 
-**Manage monitors**:
+**Manage evaluators**:
 ```bash
-uv run python -m src.eval.manage_monitors list
-uv run python -m src.eval.manage_monitors pause <monitor-name>
-uv run python -m src.eval.manage_monitors resume <monitor-name>
+uv run python -m src.eval.setup_online_evaluators list
+uv run python -m src.eval.setup_online_evaluators delete <evaluator-id>
+uv run python -m src.eval.setup_online_evaluators cleanup
 ```
 
-**Console tour**: Navigate to Vertex AI -> Evaluation -> Online Monitors. Show active monitors, their schedules, and recent results.
+**Console tour**: Navigate to Agent Platform → Agents → select agent → Evaluation tab. Show active evaluators, metric scores, and per-trace breakdowns.
 
 **Screenshot**: `docs/screenshots/session2_evaluation_pipeline.png`
 
@@ -1334,7 +1334,7 @@ adk deploy agent_engine \
 uv run python src/traffic/generate_traffic.py
 
 # 6. Setup evaluation
-uv run python -m src.eval.setup_online_monitors <agent-resource-name>
+uv run python -m src.eval.setup_online_evaluators create
 uv run python -m src.eval.quality_alerts helpfulness 3.0
 
 # 7. Run one-time eval

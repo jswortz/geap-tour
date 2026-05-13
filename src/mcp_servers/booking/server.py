@@ -1,3 +1,5 @@
+"""Booking MCP server — exposes flight and hotel booking tools over StreamableHTTP."""
+
 from fastmcp import FastMCP
 
 try:

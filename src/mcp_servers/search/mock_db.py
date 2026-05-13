@@ -1,3 +1,5 @@
+"""Mock flight and hotel data for the search MCP server."""
+
 FLIGHTS = [
     {"id": "FL001", "airline": "United", "origin": "SFO", "destination": "JFK", "date": "2026-06-15", "price": 450.00, "departure": "08:00", "arrival": "16:30"},
     {"id": "FL002", "airline": "Delta", "origin": "SFO", "destination": "JFK", "date": "2026-06-15", "price": 520.00, "departure": "10:30", "arrival": "19:00"},

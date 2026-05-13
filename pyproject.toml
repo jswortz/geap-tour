@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "GEAP Workshop: Multi-agent systems with ADK, MCP, evaluation, and observability on Google Cloud"
 requires-python = ">=3.11"
 dependencies = [
-    "google-cloud-aiplatform[adk,agent_engines]>=1.88.0",
+    "google-cloud-aiplatform[adk,agent-engines]>=1.152.0",
     "google-genai>=1.14.0",
     "fastmcp>=2.0.0",
     "pydantic>=2.0",

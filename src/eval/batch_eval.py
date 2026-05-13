@@ -7,7 +7,7 @@ and a custom policy-compliance metric.
 
 Usage:
     uv run python -m src.eval.batch_eval
-    uv run python -m src.eval.batch_eval --agent-id 1316648131831529472
+    uv run python -m src.eval.batch_eval --agent-id 2479350891879071744
     uv run python -m src.eval.batch_eval --threshold 3.0 --output results.json
 """
 

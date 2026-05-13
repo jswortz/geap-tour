@@ -1,3 +1,5 @@
+"""Search MCP server — exposes flight and hotel search tools over StreamableHTTP."""
+
 from fastmcp import FastMCP
 
 try:
