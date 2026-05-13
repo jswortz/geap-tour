@@ -1,15 +1,11 @@
-"""Setup continuous evaluation for Agent Engine deployments.
+"""Online evaluation against deployed Agent Engine.
 
-Model Monitoring v2 requires registered Vertex AI models, so for Agent Engine
-(reasoning engines) we use a scheduled batch evaluation approach: run a compact
-evaluation dataset against the deployed agent periodically.
+Runs a quick evaluation dataset against the deployed agent using the
+Vertex AI Evals API. Results are visible in the GCP console.
 
 Usage:
-    uv run python -m src.eval.setup_online_monitors <agent-engine-id> [agent-name]
-    uv run python -m src.eval.setup_online_monitors 2479350891879071744
-
-For a true scheduled monitor, deploy this as a Cloud Function + Cloud Scheduler
-on a 10-minute cron. See docs/workshop_guide.md Section 2.6 for details.
+    uv run python -m src.eval.setup_online_monitors <agent-engine-id>
+    uv run python -m src.eval.setup_online_monitors 2762936930915057664
 """
 
 import json
@@ -23,11 +19,11 @@ from vertexai import Client, types
 from src.config import GCP_PROJECT_ID, GCP_REGION, GCP_STAGING_BUCKET
 
 QUICK_EVAL_CASES = [
-    "Find flights from SFO to JFK on June 15",
-    "Search hotels in New York under $300",
+    "Find me a hotel in Miami",
+    "Search for hotels in New York under $350",
     "Check if a $50 meal expense is within policy",
-    "Submit a $100 meal expense for user EMP001",
-    "Book flight FL001 for Jane Doe",
+    "Check policy for a $500 entertainment expense",
+    "Submit a $45 meals expense for lunch meeting, user ID EMP001",
 ]
 
 EVAL_METRICS = [
@@ -43,13 +39,13 @@ def _resolve_agent_resource_name(agent_id: str) -> str:
 
 
 def run_quick_eval(agent_id: str) -> dict:
-    """Run a quick 5-case evaluation against the deployed agent."""
+    """Run a quick evaluation against the deployed agent."""
     agent_resource = _resolve_agent_resource_name(agent_id)
     run_id = f"quick_eval_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
-    print(f"Quick evaluation: {agent_resource}")
+    print(f"Online evaluation: {agent_resource}")
     print(f"  Run ID: {run_id}")
-    print(f"  Cases: {len(QUICK_EVAL_CASES)}")
+    print(f"  Cases:  {len(QUICK_EVAL_CASES)}")
 
     vertexai.init(
         project=GCP_PROJECT_ID,
@@ -63,19 +59,19 @@ def run_quick_eval(agent_id: str) -> dict:
     rows = [
         {
             "prompt": case,
-            "session_inputs": types.evals.SessionInput(user_id="monitor-user", state={}),
+            "session_inputs": types.evals.SessionInput(user_id="monitor-user"),
         }
         for case in QUICK_EVAL_CASES
     ]
     eval_df = pd.DataFrame(rows)
 
-    print("  Running inference...")
+    print("  Running inference...", flush=True)
     t0 = time.time()
     inference_result = client.evals.run_inference(agent=agent_resource, src=eval_df)
     elapsed = time.time() - t0
     print(f"  Inference done in {elapsed:.1f}s")
 
-    print("  Running evaluation...")
+    print("  Running evaluation...", flush=True)
     from src.eval.batch_eval import _build_agent_info
 
     evaluation_run = client.evals.create_evaluation_run(
@@ -83,12 +79,13 @@ def run_quick_eval(agent_id: str) -> dict:
         agent_info=_build_agent_info(),
         agent=agent_resource,
         metrics=EVAL_METRICS,
-        dest=f"gs://{GCP_STAGING_BUCKET}/eval-results/monitors/",
+        dest=f"gs://{GCP_STAGING_BUCKET}/eval-results/monitors",
     )
 
     print("  Waiting for evaluation", end="", flush=True)
+    eval_run_name = evaluation_run.name
     while True:
-        evaluation_run = client.evals.get_evaluation_run(name=evaluation_run.name)
+        evaluation_run = client.evals.get_evaluation_run(name=eval_run_name)
         state = str(getattr(evaluation_run, "state", ""))
         if "SUCCEEDED" in state or "FAILED" in state or "CANCELLED" in state:
             break
@@ -96,15 +93,19 @@ def run_quick_eval(agent_id: str) -> dict:
         time.sleep(10)
     print(f" {state}")
 
-    sm = evaluation_run.evaluation_run_results.summary_metrics
-    raw_metrics = dict(sm.metrics) if sm.metrics else {}
-    total = sm.total_items or 0
-    failed = sm.failed_items or 0
-    averages = {
-        k.rsplit("/AVERAGE", 1)[0]: float(v)
-        for k, v in raw_metrics.items()
-        if "/AVERAGE" in k
-    }
+    if "FAILED" in state:
+        error = getattr(evaluation_run, "error", None)
+        print(f"  Evaluation failed: {error}")
+        return {"run_id": run_id, "state": state, "error": str(error)}
+
+    run_results = getattr(evaluation_run, "evaluation_run_results", None)
+    sm = getattr(run_results, "summary_metrics", None) if run_results else None
+    total = (sm.total_items or 0) if sm else 0
+    failed = (sm.failed_items or 0) if sm else 0
+
+    metrics = {}
+    if sm and sm.metrics:
+        metrics = dict(sm.metrics)
 
     result = {
         "run_id": run_id,
@@ -113,15 +114,18 @@ def run_quick_eval(agent_id: str) -> dict:
         "inference_seconds": round(elapsed, 1),
         "total_items": total,
         "failed_items": failed,
-        "metrics": averages,
-        "evaluation_run_name": evaluation_run.name,
+        "metrics": metrics,
+        "evaluation_run_name": eval_run_name,
     }
 
     print()
     print("  Results:")
-    for k, v in sorted(averages.items()):
-        print(f"    {k}: {v:.2f}")
-    print(f"  Items OK: {total - failed}/{total}")
+    if metrics:
+        for k, v in sorted(metrics.items()):
+            print(f"    {k}: {v}")
+    else:
+        print("    (no summary metrics — check GCS output or console)")
+    print(f"  Items: {total} total, {failed} failed")
 
     output_path = f"eval_results_{run_id}.json"
     with open(output_path, "w") as f:
@@ -135,7 +139,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python -m src.eval.setup_online_monitors <agent-engine-id>")
         print()
-        print("Runs a quick 5-case evaluation against the deployed agent.")
-        print("For scheduled monitoring, deploy as Cloud Function + Cloud Scheduler.")
+        print("Runs a quick evaluation against the deployed agent.")
+        print("Results are visible in the GCP console under Vertex AI > Evaluation.")
         sys.exit(1)
     run_quick_eval(sys.argv[1])

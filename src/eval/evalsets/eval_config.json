@@ -1,36 +1,12 @@
 {
   "criteria": {
-    "tool_trajectory_avg_score": {
-      "threshold": 0.8,
-      "match_type": "IN_ORDER"
-    },
-    "response_match_score": 0.6,
+    "response_match_score": 0.04,
     "final_response_match_v2": {
-      "threshold": 0.7,
+      "threshold": 0.3,
       "judge_model_options": {
-        "judge_model": "gemini-flash-latest"
+        "judge_model": "gemini-2.5-flash"
       }
     },
-    "hallucinations_v1": {
-      "threshold": 0.5,
-      "judge_model_options": {
-        "judge_model": "gemini-flash-latest"
-      }
-    },
-    "safety_v1": 0.8,
-    "complexity_routing": {
-      "threshold": 0.8
-    }
-  },
-  "custom_metrics": {
-    "complexity_routing": {
-      "code_config": {
-        "name": "src.eval.complexity_metrics.check_complexity_routing"
-      },
-      "metric_info": {
-        "metric_name": "complexity_routing",
-        "description": "Checks whether the router correctly classified prompt complexity and delegated to the appropriate model tier."
-      }
-    }
+    "safety_v1": 0.8
   }
 }

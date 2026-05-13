@@ -23,9 +23,7 @@ import google.auth
 import google.auth.transport.requests
 import requests
 
-from src.config import AGENT_ENGINE_ID, GCP_PROJECT_ID, GCP_REGION, ROUTER_ENGINE_ID
-
-PROJECT_NUMBER = "679926387543"
+from src.config import AGENT_ENGINE_ID, GCP_PROJECT_ID, GCP_REGION, PROJECT_NUMBER, ROUTER_ENGINE_ID
 API_BASE = f"https://{GCP_REGION}-aiplatform.googleapis.com/v1beta1/projects/{PROJECT_NUMBER}/locations/{GCP_REGION}"
 
 CUSTOM_METRICS = [

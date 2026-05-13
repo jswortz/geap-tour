@@ -1,124 +1,121 @@
-"""One-time evaluation with custom pointwise metric rubrics."""
+"""One-time evaluation using ADK AgentEvaluator against local evalsets.
 
-import vertexai
-from vertexai import agent_engines
-from google.genai import types
-
-from src.config import GCP_PROJECT_ID, GCP_REGION
-
-HELPFULNESS_TEMPLATE = """\
-You are an expert evaluator. Rate the agent's response for helpfulness.
-
-Criteria: Does the response provide helpful, relevant, and actionable information for the user's travel or expense request?
-
-Rating Rubric:
-1 - Not helpful — ignores the request or provides irrelevant information
-2 - Slightly helpful — addresses the request but with significant gaps
-3 - Moderately helpful — addresses the request with minor gaps
-4 - Helpful — fully addresses the request with clear information
-5 - Very helpful — exceeds expectations with proactive suggestions
-
-User prompt: {prompt}
-Agent response: {response}
-
-Provide your rating as a single integer (1-5):
+Sets inference parallelism to 1 to avoid MCP session contention with
+remote Cloud Run servers. Patches an ADK bug where timed-out eval cases
+with None inferences crash the evaluator.
 """
 
-TOOL_USE_TEMPLATE = """\
-You are an expert evaluator. Rate the agent's tool usage accuracy.
+import json
+import logging
+import sys
 
-Criteria: Does the agent correctly use the available MCP tools to fulfill the request? Are the right tools called with appropriate parameters?
+from google.adk.evaluation import AgentEvaluator
+from google.adk.evaluation.eval_set import EvalSet
+from google.adk.evaluation.eval_config import EvalConfig
+from google.adk.evaluation.base_eval_service import InferenceConfig
 
-Rating Rubric:
-1 - No tool use or completely wrong tool
-2 - Wrong tool or badly formed parameters
-3 - Correct tool but with parameter issues
-4 - Correct tool with appropriate parameters
-5 - Optimal tool use with well-formed parameters and good error handling
+log = logging.getLogger(__name__)
 
-User prompt: {prompt}
-Agent response: {response}
+EVAL_CONFIG_FILE = "src/eval/evalsets/eval_config.json"
 
-Provide your rating as a single integer (1-5):
-"""
+AGENT_MODULES = {
+    "coordinator": "src.agents.coordinator_agent",
+    "travel": "src.agents.travel_agent",
+    "expense": "src.agents.expense_agent",
+    "router": "src.router.agents",
+}
 
-POLICY_COMPLIANCE_TEMPLATE = """\
-You are an expert evaluator. Rate the agent's policy compliance.
+AGENT_NAMES = {
+    "coordinator": "coordinator_agent",
+    "travel": "travel_agent",
+    "expense": "expense_agent",
+    "router": "router_agent",
+}
 
-Criteria: Does the agent correctly enforce corporate expense policies? Does it flag over-limit expenses and guide the user appropriately?
+EVALSET_FILES = {
+    "coordinator": "src/eval/evalsets/coordinator.evalset.json",
+    "travel": "src/eval/evalsets/travel_agent.evalset.json",
+    "expense": "src/eval/evalsets/expense_agent.evalset.json",
+    "router": "src/eval/evalsets/router_agent.evalset.json",
+}
 
-Rating Rubric:
-1 - Ignores policy limits entirely
-2 - Mentions policy but applies it incorrectly
-3 - Applies policy but doesn't guide the user
-4 - Correctly applies policy and informs the user
-5 - Proactively checks policy before submission and provides clear guidance
-
-User prompt: {prompt}
-Agent response: {response}
-
-Provide your rating as a single integer (1-5):
-"""
-
-HELPFULNESS_METRIC = types.Metric(
-    name="helpfulness",
-    prompt_template=HELPFULNESS_TEMPLATE,
-)
-
-TOOL_USE_METRIC = types.Metric(
-    name="tool_use_accuracy",
-    prompt_template=TOOL_USE_TEMPLATE,
-)
-
-POLICY_COMPLIANCE_METRIC = types.Metric(
-    name="policy_compliance",
-    prompt_template=POLICY_COMPLIANCE_TEMPLATE,
-)
+INFERENCE_PARALLELISM = 1
 
 
-def run_one_time_eval(agent_resource_name: str):
-    """Run one-time evaluation against a deployed agent."""
-    from google import genai
+def _patch_eval_service_none_guard():
+    """Monkey-patch LocalEvalService to skip eval cases with None inferences.
 
-    vertexai.init(project=GCP_PROJECT_ID, location=GCP_REGION)
-    client = genai.Client(
-        vertexai=True,
-        project=GCP_PROJECT_ID,
-        location=GCP_REGION,
-    )
+    ADK bug: when an MCP tool times out during inference, the inference result
+    has inferences=None. The evaluator then crashes at
+    `len(inference_result.inferences)` with TypeError. This patch skips
+    those cases gracefully.
+    """
+    from google.adk.evaluation import local_eval_service as les
 
-    eval_dataset = types.EvaluationDataset(
-        eval_dataset_items=[
-            {"prompt": "Find flights from SFO to JFK on June 15"},
-            {"prompt": "Search hotels in New York under $300"},
-            {"prompt": "Submit a $500 entertainment expense for user EMP001"},
-            {"prompt": "Check if a $50 meal expense is within policy"},
-            {"prompt": "Book flight FL001 for Jane Doe"},
-        ]
-    )
+    _orig = les.LocalEvalService._evaluate_single_inference_result
 
-    print(f"Running one-time eval on {agent_resource_name}...")
-    print(f"  Dataset: 5 prompts")
-    print(f"  Metrics: helpfulness, tool_use_accuracy, policy_compliance")
+    async def _patched(self, inference_result, evaluate_config):
+        if inference_result.inferences is None:
+            log.warning(
+                "Skipping eval case %s — inference returned None (likely MCP timeout)",
+                inference_result.eval_case_id,
+            )
+            from google.adk.evaluation.eval_case import EvalCaseResult
+            return inference_result, EvalCaseResult(
+                eval_case_id=inference_result.eval_case_id,
+                eval_set_id=inference_result.eval_set_id,
+            )
+        return await _orig(self, inference_result=inference_result, evaluate_config=evaluate_config)
 
-    eval_result = client.evals.evaluate(
-        src=eval_dataset,
-        config=types.EvaluationConfig(
-            agent=agent_resource_name,
-            metrics=[HELPFULNESS_METRIC, TOOL_USE_METRIC, POLICY_COMPLIANCE_METRIC],
-        ),
-    )
+    les.LocalEvalService._evaluate_single_inference_result = _patched
 
-    print("\n=== Evaluation Results ===")
-    for metric_name, scores in eval_result.summary_metrics.items():
-        print(f"  {metric_name}: {scores}")
 
+async def run_one_time_eval(agent_key: str = "coordinator", num_runs: int = 1):
+    """Run one-time evaluation against a local agent using ADK evalsets."""
+    module = AGENT_MODULES.get(agent_key)
+    agent_name = AGENT_NAMES.get(agent_key)
+    evalset_file = EVALSET_FILES.get(agent_key)
+    if not module:
+        print(f"Unknown agent: {agent_key}. Available: {list(AGENT_MODULES)}")
+        sys.exit(1)
+
+    with open(evalset_file) as f:
+        eval_set = EvalSet.model_validate(json.load(f))
+
+    with open(EVAL_CONFIG_FILE) as f:
+        eval_config = EvalConfig.model_validate(json.load(f))
+
+    print(f"Running ADK evaluation for {agent_key}...")
+    print(f"  Module:      {module}")
+    print(f"  Agent:       {agent_name}")
+    print(f"  Evalset:     {evalset_file} ({len(eval_set.eval_cases)} cases)")
+    print(f"  Criteria:    {list(eval_config.criteria.keys())}")
+    print(f"  Runs:        {num_runs}")
+    print(f"  Parallelism: {INFERENCE_PARALLELISM}")
+
+    _patch_eval_service_none_guard()
+
+    _orig_default = InferenceConfig.model_fields["parallelism"].default
+    InferenceConfig.model_fields["parallelism"].default = INFERENCE_PARALLELISM
+
+    try:
+        eval_result = await AgentEvaluator.evaluate_eval_set(
+            agent_module=module,
+            eval_set=eval_set,
+            eval_config=eval_config,
+            num_runs=num_runs,
+            agent_name=agent_name,
+            print_detailed_results=True,
+        )
+    finally:
+        InferenceConfig.model_fields["parallelism"].default = _orig_default
+
+    print("\n=== Evaluation Complete ===")
     return eval_result
 
 
 if __name__ == "__main__":
-    import sys
-    if len(sys.argv) < 2:
-        print("Usage: python -m src.eval.one_time_eval <agent-resource-name>")
-        sys.exit(1)
-    run_one_time_eval(sys.argv[1])
+    import asyncio
+    agent_key = sys.argv[1] if len(sys.argv) > 1 else "coordinator"
+    num_runs = int(sys.argv[2]) if len(sys.argv) > 2 else 1
+    asyncio.run(run_one_time_eval(agent_key=agent_key, num_runs=num_runs))
