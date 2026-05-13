@@ -1,7 +1,6 @@
 """One-time evaluation with custom pointwise metric rubrics."""
 
 import vertexai
-from vertexai import agent_engines
 from google.genai import types
 
 from src.config import GCP_PROJECT_ID, GCP_REGION
@@ -98,8 +97,8 @@ def run_one_time_eval(agent_resource_name: str):
     )
 
     print(f"Running one-time eval on {agent_resource_name}...")
-    print(f"  Dataset: 5 prompts")
-    print(f"  Metrics: helpfulness, tool_use_accuracy, policy_compliance")
+    print("  Dataset: 5 prompts")
+    print("  Metrics: helpfulness, tool_use_accuracy, policy_compliance")
 
     eval_result = client.evals.evaluate(
         src=eval_dataset,

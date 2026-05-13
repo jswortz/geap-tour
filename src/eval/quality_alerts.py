@@ -49,7 +49,7 @@ def create_quality_alert(
     result = client.create_alert_policy(name=project_name, alert_policy=policy)
     print(f"✓ Alert policy created: {result.name}")
     print(f"  Metric: {metric_name} < {threshold}")
-    print(f"  Window: 10 minutes")
+    print("  Window: 10 minutes")
     return result
 
 

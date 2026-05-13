@@ -1,12 +1,11 @@
 """Tests for the multi-model prompt router."""
 
 import json
-from unittest.mock import AsyncMock, patch, MagicMock
 
 import pytest
 
-from src.router.complexity import ComplexityResult, _score_to_level  # noqa: absolute for tests
-from src.router.cost_tracker import CostTracker, RequestLog, estimate_cost  # noqa: absolute for tests
+from src.router.complexity import ComplexityResult, _score_to_level  # noqa: F401
+from src.router.cost_tracker import CostTracker, RequestLog, estimate_cost  # noqa: F401
 
 
 class TestComplexityScoring:

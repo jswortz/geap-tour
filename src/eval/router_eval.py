@@ -221,14 +221,17 @@ def generate_report(results: dict) -> str:
         "| Tier | Accuracy | Correct / Total |", "|------|----------|-----------------|",
     ]
     for tier in ("low", "medium", "high"):
-        row = cm[tier]; total_t = sum(row.values()); correct = row[tier]
+        row = cm[tier]
+        total_t = sum(row.values())
+        correct = row[tier]
         pct = correct / total_t * 100 if total_t else 0
         lines.append(f"| {tier} | {pct:.0f}% | {correct}/{total_t} |")
 
     lines.extend(["", "### Confusion Matrix", "",
         "| Expected \\ Actual | Low | Medium | High |", "|-------------------|-----|--------|------|"])
     for e in ("low", "medium", "high"):
-        row = cm[e]; lines.append(f"| {e} | {row['low']} | {row['medium']} | {row['high']} |")
+        row = cm[e]
+        lines.append(f"| {e} | {row['low']} | {row['medium']} | {row['high']} |")
 
     lines.extend(["", "## Cost Savings", "",
         f"**Mean savings: {sav['mean_pct']:.1f}%** vs all-Claude-Opus baseline  ",
@@ -257,7 +260,7 @@ def generate_report(results: dict) -> str:
         lines.append(f"1. **{sav['mean_pct']:.0f}% cost reduction** (significance pending)")
     lines.extend([
         f"2. **{acc['mean']:.0%} routing accuracy** — Flash Lite correctly identifies complexity tiers",
-        f"3. Classifier overhead is negligible (~$0.00002/call) vs model cost savings",
+        "3. Classifier overhead is negligible (~$0.00002/call) vs model cost savings",
         f"4. Average classification latency: {results['avg_latency_ms']:.0f}ms", "",
         "## Scaling Projections", "",
         "| Daily Volume | All-Opus Cost | Smart Router | Monthly Savings |",
@@ -278,7 +281,8 @@ def generate_report(results: dict) -> str:
 
 async def main(n_rounds: int = 3, update_report: bool = True):
     results = await run_eval_rounds(n_rounds)
-    output_dir = Path("eval_results"); output_dir.mkdir(exist_ok=True)
+    output_dir = Path("eval_results")
+    output_dir.mkdir(exist_ok=True)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     json_path = output_dir / f"router_eval_{ts}.json"
     with open(json_path, "w") as f:

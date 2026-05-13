@@ -82,7 +82,6 @@ async def run_comparison():
     for config_name, model_fn in CONFIGS.items():
         total = 0.0
         for (prompt, _), result in zip(DEMO_PROMPTS, classifications):
-            level = result.level if config_name == "Smart Router" else "low"
             model = model_fn(result.level)
             cost = estimate_cost(model, AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
             if config_name == "Smart Router":

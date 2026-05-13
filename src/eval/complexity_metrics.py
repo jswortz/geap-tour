@@ -1,6 +1,5 @@
 """Complexity routing evaluation metrics — Vertex AI API + ADK custom metric + standalone scorers."""
 
-import asyncio
 import statistics
 import time
 from typing import Optional

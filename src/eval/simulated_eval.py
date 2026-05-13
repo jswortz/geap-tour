@@ -8,12 +8,10 @@ Usage:
     uv run python -m src.eval.simulated_eval <agent-resource-name> 3.0 --agent-name travel_agent
 """
 
-import json
 from pathlib import Path
 
 import vertexai
 from google import genai
-from google.genai import types
 from vertexai import agent_engines
 
 from src.config import GCP_PROJECT_ID, GCP_REGION
@@ -93,7 +91,7 @@ def run_simulated_eval(
             },
         },
     )
-    print(f"  Inference complete")
+    print("  Inference complete")
 
     # Step 3: Evaluate with metrics
     print("[3/3] Evaluating with metrics...")

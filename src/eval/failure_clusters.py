@@ -23,7 +23,7 @@ def analyze_failure_clusters(eval_result_name: str):
         src=eval_result_name,
     )
 
-    print(f"\n=== Failure Cluster Report ===")
+    print("\n=== Failure Cluster Report ===")
     print(f"Total clusters: {len(clusters)}\n")
 
     for i, cluster in enumerate(clusters, 1):

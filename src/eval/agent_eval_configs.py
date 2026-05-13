@@ -1,6 +1,5 @@
 """Per-agent evaluation configs — test cases, AgentInfo builders, and metric selectors."""
 
-import json
 
 from vertexai import types
 

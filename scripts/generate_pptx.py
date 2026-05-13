@@ -463,7 +463,7 @@ def build_deck():
     add_card(s, Inches(7), Inches(3.1), Inches(5.5), Inches(1.5),
              "Agent Runtime — ADK Agents",
              "Vertex AI Agent Engine with built-in session management and memory", GREEN)
-    txBox = add_text(s, Inches(7), Inches(5.0), Inches(5.5), Inches(1),
+    add_text(s, Inches(7), Inches(5.0), Inches(5.5), Inches(1),
              "One command deploy: bash scripts/deploy_all.sh\nDeploys 3 MCP servers + coordinator agent in sequence",
              16, color=DARK)
     add_logo(s)
@@ -573,7 +573,7 @@ def build_deck():
               [["Client-to-Agent", "geap-workshop-gateway", "Inbound user requests"],
                ["Agent-to-Anywhere", "geap-workshop-gateway-egress", "Gemini model calls, MCP tools, external APIs"]],
               font_size=13)
-    txBox = add_text(s, Inches(0.8), Inches(3.4), Inches(5.8), Inches(0.8),
+    add_text(s, Inches(0.8), Inches(3.4), Inches(5.8), Inches(0.8),
              "With egress gateway, ALL outbound traffic — including Gemini model calls — routes through governance (IAM Allow + SGP + Model Armor)",
              14, color=DARK)
     add_code_block(s, Inches(0.8), Inches(4.4), Inches(5.8), Inches(2.0),
@@ -620,7 +620,7 @@ def build_deck():
                ["SGP", "Runtime (natural language)", 'Business rules — e.g. "Booking < $5,000"'],
                ["Model Armor", "Content screening", "Prompt injection, jailbreak, PII, harmful content"]],
               font_size=13)
-    txBox = add_text(s, Inches(0.8), Inches(3.8), Inches(6), Inches(0.8),
+    add_text(s, Inches(0.8), Inches(3.8), Inches(6), Inches(0.8),
              "Layered defense: IAM Allow restricts where agents connect, SGP restricts what agents do, Model Armor restricts how content is screened",
              14, color=DARK)
     add_text(s, Inches(7), Inches(1.1), Inches(5.5), Inches(0.4),
@@ -860,7 +860,7 @@ def build_deck():
                      "Select top performers based on eval scores",
                      "Evolve over multiple generations"],
                     title="Gemini Evolutionary Prompt Algorithm", title_color=BLUE)
-    txBox = add_text(s, Inches(0.8), Inches(4.8), Inches(5.5), Inches(1),
+    add_text(s, Inches(0.8), Inches(4.8), Inches(5.5), Inches(1),
              "Result: Automatically discovers better agent instructions without manual prompt engineering",
              18, color=DARK)
     add_text(s, Inches(7), Inches(1.1), Inches(5.5), Inches(0.4),

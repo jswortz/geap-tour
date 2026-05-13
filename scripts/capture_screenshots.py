@@ -7,9 +7,7 @@ using Playwright. Run after deploy_all.sh or verify_deployment.sh.
 import json
 import os
 import subprocess
-import sys
 from pathlib import Path
-from datetime import datetime
 
 PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "wortz-project-352116")
 REGION = os.environ.get("GCP_REGION", "us-central1")
@@ -186,7 +184,6 @@ def render_logging_page(entries: list[dict]) -> str:
         ts = entry.get("timestamp", "")[:23]
         resource = entry.get("resource", {}).get("labels", {}).get("service_name", "unknown")
         msg = (entry.get("textPayload") or entry.get("jsonPayload", {}).get("message", ""))[:120]
-        sev_class = {"INFO": "severity-info", "WARNING": "severity-warning", "ERROR": "severity-error"}.get(sev, "severity-default")
         rows += f"""<div style="display:flex;align-items:flex-start;padding:6px 0;border-bottom:1px solid #f1f3f4;font-size:12px;font-family:monospace;gap:12px;line-height:1.5;">
             <span class="status-badge" style="min-width:60px;text-align:center;{'background:#e8f0fe;color:#1967d2;' if sev=='INFO' else 'background:#fef7e0;color:#ea8600;' if sev=='WARNING' else 'background:#fce8e6;color:#c5221f;' if sev=='ERROR' else 'background:#f1f3f4;color:#5f6368;'}">{sev}</span>
             <span style="color:#5f6368;min-width:180px;font-size:11px;">{ts}</span>

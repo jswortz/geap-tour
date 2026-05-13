@@ -1,9 +1,16 @@
-"""Deploy ADK agents to Vertex AI Agent Runtime with identity, gateway, and Memory Bank."""
+"""Deploy ADK agents to Vertex AI Agent Runtime with identity, gateway, and Memory Bank.
+
+Agent Gateway requires REGIONAL gateways for Agent Runtime agents (with a regional
+Agent Registry) and GLOBAL gateways for Gemini Enterprise (with a global registry).
+A single gateway cannot support both — they are mutually exclusive.
+
+Gateway config (agent_gateway_config + identity_type) must be set at deploy time via
+agent_engines.create(). It cannot be PATCHed onto existing agents.
+"""
 
 import os
 
 import vertexai
-from vertexai import agent_engines
 
 from src.config import (
     GCP_PROJECT_ID,
@@ -24,13 +31,21 @@ from src.config import (
 
 REQUIREMENTS = [
     "google-cloud-aiplatform[adk,agent_engines]>=1.88.0",
+    # Server-side cloudpickle unpickle needs google.auth._regional_access_boundary_utils
+    # which was added in google-auth 2.52.0. The base image ships an older version.
+    "google-auth>=2.52.0",
+    "google-adk[a2a,agent-identity]>=1.33.0",
+    "a2a-sdk>=0.3.26",
+    "google-cloud-iamconnectorcredentials>=0.1.0",
     "google-genai>=1.14.0",
     "fastmcp>=2.0.0",
     "python-dotenv>=1.0.0",
     "litellm>=1.0.0",
+    "pydantic>=2.11.1,<3",
+    "cloudpickle>=3.0,<4.0",
 ]
 
-SRC_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 
 def _build_gateway_config() -> dict | None:
@@ -40,12 +55,11 @@ def _build_gateway_config() -> dict | None:
     not via post-deploy PATCH. The egress gateway must have a registries
     link to the regional Agent Registry for agent discovery.
     """
-    gateway_config = {}
-    if AGENT_GATEWAY_EGRESS_PATH:
-        gateway_config["agent_to_anywhere_config"] = {"agent_gateway": AGENT_GATEWAY_EGRESS_PATH}
-    if AGENT_GATEWAY_PATH:
-        gateway_config["client_to_agent_config"] = {"agent_gateway": AGENT_GATEWAY_PATH}
-    return gateway_config or None
+    if not AGENT_GATEWAY_EGRESS_PATH:
+        return None
+    # Only egress (agent_to_anywhere_config) is used at deploy time.
+    # Ingress (client_to_agent_config) is handled by the gateway's registry link.
+    return {"agent_to_anywhere_config": {"agent_gateway": AGENT_GATEWAY_EGRESS_PATH}}
 
 
 def _memory_service_builder():
@@ -66,10 +80,13 @@ def _memory_service_builder():
 def deploy_agent(agent, display_name: str | None = None) -> str:
     """Deploy a single agent to Agent Runtime with gateway and identity.
 
-    Gateway config and AGENT_IDENTITY are passed at create time via the
-    config parameter per the Agent Gateway SDK docs.
+    Uses vertexai.Client().agent_engines.create(config=...) which exposes
+    agent_gateway_config and identity_type. The high-level
+    vertexai.agent_engines.create() wrapper does not expose these fields.
     """
-    from google.genai import types
+    # SDK tar.add() preserves paths — must run from project root so that
+    # extra_packages="src" ends up as "src/" in the tarball.
+    os.chdir(PROJECT_ROOT)
 
     print(f"\n--- Deploying {agent.name} ---")
 
@@ -86,33 +103,40 @@ def deploy_agent(agent, display_name: str | None = None) -> str:
         "GOOGLE_API_PREVENT_AGENT_TOKEN_SHARING_FOR_GCP_SERVICES": "false",
     }
 
-    # Build create() config — gateway + identity are set here, not post-deploy
-    create_config = {
+    config = {
+        "staging_bucket": f"gs://{GCP_STAGING_BUCKET}",
         "requirements": REQUIREMENTS,
         "display_name": display_name or agent.name,
         "env_vars": env_vars,
-        "extra_packages": [os.path.join(SRC_DIR, "src")],
+        "extra_packages": ["src"],
     }
 
     gateway_config = _build_gateway_config()
     if gateway_config:
-        create_config["agent_gateway_config"] = gateway_config
-        create_config["identity_type"] = types.IdentityType.AGENT_IDENTITY
+        config["agent_gateway_config"] = gateway_config
+    # AGENT_IDENTITY gives SPIFFE credentials independent of gateway attachment.
+    # Gateway config routes agent-to-tool traffic; identity controls auth.
+    if gateway_config or os.environ.get("ENABLE_AGENT_IDENTITY"):
+        config["identity_type"] = "AGENT_IDENTITY"
 
-    remote = agent_engines.create(
-        agent_engine=agent,
-        **create_config,
+    client = vertexai.Client(
+        project=GCP_PROJECT_ID,
+        location=GCP_REGION,
+        http_options=dict(api_version="v1beta1"),
     )
-    print(f"  {agent.name} deployed: {remote.resource_name}")
+    remote = client.agent_engines.create(agent=agent, config=config)
+
+    resource_name = remote.api_resource.name
+    print(f"  {agent.name} deployed: {resource_name}")
     print(f"  Memory Bank: enabled (engine_id={AGENT_ENGINE_ID})")
 
     if gateway_config:
         print(f"  Gateway: ingress={bool(AGENT_GATEWAY_PATH)}, egress={bool(AGENT_GATEWAY_EGRESS_PATH)}")
-        print(f"  Identity: AGENT_IDENTITY (SPIFFE-based)")
+        print("  Identity: AGENT_IDENTITY (SPIFFE-based)")
     else:
-        print(f"  Gateway: not configured (set AGENT_GATEWAY_PATH / AGENT_GATEWAY_EGRESS_PATH)")
+        print("  Gateway: not configured (set AGENT_GATEWAY_PATH / AGENT_GATEWAY_EGRESS_PATH)")
 
-    return remote.resource_name
+    return resource_name
 
 
 AGENT_SETS = {

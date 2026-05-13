@@ -15,7 +15,6 @@ Usage:
     uv run python -m src.eval.setup_online_evaluators cleanup
 """
 
-import json
 import sys
 import textwrap
 
@@ -413,7 +412,7 @@ COMMANDS = {
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] not in COMMANDS:
-        print(f"Usage: python -m src.eval.setup_online_evaluators <command> [args]")
+        print("Usage: python -m src.eval.setup_online_evaluators <command> [args]")
         print(f"Commands: {', '.join(COMMANDS)}")
         sys.exit(1)
     COMMANDS[sys.argv[1]](sys.argv[2:])

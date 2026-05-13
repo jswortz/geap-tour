@@ -97,7 +97,7 @@ async def run_demo():
     routed_cost = tracker.total_cost()
     savings_pct = (1 - routed_cost / all_opus_cost) * 100 if all_opus_cost else 0
 
-    print(f"\n### vs All-Opus Baseline")
+    print("\n### vs All-Opus Baseline")
     print(f"All-Opus cost:  ${all_opus_cost:.6f}")
     print(f"Routed cost:    ${routed_cost:.6f}")
     print(f"**Savings:      {savings_pct:.1f}%**")

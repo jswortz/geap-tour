@@ -9,8 +9,10 @@
 #     - geap-workshop-ge-gateway        CLIENT_TO_AGENT  (ingress)
 #     - geap-workshop-ge-gateway-egress AGENT_TO_ANYWHERE (egress) + global registry
 #
-# A single gateway cannot support both GE and Agent Runtime — separate gateways
-# are required per the docs.
+# IMPORTANT: A single gateway cannot support both GE and Agent Runtime.
+# - Regional gateway (+ regional registry) = required for Agent Runtime
+# - Global gateway (+ global registry)     = required for Gemini Enterprise
+# These are mutually exclusive — you must deploy separate gateways for each.
 set -euo pipefail
 
 PROJECT_ID="${GCP_PROJECT_ID:-wortz-project-352116}"

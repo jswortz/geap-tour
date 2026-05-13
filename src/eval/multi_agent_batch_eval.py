@@ -79,7 +79,7 @@ def _run_single_agent_eval(
     eval_df = _build_eval_dataset(cases)
 
     # Run inference
-    print(f"  Running inference...")
+    print("  Running inference...")
     t0 = time.time()
     inference_result = client.evals.run_inference(
         agent=agent_resource_name,
@@ -89,7 +89,7 @@ def _run_single_agent_eval(
     print(f"  Inference complete in {elapsed:.1f}s")
 
     # Run evaluation
-    print(f"  Running evaluation...")
+    print("  Running evaluation...")
     evaluation_run = client.evals.create_evaluation_run(
         dataset=inference_result,
         agent_info=agent_info,
@@ -99,7 +99,7 @@ def _run_single_agent_eval(
     )
 
     print(f"  Eval run: {evaluation_run.name}")
-    print(f"  Polling", end="", flush=True)
+    print("  Polling", end="", flush=True)
     poll_start = time.time()
     while time.time() - poll_start < MAX_POLL_SECONDS:
         evaluation_run = client.evals.get_evaluation_run(name=evaluation_run.name)
@@ -201,7 +201,7 @@ def run_multi_agent_batch_eval(
     agent_resource_name = _resolve_agent_resource_name(agent_id)
 
     print(f"{'=' * 60}")
-    print(f"MULTI-AGENT BATCH EVALUATION")
+    print("MULTI-AGENT BATCH EVALUATION")
     print(f"{'=' * 60}")
     print(f"  Run ID:    {run_id}")
     print(f"  Agent:     {agent_resource_name}")
@@ -254,7 +254,7 @@ def run_multi_agent_batch_eval(
 
     # Print overall summary
     print(f"\n{'=' * 60}")
-    print(f"OVERALL RESULTS")
+    print("OVERALL RESULTS")
     print(f"{'=' * 60}")
     for name, r in agent_results.items():
         status = r.get("status", "UNKNOWN")

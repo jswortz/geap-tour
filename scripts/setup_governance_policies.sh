@@ -127,99 +127,53 @@ echo ""
 # This step is best-effort: if the project lacks private preview enrollment,
 # the LRO will fail with INTERNAL and the script continues.
 
-AGENT_ENGINE_ID="${AGENT_ENGINE_ID:-2479350891879071744}"
-ROUTER_ENGINE_ID="${ROUTER_ENGINE_ID:-6023683798619652096}"
+AGENT_ENGINE_ID="${AGENT_ENGINE_ID:-443583122819252224}"
+ROUTER_ENGINE_ID="${ROUTER_ENGINE_ID:-6676565007100018688}"
 INGRESS_GW="projects/${PROJECT_ID}/locations/${REGION}/agentGateways/${GATEWAY_NAME}"
 
-attach_gateway() {
+verify_gateway_attachment() {
     local label="$1"
     local engine_id="$2"
     local api_base="https://${REGION}-aiplatform.googleapis.com/v1beta1"
     local engine_path="projects/${PROJECT_ID}/locations/${REGION}/reasoningEngines/${engine_id}"
 
-    # Step 1: Ensure identityType is AGENT_IDENTITY
-    local id_result
-    id_result=$(curl -s -X PATCH \
-        "${api_base}/${engine_path}?updateMask=spec.identityType" \
-        -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-        -H "Content-Type: application/json" \
-        -d '{"spec":{"identityType":"AGENT_IDENTITY"}}' 2>&1)
+    local result
+    result=$(curl -s -H "Authorization: Bearer ${ACCESS_TOKEN}" "${api_base}/${engine_path}" 2>/dev/null)
 
-    local id_op
-    id_op=$(echo "$id_result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['name'].split('/')[-1] if 'operations' in d.get('name','') else '')" 2>/dev/null)
-    if [ -z "$id_op" ]; then
-        warn "${label}: failed to set identityType"
+    local id_type gw_config
+    id_type=$(echo "$result" | python3 -c "import sys,json; print(json.load(sys.stdin).get('spec',{}).get('identityType','NOT_SET'))" 2>/dev/null)
+    gw_config=$(echo "$result" | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('spec',{}).get('deploymentSpec',{}).get('agentGatewayConfig','NOT_SET')))" 2>/dev/null)
+
+    if [ "$id_type" = "AGENT_IDENTITY" ] && [ "$gw_config" != "\"NOT_SET\"" ]; then
+        ok "${label}: identityType=AGENT_IDENTITY, gateway attached"
+        return 0
+    elif [ "$id_type" = "AGENT_IDENTITY" ]; then
+        warn "${label}: identityType=AGENT_IDENTITY but NO gateway config — redeploy with agent_gateway_config"
+        return 1
+    else
+        warn "${label}: identityType=${id_type} — redeploy with identity_type=AGENT_IDENTITY and agent_gateway_config"
         return 1
     fi
-
-    # Wait for identity type LRO (up to 5 min)
-    for i in $(seq 1 30); do
-        sleep 10
-        local done
-        done=$(curl -s -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-            "${api_base}/projects/${PROJECT_ID}/locations/${REGION}/operations/${id_op}" \
-            | python3 -c "import sys,json; d=json.load(sys.stdin); print('done' if d.get('done') else ('err:'+d.get('error',{}).get('message','')) if 'error' in d else 'pending')" 2>/dev/null)
-        case "$done" in
-            done) break ;;
-            err:*) warn "${label}: identityType LRO failed: ${done#err:}"; return 1 ;;
-            pending) ;;
-        esac
-    done
-    if [ "$done" != "done" ]; then
-        warn "${label}: identityType LRO timed out"
-        return 1
-    fi
-
-    # Step 2: Attach ingress gateway
-    local gw_result
-    gw_result=$(curl -s -X PATCH \
-        "${api_base}/${engine_path}?updateMask=spec.deploymentSpec.agentGatewayConfig" \
-        -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-        -H "Content-Type: application/json" \
-        -d "{\"spec\":{\"deploymentSpec\":{\"agentGatewayConfig\":{\"clientToAgentConfig\":{\"agentGateway\":\"${INGRESS_GW}\"}}}}}" 2>&1)
-
-    local gw_op
-    gw_op=$(echo "$gw_result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['name'].split('/')[-1] if 'operations' in d.get('name','') else '')" 2>/dev/null)
-    if [ -z "$gw_op" ]; then
-        local err_msg
-        err_msg=$(echo "$gw_result" | python3 -c "import sys,json; print(json.load(sys.stdin).get('error',{}).get('message','unknown'))" 2>/dev/null)
-        warn "${label}: gateway attachment rejected: ${err_msg}"
-        return 1
-    fi
-
-    # Wait for gateway attachment LRO (up to 3 min)
-    for i in $(seq 1 18); do
-        sleep 10
-        done=$(curl -s -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-            "${api_base}/projects/${PROJECT_ID}/locations/${REGION}/operations/${gw_op}" \
-            | python3 -c "import sys,json; d=json.load(sys.stdin); e=d.get('error',{}); print('done' if d.get('done') and not e else ('err:'+e.get('message','INTERNAL')) if d.get('done') else 'pending')" 2>/dev/null)
-        case "$done" in
-            done) ok "${label}: gateway attached"; return 0 ;;
-            err:*) warn "${label}: gateway LRO failed (${done#err:}) — private preview enrollment may be required"; return 1 ;;
-            pending) ;;
-        esac
-    done
-    warn "${label}: gateway LRO timed out"
-    return 1
 }
 
-step "Step 0: Agent-to-Gateway Attachment"
+step "Step 0: Verify Agent-to-Gateway Attachment"
 GW_ATTACHED=0
 if ! $DRY_RUN; then
-    info "Attaching ingress gateway to coordinator agent (${AGENT_ENGINE_ID})..."
-    if attach_gateway "Coordinator" "$AGENT_ENGINE_ID"; then
+    info "Gateway config must be set at deploy time (agent_engines.create). Verifying..."
+    info "Checking coordinator agent (${AGENT_ENGINE_ID})..."
+    if verify_gateway_attachment "Coordinator" "$AGENT_ENGINE_ID"; then
         GW_ATTACHED=$((GW_ATTACHED + 1))
     fi
-    info "Attaching ingress gateway to router agent (${ROUTER_ENGINE_ID})..."
-    if attach_gateway "Router" "$ROUTER_ENGINE_ID"; then
+    info "Checking router agent (${ROUTER_ENGINE_ID})..."
+    if verify_gateway_attachment "Router" "$ROUTER_ENGINE_ID"; then
         GW_ATTACHED=$((GW_ATTACHED + 1))
     fi
     if [ "$GW_ATTACHED" -eq 0 ]; then
-        warn "No agents attached to gateway. SGP policies will fail with AGENT_NOT_CONFIGURED."
-        warn "This likely means the project needs agentGatewayConfig private preview enrollment."
+        warn "No agents have gateway config. Redeploy agents using:"
+        warn "  uv run python -m src.deploy.deploy_agents"
     fi
 else
-    info "[dry-run] Would attach ingress gateway to coordinator (${AGENT_ENGINE_ID}) and router (${ROUTER_ENGINE_ID})"
+    info "[dry-run] Would verify gateway attachment for coordinator (${AGENT_ENGINE_ID}) and router (${ROUTER_ENGINE_ID})"
 fi
 
 # ─────────────────────────────────────────────────────────────
@@ -681,15 +635,15 @@ echo "════════════════════════�
 echo "  GEAP Governance Policy Summary"
 echo "═══════════════════════════════════════════════════"
 echo ""
-echo "  Step 0 — Gateway Attachment"
+echo "  Step 0 — Gateway Attachment (set at deploy time)"
 if ! $DRY_RUN; then
     if [ "${GW_ATTACHED:-0}" -gt 0 ]; then
-        echo "    ✓ ${GW_ATTACHED}/2 agents attached to ingress gateway"
+        echo "    ✓ ${GW_ATTACHED}/2 agents have gateway config"
     else
-        echo "    ✗ No agents attached (private preview enrollment required)"
+        echo "    ✗ No agents have gateway config — redeploy with: uv run python -m src.deploy.deploy_agents"
     fi
 else
-    echo "    [dry-run] Would attach 2 agents to ingress gateway"
+    echo "    [dry-run] Would verify gateway attachment for 2 agents"
 fi
 echo ""
 echo "  Layer 1 — IAM Allow Policies (static egress control)"

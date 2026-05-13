@@ -25,7 +25,7 @@ def run_optimize(
         eval_dataset_path: Path to eval dataset JSON. If None, uses generated scenarios.
         iterations: Number of optimization iterations
     """
-    print(f"=== Agent Optimization (GEPA) ===")
+    print("=== Agent Optimization (GEPA) ===")
     print(f"Agent module: {agent_module}")
     print(f"Iterations: {iterations}")
     print()

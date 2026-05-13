@@ -17,7 +17,7 @@ AGENT_MODEL = os.environ.get("AGENT_MODEL", "gemini-2.0-flash")
 
 GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "wortz-project-352116")
 GCP_REGION = os.environ.get("GCP_REGION", "us-central1")
-AGENT_ENGINE_ID = os.environ.get("AGENT_ENGINE_ID", "2479350891879071744")
+AGENT_ENGINE_ID = os.environ.get("AGENT_ENGINE_ID", "443583122819252224")
 AGENT_REGISTRY_LOCATION = os.environ.get("AGENT_REGISTRY_LOCATION", "global")
 SEARCH_MCP_SERVER = os.environ.get("SEARCH_MCP_SERVER",
     f"projects/{GCP_PROJECT_ID}/locations/global/mcpServers/agentregistry-00000000-0000-0000-0c51-2a7dc998220b")

@@ -176,7 +176,7 @@ def generate_traffic(
     # Summary
     conv_queries = sum(len(c) for c in CONVERSATIONS)
     print(f"\n{'=' * 60}")
-    print(f"TRAFFIC SUMMARY")
+    print("TRAFFIC SUMMARY")
     print(f"{'=' * 60}")
     print(f"  Single queries: {len(QUERIES) * count}")
     print(f"  Memory conversations: {len(CONVERSATIONS)} ({conv_queries} turns)")
@@ -184,8 +184,8 @@ def generate_traffic(
     print(f"  Errors:         {errors}")
     print(f"  Users:          {', '.join(sessions.keys())}")
     print(f"  By complexity:  low={complexity_counts['low']}  medium={complexity_counts['medium']}  high={complexity_counts['high']}")
-    print(f"\n  Check Cloud Trace for spans.")
-    print(f"  Memory Bank events saved for users: alice, bob, charlie")
+    print("\n  Check Cloud Trace for spans.")
+    print("  Memory Bank events saved for users: alice, bob, charlie")
 
 
 def generate_router_traffic(

@@ -117,7 +117,6 @@ class TestComplexityMetricDefined:
 
     def test_check_complexity_routing_callable(self):
         from src.eval.complexity_metrics import check_complexity_routing
-        import asyncio
 
         assert callable(check_complexity_routing)
 

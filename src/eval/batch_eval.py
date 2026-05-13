@@ -7,7 +7,7 @@ and a custom policy-compliance metric.
 
 Usage:
     uv run python -m src.eval.batch_eval
-    uv run python -m src.eval.batch_eval --agent-id 2479350891879071744
+    uv run python -m src.eval.batch_eval --agent-id 443583122819252224
     uv run python -m src.eval.batch_eval --threshold 3.0 --output results.json
 """
 
@@ -26,7 +26,7 @@ from src.config import GCP_PROJECT_ID, GCP_REGION, GCP_STAGING_BUCKET
 # ---------------------------------------------------------------------------
 # Default agent reasoning-engine ID (deployed coordinator agent)
 # ---------------------------------------------------------------------------
-DEFAULT_AGENT_ENGINE_ID = "2479350891879071744"
+DEFAULT_AGENT_ENGINE_ID = "443583122819252224"
 
 # ---------------------------------------------------------------------------
 # GCS destination for persisted evaluation artifacts
@@ -324,7 +324,7 @@ def run_batch_eval(
     agent_resource_name = _resolve_agent_resource_name(agent_id)
 
     print(f"{'=' * 60}")
-    print(f"GEAP Batch Evaluation Pipeline")
+    print("GEAP Batch Evaluation Pipeline")
     print(f"{'=' * 60}")
     print(f"  Run ID:      {run_id}")
     print(f"  Agent:       {agent_resource_name}")
