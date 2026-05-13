@@ -42,12 +42,12 @@ class TestCostTracker:
         assert cost == pytest.approx(0.15 + 0.60, rel=1e-4)
 
     def test_estimate_cost_opus(self):
-        cost = estimate_cost("vertex_ai/claude-opus-4-7", 1_000_000, 1_000_000)
+        cost = estimate_cost("claude-opus-4-6", 1_000_000, 1_000_000)
         assert cost == pytest.approx(15.00 + 75.00, rel=1e-4)
 
     def test_cost_ratio_lite_vs_opus(self):
         lite = estimate_cost("gemini-2.5-flash-lite", 200, 500)
-        opus = estimate_cost("vertex_ai/claude-opus-4-7", 200, 500)
+        opus = estimate_cost("claude-opus-4-6", 200, 500)
         assert opus / lite > 100
 
     def test_tracker_total(self, tmp_path):
@@ -59,7 +59,7 @@ class TestCostTracker:
         ))
         tracker.log_request(RequestLog(
             prompt="test2", complexity_level="high", complexity_score=0.9,
-            model_used="vertex_ai/claude-opus-4-7",
+            model_used="claude-opus-4-6",
             input_tokens=200, output_tokens=500, latency_ms=2000, cost_usd=0.04,
         ))
         assert tracker.total_cost() == pytest.approx(0.041)
@@ -100,7 +100,7 @@ class TestAgentConfig:
     def test_resolve_model_litellm(self):
         from src.router.agents import _resolve_model
         from google.adk.models.lite_llm import LiteLlm
-        result = _resolve_model("vertex_ai/claude-opus-4-7")
+        result = _resolve_model("claude-opus-4-6")
         assert isinstance(result, LiteLlm)
 
     def test_router_has_three_sub_agents(self):

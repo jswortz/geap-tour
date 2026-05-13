@@ -180,7 +180,7 @@ paper-banana-figure-generator \
     Router branches into three paths:
     - low (score <0.35) -> Lite Agent (gemini-2.5-flash-lite, \$0.075/M input)
     - medium (score 0.35-0.65) -> Flash Agent (gemini-2.5-flash, \$0.15/M input)
-    - high (score >=0.65) -> Opus Agent (claude-opus-4-7, \$15.00/M input)
+    - high (score >=0.65) -> Opus Agent (claude-opus-4-6, \$15.00/M input)
     Each agent connects to MCP Tools (search, booking, expense)." \
   --caption "Multi-model routing: Flash Lite micro-classifier scores prompt complexity and delegates to the cost-appropriate model tier." \
   --output_format SVG \
@@ -202,7 +202,7 @@ User Prompt
     |
     |-- low ------> [Lite Agent]  gemini-2.5-flash-lite  $0.075/M in
     |-- medium ---> [Flash Agent] gemini-2.5-flash       $0.15/M in
-    |-- high -----> [Opus Agent]  claude-opus-4-7        $15.00/M in
+    |-- high -----> [Opus Agent]  claude-opus-4-6        $15.00/M in
 ```
 
 > **Why not [Model Armor](https://cloud.google.com/security/products/model-armor) for complexity?** Model Armor only provides safety filters (RAI, PI detection, jailbreak, malicious URI). It has no prompt complexity scoring. We use Gemini Flash Lite as a micro-classifier (~$0.00002/call).
@@ -233,7 +233,7 @@ The classifier tends to over-estimate complexity (bias upward). High-complexity 
 |-------|------------------|--------------------|------|--------|
 | gemini-2.5-flash-lite | $0.075 | $0.30 | Low | [`src/router/cost_tracker.py:9`](https://github.com/jswortz/geap-tour/blob/main/src/router/cost_tracker.py#L9) |
 | gemini-2.5-flash | $0.15 | $0.60 | Medium | [`src/router/cost_tracker.py:10`](https://github.com/jswortz/geap-tour/blob/main/src/router/cost_tracker.py#L10) |
-| claude-opus-4-7 (Vertex AI) | $15.00 | $75.00 | High | [`src/router/cost_tracker.py:11`](https://github.com/jswortz/geap-tour/blob/main/src/router/cost_tracker.py#L11) |
+| claude-opus-4-6 (Vertex AI) | $15.00 | $75.00 | High | [`src/router/cost_tracker.py:11`](https://github.com/jswortz/geap-tour/blob/main/src/router/cost_tracker.py#L11) |
 | Classifier overhead | $0.075 | $0.30 | — | ~$0.00002/call |
 
 **Smart Router test set (10 prompts, 200 input / 500 output tokens assumed):**
@@ -256,11 +256,11 @@ The high-complexity prompts demonstrate multi-step cross-domain planning that ju
 | 3 | Search hotels in Chicago under $200 | 0.40 | medium | gemini-2.5-flash | $0.000330 |
 | 4 | Check if a $50 transport expense is within policy | 0.40 | medium | gemini-2.5-flash | $0.000330 |
 | 5 | Find flights to NYC and compare cheapest by airline | 0.60 | medium | gemini-2.5-flash | $0.000330 |
-| 6 | **Search hotels in Boston, then check if nightly rate fits our lodging policy** | 0.70 | **high** | **claude-opus-4-7** | $0.040500 |
-| 7 | **Plan a 5-day trip to Tokyo for a team of 4: flights, hotels, meals, entertainment policy** | 0.80 | **high** | **claude-opus-4-7** | $0.040500 |
-| 8 | **Compare individual vs group flight bookings for team retreat to Denver with per-diem analysis** | 0.80 | **high** | **claude-opus-4-7** | $0.040500 |
-| 9 | **Analyze EMP001's expense history, draft policy recommendation, submit $45 lunch receipt** | 0.80 | **high** | **claude-opus-4-7** | $0.040500 |
-| 10 | **Book cheapest SFO-JFK flight, find nearby hotel, cross-reference ratings, check policy, submit pre-approval** | 0.90 | **high** | **claude-opus-4-7** | $0.040500 |
+| 6 | **Search hotels in Boston, then check if nightly rate fits our lodging policy** | 0.70 | **high** | **claude-opus-4-6** | $0.040500 |
+| 7 | **Plan a 5-day trip to Tokyo for a team of 4: flights, hotels, meals, entertainment policy** | 0.80 | **high** | **claude-opus-4-6** | $0.040500 |
+| 8 | **Compare individual vs group flight bookings for team retreat to Denver with per-diem analysis** | 0.80 | **high** | **claude-opus-4-6** | $0.040500 |
+| 9 | **Analyze EMP001's expense history, draft policy recommendation, submit $45 lunch receipt** | 0.80 | **high** | **claude-opus-4-6** | $0.040500 |
+| 10 | **Book cheapest SFO-JFK flight, find nearby hotel, cross-reference ratings, check policy, submit pre-approval** | 0.90 | **high** | **claude-opus-4-6** | $0.040500 |
 
 > **Key insight:** 5 of 10 prompts route to Claude Opus, but those 5 represent the complex multi-step planning that actually requires frontier reasoning. The remaining 5 use models that cost 100-200x less per token.
 
@@ -308,7 +308,7 @@ async def classify_complexity(prompt: str) -> ComplexityResult:
 ```python
 # src/router/agents.py:64-75 — Opus agent for complex prompts
 opus_agent = LlmAgent(
-    model=_resolve_model(OPUS_MODEL),  # "vertex_ai/claude-opus-4-7"
+    model=_resolve_model(OPUS_MODEL),  # "claude-opus-4-6"
     name="opus_agent",
     description="Handles complex, multi-step requests requiring deep analysis.",
     instruction="Expert corporate assistant for complex, high-stakes requests...",

@@ -10,11 +10,11 @@ from .demo import DEMO_PROMPTS, AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS
 CONFIGS = {
     "All Flash Lite": lambda _level: "gemini-2.5-flash-lite",
     "All Flash": lambda _level: "gemini-2.5-flash",
-    "All Opus": lambda _level: "vertex_ai/claude-opus-4-7",
+    "All Opus": lambda _level: "claude-opus-4-6",
     "Smart Router": lambda level: {
         "low": "gemini-2.5-flash-lite",
         "medium": "gemini-2.5-flash",
-        "high": "vertex_ai/claude-opus-4-7",
+        "high": "claude-opus-4-6",
     }[level],
 }
 
@@ -53,7 +53,7 @@ async def run_comparison():
         "    |",
         "    |-- low ----> [Lite Agent]  gemini-2.5-flash-lite  $0.075/M in",
         "    |-- medium -> [Flash Agent] gemini-2.5-flash       $0.15/M in",
-        "    |-- high ---> [Opus Agent]  claude-opus-4-7        $15.00/M in",
+        "    |-- high ---> [Opus Agent]  claude-opus-4-6        $15.00/M in",
         "```",
         "",
         "**Why not Model Armor for complexity?** Model Armor only provides safety filters",
@@ -118,7 +118,7 @@ async def run_comparison():
         "| Scenario | Requests/mo | All-Opus | Smart Router | Savings |",
         "|----------|------------|----------|-------------|---------|",
     ])
-    opus_per_req = estimate_cost("vertex_ai/claude-opus-4-7", AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
+    opus_per_req = estimate_cost("claude-opus-4-6", AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
     lite_per_req = estimate_cost("gemini-2.5-flash-lite", AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
     flash_per_req = estimate_cost("gemini-2.5-flash", AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
 

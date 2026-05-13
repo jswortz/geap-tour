@@ -8,7 +8,7 @@ from pathlib import Path
 COST_RATES = {
     "gemini-2.5-flash-lite": {"input": 0.075, "output": 0.30},
     "gemini-2.5-flash": {"input": 0.15, "output": 0.60},
-    "vertex_ai/claude-opus-4-7": {"input": 15.00, "output": 75.00},
+    "claude-opus-4-6": {"input": 15.00, "output": 75.00},
     "classifier": {"input": 0.075, "output": 0.30},
 }
 

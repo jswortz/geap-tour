@@ -55,7 +55,7 @@ step "2/5" "Verifying model access"
 
 LITE_MODEL="${LITE_MODEL:-gemini-2.5-flash-lite}"
 FLASH_MODEL="${FLASH_MODEL:-gemini-2.5-flash}"
-OPUS_MODEL="${OPUS_MODEL:-vertex_ai/claude-opus-4-6}"
+OPUS_MODEL="${OPUS_MODEL:-claude-opus-4-6}"
 
 echo "  Lite tier:   ${LITE_MODEL}"
 echo "  Flash tier:  ${FLASH_MODEL}"

@@ -25,7 +25,7 @@ User Prompt
     |
     |-- low ----> [Lite Agent]  gemini-2.5-flash-lite  $0.075/M in
     |-- medium -> [Flash Agent] gemini-2.5-flash       $0.15/M in
-    |-- high ---> [Opus Agent]  claude-opus-4-7        $15.00/M in
+    |-- high ---> [Opus Agent]  claude-opus-4-6        $15.00/M in
 ```
 
 **Why not Model Armor for complexity?** Model Armor only provides safety filters
@@ -58,11 +58,11 @@ models based on prompt content. Routing happens at the ADK orchestration layer.
 | 3 | Search hotels in Chicago under $200... | 0.40 | medium | gemini-2.5-flash |
 | 4 | Check if a $50 transport expense is within policy... | 0.40 | medium | gemini-2.5-flash |
 | 5 | Find flights to NYC and compare the cheapest optio... | 0.60 | medium | gemini-2.5-flash |
-| 6 | Search hotels in Boston, then check if the nightly... | 0.70 | high | claude-opus-4-7 |
-| 7 | Plan a 5-day trip to Tokyo for a team of 4: find f... | 0.80 | high | claude-opus-4-7 |
-| 8 | Compare individual vs group flight bookings for ou... | 0.80 | high | claude-opus-4-7 |
-| 9 | Analyze EMP001's expense history: they overspent o... | 0.80 | high | claude-opus-4-7 |
-| 10 | Book the cheapest SFO-JFK flight, find a hotel wit... | 0.90 | high | claude-opus-4-7 |
+| 6 | Search hotels in Boston, then check if the nightly... | 0.70 | high | claude-opus-4-6 |
+| 7 | Plan a 5-day trip to Tokyo for a team of 4: find f... | 0.80 | high | claude-opus-4-6 |
+| 8 | Compare individual vs group flight bookings for ou... | 0.80 | high | claude-opus-4-6 |
+| 9 | Analyze EMP001's expense history: they overspent o... | 0.80 | high | claude-opus-4-6 |
+| 10 | Book the cheapest SFO-JFK flight, find a hotel wit... | 0.90 | high | claude-opus-4-6 |
 
 ## At Scale (monthly projections)
 

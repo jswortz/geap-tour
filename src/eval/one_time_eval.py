@@ -43,13 +43,41 @@ INFERENCE_PARALLELISM = 1
 
 
 def _patch_eval_service_none_guard():
-    """Monkey-patch LocalEvalService to skip eval cases with None inferences.
+    """Monkey-patch LocalEvalService to skip eval cases with None inferences,
+    and allow custom fields (e.g., expected_complexity) in IntermediateData.
 
     ADK bug: when an MCP tool times out during inference, the inference result
     has inferences=None. The evaluator then crashes at
     `len(inference_result.inferences)` with TypeError. This patch skips
     those cases gracefully.
+
+    Also patches IntermediateData to accept extra fields like
+    expected_complexity used by the router evalset's custom metrics.
     """
+    # Patch all ADK eval pydantic models to accept custom fields like
+    # expected_complexity in the router evalset's intermediate_data.
+    # Must patch every model in eval_case and eval_set modules because
+    # EvalSet.model_validate() triggers validation of deeply nested types.
+    from google.adk.evaluation import eval_case as _ec, eval_set as _es
+    for _mod in (_ec, _es):
+        for _name in dir(_mod):
+            _cls = getattr(_mod, _name)
+            if isinstance(_cls, type) and hasattr(_cls, "model_config"):
+                try:
+                    if _cls.model_config.get("extra") == "forbid":
+                        _cls.model_config["extra"] = "ignore"
+                        _cls.__pydantic_complete__ = False
+                except (TypeError, AttributeError):
+                    pass
+    for _mod in (_ec, _es):
+        for _name in dir(_mod):
+            _cls = getattr(_mod, _name)
+            if isinstance(_cls, type) and hasattr(_cls, "model_rebuild"):
+                try:
+                    _cls.model_rebuild(force=True)
+                except Exception:
+                    pass
+
     from google.adk.evaluation import local_eval_service as les
 
     _orig = les.LocalEvalService._evaluate_single_inference_result
@@ -72,6 +100,10 @@ def _patch_eval_service_none_guard():
 
 async def run_one_time_eval(agent_key: str = "coordinator", num_runs: int = 1):
     """Run one-time evaluation against a local agent using ADK evalsets."""
+    # Patch must run before EvalSet.model_validate() which triggers
+    # IntermediateData validation on evalset JSON
+    _patch_eval_service_none_guard()
+
     module = AGENT_MODULES.get(agent_key)
     agent_name = AGENT_NAMES.get(agent_key)
     evalset_file = EVALSET_FILES.get(agent_key)
@@ -92,8 +124,6 @@ async def run_one_time_eval(agent_key: str = "coordinator", num_runs: int = 1):
     print(f"  Criteria:    {list(eval_config.criteria.keys())}")
     print(f"  Runs:        {num_runs}")
     print(f"  Parallelism: {INFERENCE_PARALLELISM}")
-
-    _patch_eval_service_none_guard()
 
     _orig_default = InferenceConfig.model_fields["parallelism"].default
     InferenceConfig.model_fields["parallelism"].default = INFERENCE_PARALLELISM

@@ -47,7 +47,7 @@ DEMO_PROMPTS = [
 MODEL_MAP = {
     "low": "gemini-2.5-flash-lite",
     "medium": "gemini-2.5-flash",
-    "high": "vertex_ai/claude-opus-4-7",
+    "high": "claude-opus-4-6",
 }
 
 AVG_INPUT_TOKENS = 200
@@ -92,7 +92,7 @@ async def run_demo():
     print("\n" + tracker.generate_report())
 
     all_opus_cost = len(DEMO_PROMPTS) * estimate_cost(
-        "vertex_ai/claude-opus-4-7", AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS
+        "claude-opus-4-6", AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS
     )
     routed_cost = tracker.total_cost()
     savings_pct = (1 - routed_cost / all_opus_cost) * 100 if all_opus_cost else 0

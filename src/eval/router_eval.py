@@ -74,7 +74,7 @@ EVAL_CASES = [
 MODEL_MAP = {
     "low": "gemini-2.5-flash-lite",
     "medium": "gemini-2.5-flash",
-    "high": "vertex_ai/claude-opus-4-7",
+    "high": "claude-opus-4-6",
 }
 
 AVG_INPUT_TOKENS = 200
@@ -129,7 +129,7 @@ async def run_single_round(cases: list[dict]) -> dict:
         routed_cost = estimate_cost(routed_model, AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
         classifier_cost = estimate_cost("classifier", CLASSIFIER_TOKEN_OVERHEAD, 20)
         total_routed_cost = routed_cost + classifier_cost
-        opus_cost = estimate_cost("vertex_ai/claude-opus-4-7", AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
+        opus_cost = estimate_cost("claude-opus-4-6", AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
         confusion[expected][actual] += 1
         results.append({
             "prompt": case["prompt"][:80], "expected": expected, "actual": actual,
@@ -215,7 +215,7 @@ def generate_report(results: dict) -> str:
         "[Flash Lite Classifier] <- complexity score 0-1 (~$0.00002/call)", "    |",
         "    +-- low  (<0.35) -> gemini-2.5-flash-lite   ($0.075/M in)",
         "    +-- med  (0.35-0.65) -> gemini-2.5-flash    ($0.15/M in)",
-        "    +-- high (>=0.65) -> claude-opus-4-7        ($15/M in)", "```", "",
+        "    +-- high (>=0.65) -> claude-opus-4-6        ($15/M in)", "```", "",
         "## Classification Accuracy", "",
         f"**Overall: {acc['mean']:.1%}** (95% CI: [{acc['bootstrap_ci']['ci_lower']:.1%}, {acc['bootstrap_ci']['ci_upper']:.1%}])", "",
         "| Tier | Accuracy | Correct / Total |", "|------|----------|-----------------|",
@@ -247,7 +247,7 @@ def generate_report(results: dict) -> str:
         "|-------|-----------|------------|------|",
         "| gemini-2.5-flash-lite | $0.075 | $0.30 | Low |",
         "| gemini-2.5-flash | $0.15 | $0.60 | Medium |",
-        "| claude-opus-4-7 | $15.00 | $75.00 | High |", "",
+        "| claude-opus-4-6 | $15.00 | $75.00 | High |", "",
         f"Classifier overhead: ~$0.00002/call (Flash Lite, {CLASSIFIER_TOKEN_OVERHEAD} input tokens)",
         f"Assumed per-request: {AVG_INPUT_TOKENS} input + {AVG_OUTPUT_TOKENS} output tokens", "",
         "## Key Takeaways", ""])
@@ -263,7 +263,7 @@ def generate_report(results: dict) -> str:
         "| Daily Volume | All-Opus Cost | Smart Router | Monthly Savings |",
         "|-------------|---------------|--------------|-----------------|"])
     for vol in (100, 1000, 10000, 100000):
-        opus_d = vol * estimate_cost("vertex_ai/claude-opus-4-7", AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
+        opus_d = vol * estimate_cost("claude-opus-4-6", AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
         routed_d = opus_d * (1 - sav["mean_pct"] / 100)
         lines.append(f"| {vol:,} | ${opus_d:.2f}/day | ${routed_d:.2f}/day | ${(opus_d - routed_d) * 30:.0f}/mo |")
 

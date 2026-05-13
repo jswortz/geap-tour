@@ -981,7 +981,7 @@ The multi-model router dynamically selects the best model for each user prompt b
 |------------|------------|-------|----------|
 | **Low** | 0.0–0.34 | `gemini-2.5-flash-lite` | Single-intent lookups, quick facts |
 | **Medium** | 0.35–0.64 | `gemini-2.5-flash` | Comparisons, multi-step lookups, summaries |
-| **High** | 0.65–1.0 | `claude-opus-4-7` (via LiteLLM) | Cross-domain analysis, multi-step planning |
+| **High** | 0.65–1.0 | `claude-opus-4-6` (via LiteLLM) | Cross-domain analysis, multi-step planning |
 
 #### Complexity Classifier
 

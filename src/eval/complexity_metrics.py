@@ -161,7 +161,7 @@ async def run_complexity_accuracy_eval(cases: list[dict]) -> dict:
 MODEL_MAP = {
     "low": "gemini-2.5-flash-lite",
     "medium": "gemini-2.5-flash",
-    "high": "vertex_ai/claude-opus-4-7",
+    "high": "claude-opus-4-6",
 }
 
 AVG_INPUT_TOKENS = 200
@@ -180,7 +180,7 @@ async def run_cost_efficiency_eval(cases: list[dict]) -> dict:
         case_cost = estimate_cost(model, AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
         classifier_cost = estimate_cost("classifier", len(case["prompt"].split()) * 2, 20)
         total_case_cost = case_cost + classifier_cost
-        opus_cost = estimate_cost("vertex_ai/claude-opus-4-7", AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
+        opus_cost = estimate_cost("claude-opus-4-6", AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
 
         routed_cost += total_case_cost
         all_opus_cost += opus_cost
