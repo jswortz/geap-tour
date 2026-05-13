@@ -129,7 +129,7 @@ from google.adk.tools import McpToolset
 from google.adk.tools.mcp_tool.mcp_toolset import StreamableHTTPConnectionParams
 
 travel_agent = LlmAgent(
-    model='gemini-2.0-flash',
+    model='gemini-2.5-flash',
     name='travel_agent',
     instruction='You help users search and book flights...',
     tools=[
@@ -979,7 +979,7 @@ The multi-model router dynamically selects the best model for each user prompt b
 
 | Complexity | Score Range | Model | Use Case |
 |------------|------------|-------|----------|
-| **Low** | 0.0–0.34 | `gemini-2.0-flash-lite` | Single-intent lookups, quick facts |
+| **Low** | 0.0–0.34 | `gemini-2.5-flash-lite` | Single-intent lookups, quick facts |
 | **Medium** | 0.35–0.64 | `gemini-2.5-flash` | Comparisons, multi-step lookups, summaries |
 | **High** | 0.65–1.0 | `claude-opus-4-7` (via LiteLLM) | Cross-domain analysis, multi-step planning |
 
@@ -992,7 +992,7 @@ A micro-judge powered by Gemini Flash Lite scores each incoming prompt (0–1) w
 async def classify_complexity(prompt: str) -> ComplexityResult:
     client = genai.Client(vertexai=True, project=GCP_PROJECT_ID, location=GCP_REGION)
     response = await client.aio.models.generate_content(
-        model="gemini-2.0-flash-lite",
+        model="gemini-2.5-flash-lite",
         contents=CLASSIFIER_PROMPT_TEMPLATE.format(prompt=prompt),
         config=GenerateContentConfig(
             response_mime_type="application/json",
@@ -1241,7 +1241,7 @@ Templates are wired into agents via `GenerateContentConfig`:
 from google.genai.types import GenerateContentConfig, ModelArmorConfig
 
 travel_agent = LlmAgent(
-    model='gemini-2.0-flash',
+    model='gemini-2.5-flash',
     name='travel_agent',
     instruction='...',
     tools=[...],

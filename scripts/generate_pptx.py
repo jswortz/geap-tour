@@ -431,7 +431,7 @@ def build_deck():
     add_text(s, Inches(0.8), Inches(1.1), Inches(5), Inches(0.4),
              "Agent Definition", 22, bold=True, color=BLUE)
     add_code_block(s, Inches(0.8), Inches(1.6), Inches(5.5), Inches(4.5),
-                   'from google.adk.agents import LlmAgent\nfrom google.adk.integrations\\\n  .agent_registry import AgentRegistry\n\nregistry = AgentRegistry(\n  project_id=PROJECT, location="global"\n)\n\ntravel_agent = LlmAgent(\n  name="travel_agent",\n  model="gemini-2.0-flash",\n  instruction="""You are a travel\n  assistant...""",\n  tools=[\n    registry.get_mcp_toolset(\n      SEARCH_MCP_SERVER\n    )\n  ]\n)',
+                   'from google.adk.agents import LlmAgent\nfrom google.adk.integrations\\\n  .agent_registry import AgentRegistry\n\nregistry = AgentRegistry(\n  project_id=PROJECT, location="global"\n)\n\ntravel_agent = LlmAgent(\n  name="travel_agent",\n  model="gemini-2.5-flash",\n  instruction="""You are a travel\n  assistant...""",\n  tools=[\n    registry.get_mcp_toolset(\n      SEARCH_MCP_SERVER\n    )\n  ]\n)',
                    font_size=11)
     add_card(s, Inches(7), Inches(1.3), Inches(5.5), Inches(1.4),
              "Coordinator Pattern",

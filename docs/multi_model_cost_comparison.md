@@ -19,11 +19,11 @@ User Prompt
 [Model Armor] -- safety screening (RAI, PI, jailbreak)
     |
     v
-[Router Agent] (gemini-2.0-flash-lite)
+[Router Agent] (gemini-2.5-flash-lite)
     |  before_agent_callback: classify_complexity()
     |  Gemini Flash Lite scores prompt 0-1, maps to low/med/high
     |
-    |-- low ----> [Lite Agent]  gemini-2.0-flash-lite  $0.075/M in
+    |-- low ----> [Lite Agent]  gemini-2.5-flash-lite  $0.075/M in
     |-- medium -> [Flash Agent] gemini-2.5-flash       $0.15/M in
     |-- high ---> [Opus Agent]  claude-opus-4-7        $15.00/M in
 ```
@@ -53,8 +53,8 @@ models based on prompt content. Routing happens at the ADK orchestration layer.
 
 | # | Prompt (truncated) | Score | Level | Model |
 |---|-------------------|-------|-------|-------|
-| 1 | Find flights from SFO to JFK... | 0.30 | low | gemini-2.0-flash-lite |
-| 2 | What's the expense policy for meals?... | 0.30 | low | gemini-2.0-flash-lite |
+| 1 | Find flights from SFO to JFK... | 0.30 | low | gemini-2.5-flash-lite |
+| 2 | What's the expense policy for meals?... | 0.30 | low | gemini-2.5-flash-lite |
 | 3 | Search hotels in Chicago under $200... | 0.40 | medium | gemini-2.5-flash |
 | 4 | Check if a $50 transport expense is within policy... | 0.40 | medium | gemini-2.5-flash |
 | 5 | Find flights to NYC and compare the cheapest optio... | 0.60 | medium | gemini-2.5-flash |
