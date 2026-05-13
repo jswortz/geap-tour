@@ -33,3 +33,8 @@ expense_agent = LlmAgent(
     generate_content_config=get_armored_generate_config(),
     before_agent_callback=input_guardrail_callback,
 )
+
+root_agent = expense_agent
+
+import types as _t
+agent = _t.SimpleNamespace(root_agent=expense_agent)

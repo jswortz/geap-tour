@@ -40,7 +40,13 @@ async def save_memories_callback(callback_context: CallbackContext):
     for background processing. Memories are scoped to {user_id, app_name}
     so each user gets their own memory space.
     """
-    await callback_context.add_session_to_memory()
+    try:
+        await callback_context.add_session_to_memory()
+    except (ValueError, RuntimeError):
+        # Memory Bank is only available when deployed to Agent Engine.
+        # Local dev and eval runs don't have a memory service configured,
+        # so add_session_to_memory raises ValueError. Safe to skip.
+        pass
     return None
 
 
@@ -57,3 +63,8 @@ coordinator_agent = LlmAgent(
     before_agent_callback=input_guardrail_callback,
     after_agent_callback=save_memories_callback,
 )
+
+root_agent = coordinator_agent
+
+import types as _t
+agent = _t.SimpleNamespace(root_agent=coordinator_agent)

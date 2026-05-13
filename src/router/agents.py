@@ -96,7 +96,13 @@ async def complexity_router_callback(callback_context=None, **kwargs):
 
 async def save_memories_callback(callback_context: CallbackContext = None, **kwargs):
     """Persist session events to Memory Bank after each turn."""
-    await callback_context.add_session_to_memory()
+    try:
+        await callback_context.add_session_to_memory()
+    except (ValueError, RuntimeError):
+        # Memory Bank is only available when deployed to Agent Engine.
+        # Local dev and eval runs don't have a memory service configured,
+        # so add_session_to_memory raises ValueError. Safe to skip.
+        pass
     return None
 
 
@@ -120,3 +126,8 @@ router_agent = LlmAgent(
     before_agent_callback=complexity_router_callback,
     after_agent_callback=save_memories_callback,
 )
+
+root_agent = router_agent
+
+import types as _t
+agent = _t.SimpleNamespace(root_agent=router_agent)
