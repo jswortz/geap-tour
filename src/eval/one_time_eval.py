@@ -16,7 +16,10 @@ from google.adk.evaluation.base_eval_service import InferenceConfig
 
 log = logging.getLogger(__name__)
 
-EVAL_CONFIG_FILE = "src/eval/evalsets/eval_config.json"
+EVAL_CONFIG_FILES = {
+    "default": "src/eval/evalsets/eval_config.json",
+    "router": "src/eval/evalsets/router_eval_config.json",
+}
 
 AGENT_MODULES = {
     "coordinator": "src.agents.coordinator_agent",
@@ -88,10 +91,14 @@ def _patch_eval_service_none_guard():
                 "Skipping eval case %s — inference returned None (likely MCP timeout)",
                 inference_result.eval_case_id,
             )
-            from google.adk.evaluation.eval_case import EvalCaseResult
+            from google.adk.evaluation.eval_result import EvalCaseResult, EvalStatus
             return inference_result, EvalCaseResult(
-                eval_case_id=inference_result.eval_case_id,
+                eval_id=inference_result.eval_case_id,
                 eval_set_id=inference_result.eval_set_id,
+                final_eval_status=EvalStatus.NOT_EVALUATED,
+                overall_eval_metric_results=[],
+                eval_metric_result_per_invocation=[],
+                session_id="skipped",
             )
         return await _orig(self, inference_result=inference_result, evaluate_config=evaluate_config)
 
@@ -114,7 +121,8 @@ async def run_one_time_eval(agent_key: str = "coordinator", num_runs: int = 1):
     with open(evalset_file) as f:
         eval_set = EvalSet.model_validate(json.load(f))
 
-    with open(EVAL_CONFIG_FILE) as f:
+    config_file = EVAL_CONFIG_FILES.get(agent_key, EVAL_CONFIG_FILES["default"])
+    with open(config_file) as f:
         eval_config = EvalConfig.model_validate(json.load(f))
 
     print(f"Running ADK evaluation for {agent_key}...")

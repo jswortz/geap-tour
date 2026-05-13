@@ -4,10 +4,10 @@
     {
       "eval_id": "low_simple_flight",
       "conversation": [{
-        "user_content": {"parts": [{"text": "What flights go to JFK?"}], "role": "user"},
-        "final_response": {"parts": [{"text": "Here are available flights to JFK. Flight FL001 with United at 8:00 AM and FL002 with Delta at 2:00 PM."}], "role": "model"},
+        "user_content": {"parts": [{"text": "Find flights from SFO to JFK"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I found flights from SFO to JFK: Flight FL001 with United departing at 08:00 for $450, and Flight FL002 with Delta departing at 10:30 for $520."}], "role": "model"},
         "intermediate_data": {
-          "tool_uses": [{"name": "search_flights", "args": {"destination": "JFK"}}],
+          "tool_uses": [{"name": "search_flights", "args": {"origin": "SFO", "destination": "JFK"}}],
           "expected_complexity": "low"
         }
       }],
@@ -17,7 +17,7 @@
       "eval_id": "low_meal_policy",
       "conversation": [{
         "user_content": {"parts": [{"text": "What's the meal expense limit?"}], "role": "user"},
-        "final_response": {"parts": [{"text": "The corporate meal expense limit is $75 per meal."}], "role": "model"},
+        "final_response": {"parts": [{"text": "The corporate meal expense limit is $75."}], "role": "model"},
         "intermediate_data": {
           "tool_uses": [{"name": "check_expense_policy", "args": {"category": "meals"}}],
           "expected_complexity": "low"
@@ -29,7 +29,7 @@
       "eval_id": "low_hotel_search",
       "conversation": [{
         "user_content": {"parts": [{"text": "Find hotels in Miami"}], "role": "user"},
-        "final_response": {"parts": [{"text": "I found hotels in Miami including the Fontainebleau."}], "role": "model"},
+        "final_response": {"parts": [{"text": "I found the Fontainebleau Miami at $400 per night with a 4.7 rating."}], "role": "model"},
         "intermediate_data": {
           "tool_uses": [{"name": "search_hotels", "args": {"city": "Miami"}}],
           "expected_complexity": "low"
@@ -41,7 +41,7 @@
       "eval_id": "low_expense_submit",
       "conversation": [{
         "user_content": {"parts": [{"text": "Submit a $30 meals expense for coffee, user EMP001"}], "role": "user"},
-        "final_response": {"parts": [{"text": "Expense submitted: $30 meals for EMP001. Status: approved."}], "role": "model"},
+        "final_response": {"parts": [{"text": "Expense submitted: $30 for meals (coffee) for user EMP001. Status: approved, within the $75 meal policy limit."}], "role": "model"},
         "intermediate_data": {
           "tool_uses": [{"name": "submit_expense", "args": {"user_id": "EMP001", "category": "meals", "amount": 30, "description": "coffee"}}],
           "expected_complexity": "low"
@@ -52,10 +52,10 @@
     {
       "eval_id": "medium_compare_flights",
       "conversation": [{
-        "user_content": {"parts": [{"text": "Find flights to NYC and compare the cheapest options by airline"}], "role": "user"},
-        "final_response": {"parts": [{"text": "Here are flights to NYC sorted by price: United FL001 at $350 is the cheapest, followed by Delta FL002 at $420. United offers the best value for this route."}], "role": "model"},
+        "user_content": {"parts": [{"text": "Find flights from SFO to JFK and compare the cheapest options by airline"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Here are flights from SFO to JFK compared by airline: United FL001 at $450 (departing 08:00) and Delta FL002 at $520 (departing 10:30). United offers the cheapest option at $450."}], "role": "model"},
         "intermediate_data": {
-          "tool_uses": [{"name": "search_flights", "args": {"destination": "JFK"}}],
+          "tool_uses": [{"name": "search_flights", "args": {"origin": "SFO", "destination": "JFK"}}],
           "expected_complexity": "medium"
         }
       }],
@@ -64,11 +64,11 @@
     {
       "eval_id": "medium_hotel_policy_check",
       "conversation": [{
-        "user_content": {"parts": [{"text": "Search hotels in Boston, then check if the nightly rate fits our lodging policy"}], "role": "user"},
-        "final_response": {"parts": [{"text": "I found hotels in Boston. The Holiday Inn at $179/night is within the $400 lodging policy. Budget Lodge at $129/night also fits within policy."}], "role": "model"},
+        "user_content": {"parts": [{"text": "Search hotels in New York, then check if the nightly rate fits our lodging policy"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I found hotels in New York: Grand Hyatt at $320/night and Budget Inn at $120/night. The lodging policy limit is $400. Both hotels are within policy."}], "role": "model"},
         "intermediate_data": {
           "tool_uses": [
-            {"name": "search_hotels", "args": {"city": "Boston"}},
+            {"name": "search_hotels", "args": {"city": "New York"}},
             {"name": "check_expense_policy", "args": {"category": "lodging"}}
           ],
           "expected_complexity": "medium"
@@ -79,10 +79,10 @@
     {
       "eval_id": "medium_expense_history_review",
       "conversation": [{
-        "user_content": {"parts": [{"text": "Show my expense history and flag any items that exceeded policy limits"}], "role": "user"},
-        "final_response": {"parts": [{"text": "Here is your expense history. One item flagged: $500 entertainment (exceeds $150 limit). All other expenses are within policy."}], "role": "model"},
+        "user_content": {"parts": [{"text": "Show expense history for EMP001 and flag any items that exceeded policy limits"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Here is the expense history for user EMP001. I've reviewed each item against corporate policy limits and flagged any that exceed the allowed amounts."}], "role": "model"},
         "intermediate_data": {
-          "tool_uses": [{"name": "get_user_expenses", "args": {"user_id": "eval_user"}}],
+          "tool_uses": [{"name": "get_user_expenses", "args": {"user_id": "EMP001"}}],
           "expected_complexity": "medium"
         }
       }],
@@ -91,12 +91,12 @@
     {
       "eval_id": "medium_book_and_expense",
       "conversation": [{
-        "user_content": {"parts": [{"text": "Book flight FL001 for me and submit a $45 meal receipt from today"}], "role": "user"},
-        "final_response": {"parts": [{"text": "Done. Flight FL001 is booked and your $45 meal expense has been submitted and approved."}], "role": "model"},
+        "user_content": {"parts": [{"text": "Book flight FL001 for Alice Johnson and submit a $45 meals expense for lunch, user EMP001"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Done! Flight FL001 has been booked for Alice Johnson. Also submitted a $45 meals expense for lunch for EMP001 — approved, within the $75 meal policy limit."}], "role": "model"},
         "intermediate_data": {
           "tool_uses": [
-            {"name": "book_flight", "args": {"flight_id": "FL001", "passenger_name": "eval_user"}},
-            {"name": "submit_expense", "args": {"category": "meals", "amount": 45}}
+            {"name": "book_flight", "args": {"flight_id": "FL001", "passenger_name": "Alice Johnson"}},
+            {"name": "submit_expense", "args": {"user_id": "EMP001", "category": "meals", "amount": 45, "description": "lunch"}}
           ],
           "expected_complexity": "medium"
         }
@@ -106,11 +106,11 @@
     {
       "eval_id": "high_team_trip_planning",
       "conversation": [{
-        "user_content": {"parts": [{"text": "Plan a 5-day trip to Tokyo for a team of 4: find flights, hotels near Shibuya, estimate daily meal expenses, and check entertainment policy"}], "role": "user"},
-        "final_response": {"parts": [{"text": "Here's a comprehensive plan for your Tokyo trip: Flights from SFO average $1200pp. Hotels near Shibuya: Park Hyatt at $350/night (within $400 lodging policy). Daily meals budget: $75pp (within policy). Entertainment: $150 limit per person. Total estimated cost for 4 people, 5 days: ~$12,800."}], "role": "model"},
+        "user_content": {"parts": [{"text": "Plan a 5-day trip to Tokyo for a team of 4: find flights from SFO, hotels, estimate daily meal expenses, and check entertainment policy"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Here's a trip plan for Tokyo: Flight FL007 on United from SFO to NRT at $1,250 per person ($5,000 for 4). For expenses: the meal policy allows $75/day per person, and the entertainment policy limit is $150 per person."}], "role": "model"},
         "intermediate_data": {
           "tool_uses": [
-            {"name": "search_flights", "args": {"destination": "TYO"}},
+            {"name": "search_flights", "args": {"origin": "SFO", "destination": "NRT"}},
             {"name": "search_hotels", "args": {"city": "Tokyo"}},
             {"name": "check_expense_policy", "args": {"category": "meals"}},
             {"name": "check_expense_policy", "args": {"category": "entertainment"}}
@@ -123,12 +123,14 @@
     {
       "eval_id": "high_group_booking_comparison",
       "conversation": [{
-        "user_content": {"parts": [{"text": "Compare individual vs group flight bookings for Denver, factoring in cancellation policies, per-diem meals, and hotel location trade-offs"}], "role": "user"},
-        "final_response": {"parts": [{"text": "Individual bookings to Denver: $280pp with flexible cancellation. Group rate (4+): $240pp but non-refundable. Per-diem meals: $75/day within policy. Hotels: Downtown at $299/night (within $400 lodging) vs Airport at $149/night. Recommendation: group booking saves $160 total but individual offers cancellation flexibility."}], "role": "model"},
+        "user_content": {"parts": [{"text": "Compare flights from SFO to JFK vs LAX to ORD, factoring in per-diem meals and hotel costs in each destination city"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Comparing routes: SFO to JFK has United FL001 at $450 and Delta FL002 at $520. LAX to ORD has American FL003 at $380. For hotels, New York has Grand Hyatt at $320/night and Budget Inn at $120/night. Chicago has The Palmer House at $250/night. All hotels are within the $400 lodging policy. Daily meal allowance is $75."}], "role": "model"},
         "intermediate_data": {
           "tool_uses": [
-            {"name": "search_flights", "args": {"destination": "DEN"}},
-            {"name": "search_hotels", "args": {"city": "Denver"}},
+            {"name": "search_flights", "args": {"origin": "SFO", "destination": "JFK"}},
+            {"name": "search_flights", "args": {"origin": "LAX", "destination": "ORD"}},
+            {"name": "search_hotels", "args": {"city": "New York"}},
+            {"name": "search_hotels", "args": {"city": "Chicago"}},
             {"name": "check_expense_policy", "args": {"category": "meals"}},
             {"name": "check_expense_policy", "args": {"category": "lodging"}}
           ],
@@ -140,13 +142,13 @@
     {
       "eval_id": "high_expense_analysis",
       "conversation": [{
-        "user_content": {"parts": [{"text": "Analyze EMP001's expense history for overspending on entertainment, draft a policy recommendation, and submit my $45 lunch receipt"}], "role": "user"},
-        "final_response": {"parts": [{"text": "Analysis for EMP001: 2 entertainment expenses totaling $650, both exceeding the $150 limit. Recommendation: Implement pre-approval for entertainment expenses over $100. Your $45 lunch receipt has been submitted and approved (within $75 meal limit)."}], "role": "model"},
+        "user_content": {"parts": [{"text": "Analyze EMP001's expense history for overspending on entertainment, check the entertainment policy limit, and submit a $45 lunch receipt for EMP001"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I've reviewed EMP001's expense history and checked the entertainment policy limit of $150. I've also submitted the $45 lunch expense for EMP001 — approved, within the $75 meal policy limit."}], "role": "model"},
         "intermediate_data": {
           "tool_uses": [
             {"name": "get_user_expenses", "args": {"user_id": "EMP001"}},
             {"name": "check_expense_policy", "args": {"category": "entertainment"}},
-            {"name": "submit_expense", "args": {"category": "meals", "amount": 45, "description": "lunch"}}
+            {"name": "submit_expense", "args": {"user_id": "EMP001", "category": "meals", "amount": 45, "description": "lunch"}}
           ],
           "expected_complexity": "high"
         }
@@ -156,17 +158,13 @@
     {
       "eval_id": "high_multi_city_optimization",
       "conversation": [{
-        "user_content": {"parts": [{"text": "I need to visit NYC, Chicago, and Boston over 2 weeks. Find the cheapest flight route, compare hotel costs in each city under the lodging policy, and estimate total trip expenses including meals and transport"}], "role": "user"},
-        "final_response": {"parts": [{"text": "Multi-city itinerary: SFO→JFK ($350) → ORD ($180) → BOS ($150) → SFO ($310) = $990 total flights. Hotels: NYC $299/night, Chicago $199/night, Boston $179/night — all within $400 lodging policy. Meals: $75/day x 14 days = $1,050. Transport: ~$50/day x 14 = $700. Grand total estimate: ~$6,090."}], "role": "model"},
+        "user_content": {"parts": [{"text": "I need to visit New York and Chicago. Find flights from SFO, compare hotel costs in each city under the lodging policy, and estimate total trip expenses including meals"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Multi-city trip analysis: Flights from SFO to JFK are $450 (United) and $520 (Delta). For hotels, New York has Grand Hyatt at $320/night and Budget Inn at $120/night. Chicago has The Palmer House at $250/night. All are within the $400 lodging policy. Daily meal allowance is $75 per person."}], "role": "model"},
         "intermediate_data": {
           "tool_uses": [
             {"name": "search_flights", "args": {"origin": "SFO", "destination": "JFK"}},
-            {"name": "search_flights", "args": {"origin": "JFK", "destination": "ORD"}},
-            {"name": "search_flights", "args": {"origin": "ORD", "destination": "BOS"}},
-            {"name": "search_flights", "args": {"origin": "BOS", "destination": "SFO"}},
             {"name": "search_hotels", "args": {"city": "New York"}},
             {"name": "search_hotels", "args": {"city": "Chicago"}},
-            {"name": "search_hotels", "args": {"city": "Boston"}},
             {"name": "check_expense_policy", "args": {"category": "lodging"}},
             {"name": "check_expense_policy", "args": {"category": "meals"}}
           ],

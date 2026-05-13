@@ -18,7 +18,14 @@ def _resolve_model(model_str: str):
     """Wrap non-Gemini model strings with LiteLlm; pass Gemini strings through."""
     if model_str.startswith(("gemini-", "models/")):
         return model_str
-    return LiteLlm(model=model_str)
+    # LiteLLM needs vertex_ai/ prefix to route through Vertex AI
+    if not model_str.startswith("vertex_ai/"):
+        model_str = f"vertex_ai/{model_str}"
+    kwargs = {}
+    # Claude models on Vertex AI are served from location=global
+    if "claude" in model_str:
+        kwargs["vertex_location"] = "global"
+    return LiteLlm(model=model_str, **kwargs)
 
 
 def _mcp_tools():
@@ -107,14 +114,18 @@ async def save_memories_callback(callback_context: CallbackContext = None, **kwa
 
 
 ROUTER_INSTRUCTION = """\
-You are a routing coordinator. Check the complexity assessment in state and delegate:
+You are a routing coordinator. A complexity classifier assessed the user's request:
 
-- If complexity_level is "low" → delegate to lite_agent
-- If complexity_level is "medium" → delegate to flash_agent
-- If complexity_level is "high" → delegate to opus_agent
+- Level: {complexity_level}
+- Score: {complexity_score}
+- Reason: {complexity_reason}
 
-Briefly tell the user which specialist is handling their request and why \
-(e.g. "Routing to our deep-analysis specialist for this multi-step planning task").\
+You MUST call the transfer_to_agent function to delegate to the correct specialist:
+- "low" → transfer_to_agent(agent_name="lite_agent")
+- "medium" → transfer_to_agent(agent_name="flash_agent")
+- "high" → transfer_to_agent(agent_name="opus_agent")
+
+Always call transfer_to_agent. Do not answer the user's question yourself.\
 """
 
 router_agent = LlmAgent(

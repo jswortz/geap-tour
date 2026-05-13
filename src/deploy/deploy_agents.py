@@ -83,6 +83,8 @@ def deploy_agent(agent, display_name: str | None = None) -> str:
 
     env_vars = {
         **OTEL_ENV_VARS,
+        "GCP_PROJECT_ID": GCP_PROJECT_ID,
+        "GCP_REGION": GCP_REGION,
         "SEARCH_MCP_URL": SEARCH_MCP_URL,
         "BOOKING_MCP_URL": BOOKING_MCP_URL,
         "EXPENSE_MCP_URL": EXPENSE_MCP_URL,
@@ -106,6 +108,17 @@ def deploy_agent(agent, display_name: str | None = None) -> str:
         "display_name": display_name or agent.name,
         "env_vars": env_vars,
         "extra_packages": ["src"],
+        "agent_gateway_config": {
+            # Inbound: users → agent
+            "client_to_agent_config": {
+                "agent_gateway": AGENT_GATEWAY_PATH
+            },
+            # Outbound: agent → models, tools, APIs
+            "agent_to_anywhere_config": {
+                "agent_gateway": AGENT_GATEWAY_EGRESS_PATH
+            },
+        },
+        "identity_type": "AGENT_IDENTITY",
     }
 
     # Agent Gateway and AGENT_IDENTITY require IdentityType and
