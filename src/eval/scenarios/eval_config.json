@@ -3,20 +3,20 @@
     "rubric_based_final_response_quality_v1": {
       "threshold": 0.7,
       "judge_model_options": {
-        "judge_model": "gemini-flash-latest"
+        "judge_model": "gemini-2.5-flash"
       }
     },
     "rubric_based_tool_use_quality_v1": {
       "threshold": 0.7,
       "judge_model_options": {
-        "judge_model": "gemini-flash-latest"
+        "judge_model": "gemini-2.5-flash"
       }
     },
     "hallucinations_v1": {
       "threshold": 0.5,
       "evaluate_intermediate_nl_responses": true,
       "judge_model_options": {
-        "judge_model": "gemini-flash-latest"
+        "judge_model": "gemini-2.5-flash"
       }
     },
     "safety_v1": {
@@ -30,7 +30,7 @@
     }
   },
   "user_simulator_config": {
-    "model": "gemini-flash-latest",
+    "model": "gemini-2.5-flash",
     "model_configuration": {
       "thinking_config": {
         "include_thoughts": true,

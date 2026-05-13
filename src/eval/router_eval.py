@@ -72,7 +72,7 @@ EVAL_CASES = [
 ]
 
 MODEL_MAP = {
-    "low": "gemini-2.0-flash-lite",
+    "low": "gemini-2.5-flash-lite",
     "medium": "gemini-2.5-flash",
     "high": "vertex_ai/claude-opus-4-7",
 }
@@ -213,7 +213,7 @@ def generate_report(results: dict) -> str:
         "```", "User Prompt", "    |", "    v",
         "[Model Armor] <- safety screening (RAI, PI, jailbreak)", "    |", "    v",
         "[Flash Lite Classifier] <- complexity score 0-1 (~$0.00002/call)", "    |",
-        "    +-- low  (<0.35) -> gemini-2.0-flash-lite   ($0.075/M in)",
+        "    +-- low  (<0.35) -> gemini-2.5-flash-lite   ($0.075/M in)",
         "    +-- med  (0.35-0.65) -> gemini-2.5-flash    ($0.15/M in)",
         "    +-- high (>=0.65) -> claude-opus-4-7        ($15/M in)", "```", "",
         "## Classification Accuracy", "",
@@ -245,7 +245,7 @@ def generate_report(results: dict) -> str:
     lines.extend(["", "## Cost Model", "",
         "| Model | Input $/M | Output $/M | Tier |",
         "|-------|-----------|------------|------|",
-        "| gemini-2.0-flash-lite | $0.075 | $0.30 | Low |",
+        "| gemini-2.5-flash-lite | $0.075 | $0.30 | Low |",
         "| gemini-2.5-flash | $0.15 | $0.60 | Medium |",
         "| claude-opus-4-7 | $15.00 | $75.00 | High |", "",
         f"Classifier overhead: ~$0.00002/call (Flash Lite, {CLASSIFIER_TOKEN_OVERHEAD} input tokens)",

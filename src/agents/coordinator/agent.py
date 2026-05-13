@@ -13,7 +13,7 @@ from google.adk.integrations.agent_registry import AgentRegistry
 from google.adk.tools.preload_memory_tool import PreloadMemoryTool
 from google.genai.types import GenerateContentConfig, ModelArmorConfig, Content, Part
 
-AGENT_MODEL = os.environ.get("AGENT_MODEL", "gemini-2.0-flash")
+AGENT_MODEL = os.environ.get("AGENT_MODEL", "gemini-2.5-flash")
 
 GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "wortz-project-352116")
 GCP_REGION = os.environ.get("GCP_REGION", "us-central1")

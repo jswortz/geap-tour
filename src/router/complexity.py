@@ -55,7 +55,7 @@ RESPONSE_SCHEMA = {
 async def classify_complexity(prompt: str) -> ComplexityResult:
     client = genai.Client(vertexai=True, project=GCP_PROJECT_ID, location=GCP_REGION)
     response = await client.aio.models.generate_content(
-        model="gemini-2.0-flash-lite",
+        model="gemini-2.5-flash-lite",
         contents=CLASSIFIER_PROMPT_TEMPLATE.format(prompt=prompt),
         config=GenerateContentConfig(
             response_mime_type="application/json",

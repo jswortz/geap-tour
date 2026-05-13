@@ -45,7 +45,7 @@ DEMO_PROMPTS = [
 ]
 
 MODEL_MAP = {
-    "low": "gemini-2.0-flash-lite",
+    "low": "gemini-2.5-flash-lite",
     "medium": "gemini-2.5-flash",
     "high": "vertex_ai/claude-opus-4-7",
 }
