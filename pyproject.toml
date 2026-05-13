@@ -2,20 +2,19 @@
 name = "geap-tour"
 version = "0.1.0"
 description = "GEAP Workshop: Multi-agent systems with ADK, MCP, evaluation, and observability on Google Cloud"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "google-cloud-aiplatform[adk,agent-engines]>=1.152.0",
-    "google-genai>=1.14.0",
+    "google-genai>=1.66.0",
     "fastmcp>=2.0.0",
-    "pydantic>=2.0",
+    "pydantic>=2.12.5",
     "python-dotenv>=1.0.0",
-    "google-cloud-monitoring>=2.0.0",
-    "google-cloud-bigquery>=3.0.0",
-    "litellm>=1.0.0",
-    "pandas>=2.0.0",
-    "a2a-types>=0.1.0",
-    "a2a-sdk>=0.3.4,<0.4",
-    "google-adk[agent-identity]>=1.33.0",
+    "google-cloud-monitoring>=2.16.0",
+    "google-cloud-bigquery>=3.40.1",
+    "litellm>=1.83.14",
+    "pandas>=3.0.1",
+    "a2a-sdk==0.3.26",
+    "google-adk[agent-identity,eval]>=1.33.0",
 ]
 
 [project.optional-dependencies]

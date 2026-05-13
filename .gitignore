@@ -12,6 +12,7 @@ dist/
 .uv/
 *.pdf
 .playwright-mcp/
+.pytest_cache/
 
 # Secrets and credentials
 *.pem
