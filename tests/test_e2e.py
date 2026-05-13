@@ -142,13 +142,14 @@ class TestArmorE2E:
 
 class TestEvalMetricsE2E:
     def test_all_metrics_defined(self):
-        from src.eval.one_time_eval import HELPFULNESS_METRIC, TOOL_USE_METRIC, POLICY_COMPLIANCE_METRIC
-        assert HELPFULNESS_METRIC.name == "helpfulness"
-        assert TOOL_USE_METRIC.name == "tool_use_accuracy"
-        assert POLICY_COMPLIANCE_METRIC.name == "policy_compliance"
+        import json
+        with open("src/eval/evalsets/eval_config.json") as f:
+            config = json.load(f)
+        assert "response_match_score" in config["criteria"]
+        assert "safety_v1" in config["criteria"]
 
     def test_metrics_have_templates(self):
-        from src.eval.one_time_eval import HELPFULNESS_METRIC, TOOL_USE_METRIC, POLICY_COMPLIANCE_METRIC
-        for metric in [HELPFULNESS_METRIC, TOOL_USE_METRIC, POLICY_COMPLIANCE_METRIC]:
-            assert metric.prompt_template is not None
-            assert len(metric.prompt_template) > 100
+        import json
+        with open("src/eval/evalsets/eval_config.json") as f:
+            config = json.load(f)
+        assert "judge_model_options" in config["criteria"]["final_response_match_v2"]

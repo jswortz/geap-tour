@@ -164,7 +164,7 @@ class TestEvalConfigFiles:
         with open(path) as f:
             data = json.load(f)
         assert "criteria" in data
-        assert "tool_trajectory_avg_score" in data["criteria"]
+        assert "response_match_score" in data["criteria"]
 
     def test_dynamic_eval_config(self):
         path = SCENARIOS_DIR / "eval_config.json"

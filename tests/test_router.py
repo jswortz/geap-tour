@@ -34,7 +34,7 @@ class TestComplexityScoring:
 
 class TestCostTracker:
     def test_estimate_cost_flash_lite(self):
-        cost = estimate_cost("gemini-2.0-flash-lite", 1_000_000, 1_000_000)
+        cost = estimate_cost("gemini-2.5-flash-lite", 1_000_000, 1_000_000)
         assert cost == pytest.approx(0.075 + 0.30, rel=1e-4)
 
     def test_estimate_cost_flash(self):
@@ -46,7 +46,7 @@ class TestCostTracker:
         assert cost == pytest.approx(15.00 + 75.00, rel=1e-4)
 
     def test_cost_ratio_lite_vs_opus(self):
-        lite = estimate_cost("gemini-2.0-flash-lite", 200, 500)
+        lite = estimate_cost("gemini-2.5-flash-lite", 200, 500)
         opus = estimate_cost("vertex_ai/claude-opus-4-7", 200, 500)
         assert opus / lite > 100
 
@@ -54,7 +54,7 @@ class TestCostTracker:
         tracker = CostTracker(log_path=tmp_path / "test.jsonl")
         tracker.log_request(RequestLog(
             prompt="test", complexity_level="low", complexity_score=0.2,
-            model_used="gemini-2.0-flash-lite",
+            model_used="gemini-2.5-flash-lite",
             input_tokens=200, output_tokens=500, latency_ms=50, cost_usd=0.001,
         ))
         tracker.log_request(RequestLog(
@@ -70,32 +70,32 @@ class TestCostTracker:
         tracker = CostTracker(log_path=log_file)
         tracker.log_request(RequestLog(
             prompt="test", complexity_level="low", complexity_score=0.1,
-            model_used="gemini-2.0-flash-lite",
+            model_used="gemini-2.5-flash-lite",
             input_tokens=100, output_tokens=200, latency_ms=30, cost_usd=0.0001,
         ))
         lines = log_file.read_text().strip().split("\n")
         assert len(lines) == 1
         data = json.loads(lines[0])
-        assert data["model_used"] == "gemini-2.0-flash-lite"
+        assert data["model_used"] == "gemini-2.5-flash-lite"
         assert data["complexity_level"] == "low"
 
     def test_generate_report(self, tmp_path):
         tracker = CostTracker(log_path=tmp_path / "test.jsonl")
         tracker.log_request(RequestLog(
             prompt="test", complexity_level="low", complexity_score=0.2,
-            model_used="gemini-2.0-flash-lite",
+            model_used="gemini-2.5-flash-lite",
             input_tokens=200, output_tokens=500, latency_ms=50, cost_usd=0.001,
         ))
         report = tracker.generate_report()
         assert "Cost Summary" in report
-        assert "gemini-2.0-flash-lite" in report
+        assert "gemini-2.5-flash-lite" in report
 
 
 class TestAgentConfig:
     def test_resolve_model_gemini(self):
         from src.router.agents import _resolve_model
         assert _resolve_model("gemini-2.5-flash") == "gemini-2.5-flash"
-        assert _resolve_model("gemini-2.0-flash-lite") == "gemini-2.0-flash-lite"
+        assert _resolve_model("gemini-2.5-flash-lite") == "gemini-2.5-flash-lite"
 
     def test_resolve_model_litellm(self):
         from src.router.agents import _resolve_model
