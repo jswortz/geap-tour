@@ -53,9 +53,9 @@ ok "ADK CLI available ($(uv run adk --version 2>&1))"
 # ─── Step 2: Verify model access ──────────────────────────────────
 step "2/5" "Verifying model access"
 
-LITE_MODEL="${LITE_MODEL:-gemini-2.0-flash-lite}"
+LITE_MODEL="${LITE_MODEL:-gemini-2.5-flash-lite}"
 FLASH_MODEL="${FLASH_MODEL:-gemini-2.5-flash}"
-OPUS_MODEL="${OPUS_MODEL:-vertex_ai/claude-opus-4-7}"
+OPUS_MODEL="${OPUS_MODEL:-vertex_ai/claude-opus-4-6}"
 
 echo "  Lite tier:   ${LITE_MODEL}"
 echo "  Flash tier:  ${FLASH_MODEL}"
