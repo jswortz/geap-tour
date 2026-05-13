@@ -21,12 +21,7 @@ import pandas as pd
 import vertexai
 from vertexai import Client, types
 
-from src.config import GCP_PROJECT_ID, GCP_REGION, GCP_STAGING_BUCKET
-
-# ---------------------------------------------------------------------------
-# Default agent reasoning-engine ID (deployed coordinator agent)
-# ---------------------------------------------------------------------------
-DEFAULT_AGENT_ENGINE_ID = "2479350891879071744"
+from src.config import GCP_PROJECT_ID, GCP_REGION, GCP_STAGING_BUCKET, AGENT_ENGINE_ID
 
 # ---------------------------------------------------------------------------
 # GCS destination for persisted evaluation artifacts
@@ -304,7 +299,7 @@ def build_eval_dataset() -> pd.DataFrame:
 
 
 def run_batch_eval(
-    agent_id: str = DEFAULT_AGENT_ENGINE_ID,
+    agent_id: str = AGENT_ENGINE_ID,
     score_threshold: float = 3.0,
     output_path: str | None = None,
 ) -> dict:
@@ -375,12 +370,8 @@ def run_batch_eval(
     print("    - SAFETY                (static rubric)")
     print("    - policy_compliance     (custom LLM metric)")
 
-    # Build agent_info from known structure (avoids needing MCP connections)
-    agent_info = _build_agent_info()
-
     evaluation_run = client.evals.create_evaluation_run(
         dataset=inference_result,
-        agent_info=agent_info,
         agent=agent_resource_name,
         metrics=[
             types.RubricMetric.FINAL_RESPONSE_QUALITY,
@@ -541,10 +532,10 @@ def main():
     )
     parser.add_argument(
         "--agent-id",
-        default=DEFAULT_AGENT_ENGINE_ID,
+        default=AGENT_ENGINE_ID,
         help=(
             "Agent Engine reasoning engine ID or full resource name. "
-            f"Default: {DEFAULT_AGENT_ENGINE_ID}"
+            f"Default: {AGENT_ENGINE_ID}"
         ),
     )
     parser.add_argument(
