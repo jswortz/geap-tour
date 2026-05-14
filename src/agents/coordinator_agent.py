@@ -59,7 +59,6 @@ coordinator_agent = LlmAgent(
         PreloadMemoryTool(),
     ],
     sub_agents=[travel_agent, expense_agent],
-    generate_content_config=get_armored_generate_config(),
     before_agent_callback=input_guardrail_callback,
     after_agent_callback=save_memories_callback,
 )

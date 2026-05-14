@@ -95,8 +95,6 @@ If the user asks about expenses, let them know to ask the expense assistant.""",
         _get_mcp_tools(SEARCH_MCP_SERVER),
         _get_mcp_tools(BOOKING_MCP_SERVER),
     ],
-    generate_content_config=generate_config,
-    before_agent_callback=input_guardrail_callback,
 )
 
 expense_agent = LlmAgent(
@@ -112,8 +110,6 @@ If the user asks about travel, direct them to the travel assistant.""",
     tools=[
         _get_mcp_tools(EXPENSE_MCP_SERVER),
     ],
-    generate_content_config=generate_config,
-    before_agent_callback=input_guardrail_callback,
 )
 
 async def save_memories_callback(callback_context: CallbackContext):
