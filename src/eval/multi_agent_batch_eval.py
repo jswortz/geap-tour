@@ -125,36 +125,38 @@ def _run_single_agent_eval(
         include_evaluation_items=True,
     )
 
-    # Extract metrics
-    summary = {}
+    # Extract metrics — summary_metrics is a SummaryMetric pydantic model
+    # with .metrics (dict) and .total_items attributes
+    raw_metrics: dict = {}
+    total_items = 0
     try:
         run_results = getattr(evaluation_run, "evaluation_run_results", None)
         if run_results:
-            raw_summary = getattr(run_results, "summary_metrics", None)
-            if raw_summary:
-                summary = dict(raw_summary) if not isinstance(raw_summary, dict) else raw_summary
+            sm = getattr(run_results, "summary_metrics", None)
+            if sm:
+                total_items = getattr(sm, "total_items", 0) or 0
+                nested = getattr(sm, "metrics", None)
+                if nested:
+                    raw_metrics = dict(nested) if not isinstance(nested, dict) else nested
     except Exception as e:
         print(f"  Warning: could not extract summary metrics: {e}")
-        print(f"  Raw evaluation_run attrs: {[a for a in dir(evaluation_run) if not a.startswith('_')]}")
 
-    # Per-metric pass/fail
+    # Extract AVERAGE scores (keys like "agent_engine_0/safety_v1/AVERAGE")
+    # API returns scores on 0-1 scale; normalize threshold accordingly
+    normalized_threshold = score_threshold / 5.0
     metric_results = {}
     all_pass = True
-    for metric_name, value in summary.items():
-        if isinstance(value, dict):
-            avg = value.get("mean", value.get("average", 0))
-        elif isinstance(value, (int, float)):
-            avg = value
-        else:
-            avg = 0
-        passed = avg >= score_threshold
-        if not passed:
-            all_pass = False
-        metric_results[metric_name] = {
-            "score": avg,
-            "threshold": score_threshold,
-            "passed": passed,
-        }
+    for key, value in raw_metrics.items():
+        if "/AVERAGE" in key:
+            avg = float(value)
+            passed = avg >= normalized_threshold
+            if not passed:
+                all_pass = False
+            metric_results[key.rsplit("/AVERAGE", 1)[0]] = {
+                "score": avg,
+                "threshold": normalized_threshold,
+                "passed": passed,
+            }
 
     # Per-item details
     items = []
@@ -166,10 +168,11 @@ def _run_single_agent_eval(
         pass
 
     # Print agent summary
-    print(f"\n  Results for {agent_name}:")
-    for mname, detail in metric_results.items():
+    print(f"\n  Results for {agent_name} ({total_items} items):")
+    for mname, detail in sorted(metric_results.items()):
         status = "PASS" if detail["passed"] else "FAIL"
-        print(f"    {mname:35s} {detail['score']:5.2f} / {score_threshold:.1f}  [{status}]")
+        marker = "" if detail["passed"] else "  <<<"
+        print(f"    {mname:50s} {detail['score']:.2f} / {detail['threshold']:.2f}  [{status}]{marker}")
     if not metric_results:
         print(f"    (no metrics returned — check eval run: {getattr(evaluation_run, 'name', 'N/A')})")
 

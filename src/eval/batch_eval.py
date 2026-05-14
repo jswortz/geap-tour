@@ -462,20 +462,19 @@ def _build_results(
             metric_name = key.rsplit("/AVERAGE", 1)[0]
             metric_averages[metric_name] = float(value)
 
-    # Safety uses binary 0/1 scale; rubric metrics use 1-5 scale
-    BINARY_METRICS = {"safety_v1"}
+    # The API returns scores on a 0-1 scale. Convert the user-facing
+    # 1-5 threshold to 0-1 for comparison (e.g., 3.0/5 = 0.6).
+    normalized_threshold = score_threshold / 5.0
 
     all_pass = True
     metric_results = {}
     for metric_name, avg in metric_averages.items():
-        is_binary = any(bm in metric_name for bm in BINARY_METRICS)
-        thresh = 0.5 if is_binary else score_threshold
-        passed = avg >= thresh
+        passed = avg >= normalized_threshold
         if not passed:
             all_pass = False
         metric_results[metric_name] = {
             "score": avg,
-            "threshold": thresh,
+            "threshold": normalized_threshold,
             "passed": passed,
         }
 
@@ -511,13 +510,13 @@ def _print_summary(results: dict) -> None:
     if not results["metrics"]:
         print("  No metric averages found in summary.")
     else:
-        print("  Metric Scores (AVERAGE):")
+        print("  Metric Scores (0-1 scale, threshold from --threshold / 5):")
         for metric, detail in sorted(results["metrics"].items()):
             status = "PASS" if detail["passed"] else "FAIL"
             score = detail["score"]
             thresh = detail["threshold"]
             marker = "" if detail["passed"] else "  <<<"
-            print(f"    {metric:50s} {score:5.2f} / {thresh:.1f}  [{status}]{marker}")
+            print(f"    {metric:50s} {score:.2f} / {thresh:.2f}  [{status}]{marker}")
 
     overall = "PASS" if results["all_passed"] else "FAIL"
     print()
