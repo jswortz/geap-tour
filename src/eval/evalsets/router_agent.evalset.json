@@ -172,6 +172,129 @@
         }
       }],
       "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "low_transport_policy",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "What is the transport expense limit?"}], "role": "user"},
+        "final_response": {"parts": [{"text": "The corporate transport expense limit is $200."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "check_expense_policy", "args": {"category": "transport"}}],
+          "expected_complexity": "low"
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "low_flight_lax_ord",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Search for flights from LAX to Chicago"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I found American Airlines flight FL003 from LAX to ORD at $380, departing at 07:00."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "search_flights", "args": {"origin": "LAX", "destination": "ORD"}}],
+          "expected_complexity": "low"
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "low_hotel_chicago",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Find hotels in Chicago"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I found The Palmer House in Chicago at $250 per night with a 4.3 rating."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "search_hotels", "args": {"city": "Chicago"}}],
+          "expected_complexity": "low"
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "low_book_flight",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Book flight FL003 for Charlie Davis"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Flight FL003 has been booked for Charlie Davis. Booking confirmed."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "book_flight", "args": {"flight_id": "FL003", "passenger_name": "Charlie Davis"}}],
+          "expected_complexity": "low"
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "medium_flight_and_hotel",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Find flights from SFO to LAX and search for hotels in San Francisco"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Flights from SFO to LAX: Southwest FL005 at $150, departing 06:00. Hotels in San Francisco: The Ritz-Carlton at $550/night with a 4.8 rating."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [
+            {"name": "search_flights", "args": {"origin": "SFO", "destination": "LAX"}},
+            {"name": "search_hotels", "args": {"city": "San Francisco"}}
+          ],
+          "expected_complexity": "medium"
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "medium_expense_over_limit_check",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Check if a $100 meal expense and a $250 entertainment expense are within corporate policy"}], "role": "user"},
+        "final_response": {"parts": [{"text": "The $100 meal expense exceeds the $75 meal limit. The $250 entertainment expense exceeds the $150 entertainment limit. Both require manager review."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [
+            {"name": "check_expense_policy", "args": {"category": "meals", "amount": 100}},
+            {"name": "check_expense_policy", "args": {"category": "entertainment", "amount": 250}}
+          ],
+          "expected_complexity": "medium"
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "medium_hotel_comparison",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Compare hotel options in New York by price and rating"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Hotels in New York: Grand Hyatt at $320/night (4.5 rating) vs Budget Inn Downtown at $120/night (3.2 rating). The Grand Hyatt offers better quality, while Budget Inn is more affordable. Both are within the $400 lodging policy."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "search_hotels", "args": {"city": "New York"}}],
+          "expected_complexity": "medium"
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "high_full_trip_budget",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "I have a $2000 budget for a trip from SFO to London. Find flights, hotels, check lodging and meal policies, and tell me if I can afford it within corporate limits"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Flight FL006 from JFK to LHR is $890 (you'd need to get to JFK first). Hotels in London: Claridge's at $680/night (exceeds $400 lodging policy). Meal allowance is $75/day. The total would exceed your $2000 budget and the lodging policy limit."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [
+            {"name": "search_flights", "args": {"origin": "SFO", "destination": "LHR"}},
+            {"name": "search_hotels", "args": {"city": "London"}},
+            {"name": "check_expense_policy", "args": {"category": "lodging"}},
+            {"name": "check_expense_policy", "args": {"category": "meals"}}
+          ],
+          "expected_complexity": "high"
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "high_expense_audit_and_submit",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Review EMP002's expense history, check all policy categories, and submit a $150 supplies expense for office equipment for EMP002"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I've reviewed EMP002's expense history and checked policy limits: meals $75, transport $200, lodging $400, supplies $100, entertainment $150. The $150 supplies expense exceeds the $100 supplies limit and requires review."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [
+            {"name": "get_user_expenses", "args": {"user_id": "EMP002"}},
+            {"name": "check_expense_policy", "args": {"category": "supplies"}},
+            {"name": "submit_expense", "args": {"user_id": "EMP002", "category": "supplies", "amount": 150, "description": "office equipment"}}
+          ],
+          "expected_complexity": "high"
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
     }
   ]
 }

@@ -77,6 +77,119 @@
         }
       }],
       "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "flight_search_sfo_jfk",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Find flights from SFO to JFK on June 15"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I found flights from SFO to JFK: United FL001 at $450 departing 08:00, and Delta FL002 at $520 departing 10:30."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "search_flights", "args": {"origin": "SFO", "destination": "JFK"}}]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "flight_search_lax_ord",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Search for flights from LAX to Chicago"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I found American Airlines flight FL003 from LAX to ORD at $380, departing at 07:00."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "search_flights", "args": {"origin": "LAX", "destination": "ORD"}}]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "hotel_search_chicago",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "What hotels are available in Chicago?"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I found The Palmer House in Chicago at $250/night with a 4.3 rating."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "search_hotels", "args": {"city": "Chicago"}}]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "book_hotel",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Book hotel HT001 for Bob Smith, check-in June 15, check-out June 18"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Hotel HT001 (Grand Hyatt New York) has been booked for Bob Smith from June 15 to June 18. Booking confirmed."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "book_hotel", "args": {"hotel_id": "HT001", "guest_name": "Bob Smith", "checkin_date": "2026-06-15", "checkout_date": "2026-06-18"}}]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "expense_policy_transport",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Is a $180 transport expense within policy?"}], "role": "user"},
+        "final_response": {"parts": [{"text": "A $180 transport expense is within policy. The transport limit is $200."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "check_expense_policy", "args": {"category": "transport", "amount": 180}}]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "expense_policy_lodging",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "What is the lodging expense limit?"}], "role": "user"},
+        "final_response": {"parts": [{"text": "The corporate lodging expense limit is $400 per night."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "check_expense_policy", "args": {"category": "lodging"}}]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "expense_submit_over_limit",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Submit a $500 entertainment expense for team event, user ID EMP002"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Expense submitted: $500 for entertainment (team event) for user EMP002. Status: pending_review, exceeds the $150 entertainment policy limit."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "submit_expense", "args": {"user_id": "EMP002", "category": "entertainment", "amount": 500, "description": "team event"}}]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "flight_search_no_results",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Find flights from XYZ to ABC"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I wasn't able to find any flights from XYZ to ABC. These don't appear to be valid airport codes. Could you provide valid origin and destination airports?"}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "search_flights", "args": {"origin": "XYZ", "destination": "ABC"}}]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "multi_intent_travel_expense",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "I need to book a trip to Chicago and also submit a $30 meal receipt for user EMP001"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I've searched for travel options in Chicago and submitted your $30 meal expense for EMP001."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [
+            {"name": "search_flights", "args": {"destination": "ORD"}},
+            {"name": "submit_expense", "args": {"user_id": "EMP001", "category": "meals", "amount": 30}}
+          ]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "hotel_search_no_results",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Search for hotels in Atlantis"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I wasn't able to find any hotels in Atlantis. This city doesn't appear to be in our system. Try searching for a major city like New York, Chicago, or Miami."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "search_hotels", "args": {"city": "Atlantis"}}]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
     }
   ]
 }
