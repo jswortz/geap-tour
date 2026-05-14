@@ -92,7 +92,6 @@ def _run_single_agent_eval(
     print(f"  Running evaluation...")
     evaluation_run = client.evals.create_evaluation_run(
         dataset=inference_result,
-        agent_info=agent_info,
         agent=agent_resource_name,
         metrics=metrics,
         dest=GCS_EVAL_DEST,
