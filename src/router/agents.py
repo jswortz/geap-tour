@@ -7,7 +7,7 @@ from google.adk.tools.preload_memory_tool import PreloadMemoryTool
 from google.genai.types import Content, Part
 
 from .config import LITE_MODEL, FLASH_MODEL, OPUS_MODEL
-from .armor import get_armored_generate_config, input_guardrail_callback
+from .armor import input_guardrail_callback
 from .complexity import classify_complexity
 
 from src.config import SEARCH_MCP_SERVER, BOOKING_MCP_SERVER, EXPENSE_MCP_SERVER
@@ -45,8 +45,6 @@ lite_agent = LlmAgent(
         "Give direct, concise answers. Use tools when needed."
     ),
     tools=_mcp_tools(),
-    generate_content_config=get_armored_generate_config(),
-    before_agent_callback=input_guardrail_callback,
 )
 
 flash_agent = LlmAgent(
@@ -58,8 +56,6 @@ flash_agent = LlmAgent(
         "Break down the problem, use tools as needed, and provide clear structured answers."
     ),
     tools=_mcp_tools(),
-    generate_content_config=get_armored_generate_config(),
-    before_agent_callback=input_guardrail_callback,
 )
 
 opus_agent = LlmAgent(
@@ -72,7 +68,6 @@ opus_agent = LlmAgent(
         "Cross-reference information across tools and present a comprehensive response."
     ),
     tools=_mcp_tools(),
-    before_agent_callback=input_guardrail_callback,
 )
 
 
