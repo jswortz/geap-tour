@@ -1,39 +1,49 @@
-"""MCP tool integration — connects to MCP tool servers for agent use.
+"""Agent Registry integration — discovers MCP servers by registered name.
 
-Provides two modes:
-  1. MCPToolset (default) — connects directly to MCP server URLs via SSE.
-     No import-chain issues during cloudpickle unpickle on Agent Runtime.
-  2. AgentRegistry — discovers MCP servers by registered name.
-     Triggers the a2a-sdk / iamconnectorcredentials import chain which is
-     not available in the Agent Runtime base image.
+Falls back to direct Cloud Run URLs when the Agent Registry entry is not found.
 """
 
-import os
-from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, SseConnectionParams
+import logging
 
-from src.config import (
-    SEARCH_MCP_URL,
-    BOOKING_MCP_URL,
-    EXPENSE_MCP_URL,
-    SEARCH_MCP_SERVER,
-    BOOKING_MCP_SERVER,
-    EXPENSE_MCP_SERVER,
-)
+from google.adk.integrations.agent_registry import AgentRegistry
+from google.adk.tools.mcp_tool import McpToolset
+from google.adk.tools.mcp_tool.mcp_session_manager import StreamableHTTPConnectionParams
 
-# Map Agent Registry server names → environment-variable MCP URLs.
-_SERVER_URL_MAP = {
-    SEARCH_MCP_SERVER: SEARCH_MCP_URL,
-    BOOKING_MCP_SERVER: BOOKING_MCP_URL,
-    EXPENSE_MCP_SERVER: EXPENSE_MCP_URL,
-}
+from src.config import GCP_PROJECT_ID, AGENT_REGISTRY_LOCATION, MCP_SERVER_URLS
+
+log = logging.getLogger(__name__)
+
+MCP_TIMEOUT_SECONDS = 60.0
+
+_registry = None
 
 
-def get_mcp_tools(server_name: str) -> MCPToolset:
-    """Return an MCPToolset for the given server, using SSE transport."""
-    url = _SERVER_URL_MAP.get(server_name)
-    if not url:
-        raise ValueError(
-            f"Unknown MCP server: {server_name}. "
-            f"Known: {list(_SERVER_URL_MAP)}"
+def get_registry() -> AgentRegistry:
+    global _registry
+    if _registry is None:
+        _registry = AgentRegistry(
+            project_id=GCP_PROJECT_ID, location=AGENT_REGISTRY_LOCATION
         )
-    return MCPToolset(connection_params=SseConnectionParams(url=url))
+    return _registry
+
+
+def get_mcp_tools(server_name: str):
+    """Return an MCP toolset, preferring Agent Registry discovery.
+
+    When running behind Agent Gateway, the registry routes MCP traffic
+    through the gateway for governance. Falls back to direct SSE URLs
+    if the registry is unavailable.
+    """
+    try:
+        toolset = get_registry().get_mcp_toolset(server_name)
+        if hasattr(toolset, '_connection_params') and hasattr(toolset._connection_params, 'timeout'):
+            toolset._connection_params.timeout = MCP_TIMEOUT_SECONDS
+        return toolset
+    except (RuntimeError, Exception):
+        url = MCP_SERVER_URLS.get(server_name)
+        if not url:
+            raise
+        log.info("Agent Registry unavailable for %s — using direct URL %s", server_name, url)
+        return McpToolset(connection_params=StreamableHTTPConnectionParams(
+            url=url, timeout=MCP_TIMEOUT_SECONDS
+        ))

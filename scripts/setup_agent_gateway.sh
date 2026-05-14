@@ -44,6 +44,8 @@ echo "[1/7] Enabling APIs..."
 gcloud services enable \
     aiplatform.googleapis.com \
     networkservices.googleapis.com \
+    cloudresourcemanager.googleapis.com \
+    cloudtrace.googleapis.com \
     --project="$PROJECT_ID"
 
 ACCESS_TOKEN=$(gcloud auth print-access-token)

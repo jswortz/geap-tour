@@ -1377,7 +1377,7 @@ def build_deck():
     add_text(s, Inches(0.8), Inches(1.3), Inches(11), Inches(1),
              "Get Started", 48, bold=True, color=WHITE)
     resources = [
-        "Workshop repo:  github.com/jswortz/geap-tour",
+        "Workshop repo:  https://github.com/jswortz/geap-tour",
         "Workshop guide:  docs/workshop_guide.md",
         "Agent Development Kit:  google.github.io/adk-docs",
         "MCP Protocol:  modelcontextprotocol.io",

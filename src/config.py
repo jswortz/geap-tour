@@ -30,7 +30,16 @@ EXPENSE_MCP_SERVER = os.environ.get(
     f"projects/{GCP_PROJECT_ID}/locations/global/mcpServers/agentregistry-00000000-0000-0000-02e2-cd6d7450ab52",
 )
 
+MCP_SERVER_URLS = {
+    SEARCH_MCP_SERVER: SEARCH_MCP_URL,
+    BOOKING_MCP_SERVER: BOOKING_MCP_URL,
+    EXPENSE_MCP_SERVER: EXPENSE_MCP_URL,
+}
+
 OTEL_ENV_VARS = {
+    "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
+    "OTEL_TRACES_SAMPLER": "parentbased_traceidratio",
+    "OTEL_TRACES_SAMPLER_ARG": "1.0",
     "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
     "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY",
 }
@@ -47,5 +56,5 @@ CLASSIFIER_MODEL = os.environ.get("CLASSIFIER_MODEL", "gemini-2.0-flash-lite")
 # Evaluation
 EVAL_OUTPUT_DIR = os.environ.get("EVAL_OUTPUT_DIR", "eval_outputs")
 BQ_EVAL_DATASET = os.environ.get("BQ_EVAL_DATASET", "geap_workshop_logs")
-AGENT_ENGINE_ID = os.environ.get("AGENT_ENGINE_ID", "443583122819252224")
-ROUTER_ENGINE_ID = os.environ.get("ROUTER_ENGINE_ID", "6676565007100018688")
+AGENT_ENGINE_ID = os.environ.get("AGENT_ENGINE_ID", "5598638991600517120")
+ROUTER_ENGINE_ID = os.environ.get("ROUTER_ENGINE_ID", "7261593154007072768")

@@ -127,8 +127,8 @@ echo ""
 # This step is best-effort: if the project lacks private preview enrollment,
 # the LRO will fail with INTERNAL and the script continues.
 
-AGENT_ENGINE_ID="${AGENT_ENGINE_ID:-443583122819252224}"
-ROUTER_ENGINE_ID="${ROUTER_ENGINE_ID:-6676565007100018688}"
+AGENT_ENGINE_ID="${AGENT_ENGINE_ID:-3433603839486328832}"
+ROUTER_ENGINE_ID="${ROUTER_ENGINE_ID:-4586525344093175808}"
 INGRESS_GW="projects/${PROJECT_ID}/locations/${REGION}/agentGateways/${GATEWAY_NAME}"
 
 verify_gateway_attachment() {

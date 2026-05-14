@@ -72,8 +72,8 @@ Quick reference for each component — what it is, how it works, and why it matt
 **Why does it matter?** — Stateless agents forget everything between sessions. Memory Bank transforms agents into persistent assistants that learn user preferences, remember booking history, and provide continuity — a requirement for any production agent that interacts with the same user more than once.
 
 **Key files:**
-- `src/agents/coordinator_agent.py` — `save_memories_callback` (lines 37-44) and `PreloadMemoryTool` integration
-- `src/router/agents.py` — Memory Bank integration in the router agent (lines 103-106)
+- `src/agents/coordinator_agent.py` — `save_memories_callback` and `PreloadMemoryTool` integration
+- `src/router/agents.py` — `save_memories_callback` and `PreloadMemoryTool` in the router agent
 
 ---
 
@@ -85,9 +85,66 @@ Quick reference for each component — what it is, how it works, and why it matt
 
 **Why does it matter?** — Without network-level governance, any agent can call any service. The gateway enforces least-privilege access at the infrastructure layer, independent of application code — a defense-in-depth approach that complements the agent-level guardrails in Model Armor and ADK callbacks.
 
+### Deploying Agents to Agent Gateway
+
+Agents attach to the gateway at deploy time via `agent_gateway_config` in the create config. Key requirements and known issues:
+
+1. **Use the `IdentityType` enum, not a string.** `identity_type` must be `vertexai._genai.types.IdentityType.AGENT_IDENTITY` (the enum from the internal types module). The string `"AGENT_IDENTITY"` silently deploys without identity.
+
+2. **Egress-only works; ingress fails.** Deploying with `agent_to_anywhere_config` (egress) succeeds. Deploying with `client_to_agent_config` (ingress) fails with error code 13 at the control plane level. This may be a Private Preview limitation.
+
+3. **Egress routes ALL outbound traffic through MCP protocol.** This means gRPC calls (create_session, model inference, Resource Manager lookups) fail at runtime because the gateway only supports MCP. MCP tool calls (via `AgentRegistry.get_mcp_toolset()`) work correctly through the gateway.
+
+4. **Use `AgentRegistry.get_mcp_toolset()` for gateway-aware MCP.** Direct SSE URLs bypass the gateway. The Agent Registry routes MCP traffic through the egress gateway, enabling governance policies on tool calls. See `src/registry.py`.
+
+5. **Use the low-level client API.** The high-level `vertexai.agent_engines.create()` wrapper does not expose `agent_gateway_config` or `identity_type`. Use `vertexai.Client(http_options=dict(api_version="v1beta1")).agent_engines.create(agent=..., config=...)` instead.
+
+### Required GCP APIs
+
+Agent Gateway deployment requires all of the following APIs to be enabled. Missing any of them causes silent failures at deploy or runtime:
+
+| API | Service Name | Purpose |
+|-----|-------------|---------|
+| Vertex AI | `aiplatform.googleapis.com` | Agent Engine (Reasoning Engine) |
+| Network Services | `networkservices.googleapis.com` | Gateway creation and management |
+| Cloud Resource Manager | `cloudresourcemanager.googleapis.com` | Project metadata lookups at runtime |
+| Cloud Trace | `cloudtrace.googleapis.com` | OTel trace collection and export |
+
+```bash
+gcloud services enable \
+    aiplatform.googleapis.com \
+    networkservices.googleapis.com \
+    cloudresourcemanager.googleapis.com \
+    cloudtrace.googleapis.com \
+    --project="$PROJECT_ID"
+```
+
+> **Note:** `cloudresourcemanager.googleapis.com` and `cloudtrace.googleapis.com` are mandatory for gateway-attached agents. Without them, agent deployment or runtime traffic will fail with opaque errors.
+
+```python
+from vertexai._genai import types
+
+client = vertexai.Client(
+    project=PROJECT, location=REGION,
+    http_options=dict(api_version="v1beta1"),
+)
+remote = client.agent_engines.create(
+    agent=local_agent,
+    config={
+        "agent_gateway_config": {
+            "agent_to_anywhere_config": {"agent_gateway": EGRESS_GATEWAY_PATH},
+        },
+        "identity_type": types.IdentityType.AGENT_IDENTITY,
+        "env_vars": {"GOOGLE_GENAI_USE_VERTEXAI": "1"},
+        # ... other config
+    },
+)
+```
+
 **Key files:**
 - `scripts/setup_agent_gateway.sh` — Gateway creation and configuration
 - `scripts/setup_governance_policies.sh` — IAM, SGP, and Model Armor policy attachments
+- `src/deploy/deploy_agents.py` — Deploy script with gateway attachment
 
 ---
 

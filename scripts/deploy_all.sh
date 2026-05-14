@@ -46,7 +46,9 @@ gcloud services enable \
     logging.googleapis.com \
     bigquery.googleapis.com \
     cloudtrace.googleapis.com \
+    cloudresourcemanager.googleapis.com \
     monitoring.googleapis.com \
+    networkservices.googleapis.com \
     --project="$PROJECT_ID" --quiet
 ok "APIs enabled"
 
