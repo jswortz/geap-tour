@@ -4,10 +4,6 @@ A hands-on workshop demonstrating the full Gemini Enterprise Agent Platform (GEA
 
 ## Reference Architecture
 
-![Google's Agentic Reference Architecture](docs/screenshots/geap_reference_architecture.png)
-
-*Google's official Agentic Reference Architecture — the complete Gemini Enterprise Agent Platform spanning development, testing, and production lifecycles.*
-
 ![GEAP Reference Architecture (detailed)](diagrams/outputs/08_reference_architecture.png)
 
 *Detailed reference architecture showing all GEAP platform components: Shared Service Project (Agent Gateway with ingress/egress, Model Armor input/output screening, Cloud Armor), Build & CI/CD (Cloud Build, Artifact Registry, Workload Identity Federation), three project zones (Development with ADK, Evaluation Framework, GEPA Optimization, Observability; Testing/Staging with staged agents and MCP servers; Production with Agent Engine, SPIFFE Identity, Memory Bank, Multi-Model Router, OTel Tracing), Agent Registry fleet catalog spanning all projects, Vertex AI Models (Gemini Flash/Pro, Claude Opus via LiteLLM), and Gemini Enterprise with A2A protocol for business end users.*
