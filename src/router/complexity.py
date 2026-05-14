@@ -15,19 +15,21 @@ from .config import GCP_PROJECT_ID, GCP_REGION
 CLASSIFIER_PROMPT_TEMPLATE = (
     "Rate the complexity of this user prompt on a 0-1 scale.\n\n"
     "Criteria:\n"
-    "- 0.0-0.19: Trivial — single intent, direct lookup, one tool call "
-    '(e.g. "what is the meal limit?", "find hotels in Miami")\n'
-    "- 0.20-0.39: Simple — single intent with light reasoning or formatting "
-    '(e.g. "search flights and show cheapest", "submit a $30 expense")\n'
-    "- 0.40-0.59: Moderate — 2 related intents or comparison requiring reasoning "
-    '(e.g. "compare hotels in two cities and check policy", "book flight and submit expense")\n'
-    "- 0.60-0.79: Complex — 3+ intents, cross-domain analysis, structured output "
-    '(e.g. "review expense history, check policies, and submit a new one")\n'
-    "- 0.80-1.0: Expert — multi-step planning, budget optimization, synthesis "
-    "across many sources, strategic recommendations "
-    '(e.g. "plan a multi-city trip for a team with budget constraints")\n\n'
-    "Be conservative: single-action prompts should score below 0.20. "
-    "Only score above 0.80 if the prompt requires 4+ distinct steps with synthesis.\n\n"
+    "- 0.0-0.19: Trivial — a single read-only lookup with no reasoning "
+    '(e.g. "what is the meal limit?", "find hotels in Miami", "show expenses for EMP001")\n'
+    "- 0.20-0.39: Simple — a single action (booking, submission) or a lookup with formatting/sorting "
+    '(e.g. "book flight FL001 for Alice", "submit a $30 expense", "find flights and show cheapest")\n'
+    "- 0.40-0.59: Moderate — 2 distinct tool calls or comparison across multiple results "
+    '(e.g. "find flights to NYC and compare by airline", "search hotels then check lodging policy")\n'
+    "- 0.60-0.79: Complex — 3+ tool calls across different domains, or structured multi-factor analysis "
+    '(e.g. "compare flights on two routes plus hotels and meal costs in each city")\n'
+    "- 0.80-1.0: Expert — multi-step planning for a group/trip, budget optimization, or strategic synthesis "
+    '(e.g. "plan a 5-day trip for a team of 4 with flights, hotels, and expense policies")\n\n'
+    "Scoring guidance:\n"
+    "- Any booking or submission action is at least 0.20.\n"
+    "- Any comparison across options is at least 0.40.\n"
+    "- Mentioning 3+ distinct tasks or cross-domain analysis is at least 0.60.\n"
+    "- Team planning, budget constraints, or multi-city optimization is at least 0.80.\n\n"
     'Return JSON with keys "score" (float) and "reason" (one sentence).\n\n'
     "Prompt: {prompt}"
 )
