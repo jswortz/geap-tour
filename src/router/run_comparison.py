@@ -1,21 +1,18 @@
-"""Cost comparison — runs same prompts through 3 configs and generates a report."""
+"""Cost comparison — runs same prompts through configs and generates a 5-tier report."""
 
 import asyncio
 from pathlib import Path
 
 from .complexity import classify_complexity
 from .cost_tracker import estimate_cost
-from .demo import DEMO_PROMPTS, AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS
+from .demo import DEMO_PROMPTS, MODEL_MAP, AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS
 
 CONFIGS = {
     "All Flash Lite": lambda _level: "gemini-2.5-flash-lite",
     "All Flash": lambda _level: "gemini-2.5-flash",
+    "All Pro": lambda _level: "gemini-2.5-pro",
     "All Opus": lambda _level: "claude-opus-4-6",
-    "Smart Router": lambda level: {
-        "low": "gemini-2.5-flash-lite",
-        "medium": "gemini-2.5-flash",
-        "high": "claude-opus-4-6",
-    }[level],
+    "5-Tier Router": lambda level: MODEL_MAP[level],
 }
 
 
@@ -25,18 +22,14 @@ async def run_comparison():
         result = await classify_complexity(prompt)
         classifications.append(result)
 
+    level_counts = {}
+    for c in classifications:
+        level_counts[c.level] = level_counts.get(c.level, 0) + 1
+
+    level_summary = ", ".join(f"{count} {level}" for level, count in sorted(level_counts.items()))
+
     lines = [
-        "# Multi-Model Cost Comparison",
-        "",
-        "## Thesis",
-        "",
-        '> "The future is multi-model — right model for right task and needs at hand."',
-        "> — [gemini-model-router](https://github.com/jswortz/gemini-model-router)",
-        "",
-        "This demo routes prompts by complexity to the most cost-effective model:",
-        "- **Low** (simple lookups) → Gemini 2.0 Flash Lite ($0.075/M input)",
-        "- **Medium** (moderate reasoning) → Gemini 2.5 Flash ($0.15/M input)",
-        "- **High** (deep analysis) → Claude Opus 4-7 via Vertex AI ($15/M input)",
+        "# Multi-Model Cost Comparison (5-Tier Router)",
         "",
         "## Architecture",
         "",
@@ -44,37 +37,27 @@ async def run_comparison():
         "User Prompt",
         "    |",
         "    v",
-        "[Model Armor] -- safety screening (RAI, PI, jailbreak)",
+        "[Model Armor] -- safety screening",
         "    |",
         "    v",
         "[Router Agent] (gemini-2.5-flash-lite)",
         "    |  before_agent_callback: classify_complexity()",
-        "    |  Gemini Flash Lite scores prompt 0-1, maps to low/med/high",
+        "    |  Scores prompt 0-1, maps to 5 tiers",
         "    |",
-        "    |-- low ----> [Lite Agent]  gemini-2.5-flash-lite  $0.075/M in",
-        "    |-- medium -> [Flash Agent] gemini-2.5-flash       $0.15/M in",
-        "    |-- high ---> [Opus Agent]  claude-opus-4-6        $15.00/M in",
+        "    |-- low ----------> [Lite Agent]   gemini-2.5-flash-lite  $0.075/M in",
+        "    |-- medium_low ----> [Flash Agent]  gemini-2.5-flash       $0.15/M in",
+        "    |-- medium --------> [Pro Agent]    gemini-2.5-pro         $1.25/M in",
+        "    |-- medium_high ---> [Sonnet Agent] claude-sonnet-4-6      $3.00/M in",
+        "    |-- high ----------> [Opus Agent]   claude-opus-4-6       $15.00/M in",
         "```",
-        "",
-        "**Why not Model Armor for complexity?** Model Armor only provides safety filters",
-        "(RAI, PI detection, jailbreak, malicious URI). It has no prompt complexity scoring.",
-        "We use Gemini Flash Lite as a micro-classifier (~$0.00002/call).",
-        "",
-        "**Why not AI Gateway for routing?** The Agent Gateway operates at the network level",
-        "(CLIENT_TO_AGENT / AGENT_TO_ANYWHERE) with IAM and SGP policies. It cannot select",
-        "models based on prompt content. Routing happens at the ADK orchestration layer.",
         "",
         "## Results",
         "",
-        f"**Test set:** {len(DEMO_PROMPTS)} prompts "
-        f"({sum(1 for c in classifications if c.level == 'low')} low, "
-        f"{sum(1 for c in classifications if c.level == 'medium')} medium, "
-        f"{sum(1 for c in classifications if c.level == 'high')} high)",
-        "",
+        f"**Test set:** {len(DEMO_PROMPTS)} prompts ({level_summary})",
         f"**Assumed tokens:** {AVG_INPUT_TOKENS} input, {AVG_OUTPUT_TOKENS} output per request",
         "",
-        "| Configuration | Model(s) | Total Cost | vs All-Opus Savings |",
-        "|--------------|----------|-----------|-------------------|",
+        "| Configuration | Total Cost | vs All-Opus Savings |",
+        "|--------------|-----------|-------------------|",
     ]
 
     all_opus_cost = None
@@ -82,10 +65,9 @@ async def run_comparison():
     for config_name, model_fn in CONFIGS.items():
         total = 0.0
         for (prompt, _), result in zip(DEMO_PROMPTS, classifications):
-            level = result.level if config_name == "Smart Router" else "low"
             model = model_fn(result.level)
             cost = estimate_cost(model, AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
-            if config_name == "Smart Router":
+            if config_name == "5-Tier Router":
                 cost += estimate_cost("classifier", len(prompt.split()) * 2, 20)
             total += cost
         config_costs[config_name] = total
@@ -95,17 +77,17 @@ async def run_comparison():
     for config_name, total in config_costs.items():
         savings = (1 - total / all_opus_cost) * 100 if all_opus_cost else 0
         savings_str = f"{savings:.1f}%" if config_name != "All Opus" else "baseline"
-        lines.append(f"| {config_name} | mixed | ${total:.6f} | {savings_str} |")
+        lines.append(f"| {config_name} | ${total:.6f} | {savings_str} |")
 
     lines.extend([
         "",
-        "## Per-Prompt Routing Decisions (Smart Router)",
+        "## Per-Prompt Routing Decisions (5-Tier Router)",
         "",
         "| # | Prompt (truncated) | Score | Level | Model |",
         "|---|-------------------|-------|-------|-------|",
     ])
     for i, ((prompt, _), result) in enumerate(zip(DEMO_PROMPTS, classifications), 1):
-        model = CONFIGS["Smart Router"](result.level)
+        model = MODEL_MAP[result.level]
         lines.append(
             f"| {i} | {prompt[:50]}... | {result.score:.2f} | "
             f"{result.level} | {model.split('/')[-1]} |"
@@ -115,49 +97,32 @@ async def run_comparison():
         "",
         "## At Scale (monthly projections)",
         "",
-        "| Scenario | Requests/mo | All-Opus | Smart Router | Savings |",
-        "|----------|------------|----------|-------------|---------|",
+        "| Scenario | Requests/mo | All-Opus | 5-Tier Router | Savings |",
+        "|----------|------------|----------|--------------|---------|",
     ])
     opus_per_req = estimate_cost("claude-opus-4-6", AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
     lite_per_req = estimate_cost("gemini-2.5-flash-lite", AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
     flash_per_req = estimate_cost("gemini-2.5-flash", AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
+    pro_per_req = estimate_cost("gemini-2.5-pro", AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
+    sonnet_per_req = estimate_cost("claude-sonnet-4-6", AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
 
-    for name, count, low_pct, med_pct, high_pct in [
-        ("Light usage", 1_000, 0.70, 0.20, 0.10),
-        ("Medium usage", 10_000, 0.60, 0.25, 0.15),
-        ("Heavy usage", 100_000, 0.50, 0.30, 0.20),
+    for name, count, low_pct, mlow_pct, med_pct, mhigh_pct, high_pct in [
+        ("Light usage", 1_000, 0.40, 0.25, 0.20, 0.10, 0.05),
+        ("Medium usage", 10_000, 0.30, 0.25, 0.25, 0.12, 0.08),
+        ("Heavy usage", 100_000, 0.25, 0.25, 0.25, 0.15, 0.10),
     ]:
         all_opus = count * opus_per_req
         routed = count * (
             low_pct * lite_per_req
-            + med_pct * flash_per_req
+            + mlow_pct * flash_per_req
+            + med_pct * pro_per_req
+            + mhigh_pct * sonnet_per_req
             + high_pct * opus_per_req
         )
         savings = (1 - routed / all_opus) * 100
         lines.append(
             f"| {name} | {count:,} | ${all_opus:,.2f} | ${routed:,.2f} | {savings:.0f}% |"
         )
-
-    lines.extend([
-        "",
-        "## Limitations",
-        "",
-        "- Model Armor's `ModelArmorConfig` only works with Gemini models; "
-        "the Opus agent uses client-side guardrails only",
-        "- Claude Opus 4-7 availability may vary by region (us-east5, global endpoint)",
-        "- Classifier adds ~100-200ms latency per request",
-        "- Cost comparison uses list pricing; enterprise discounts change ratios",
-        "- Token counts are estimated averages, not measured from actual API responses",
-        "",
-        "## Connection to gemini-model-router",
-        "",
-        "The [gemini-model-router](https://github.com/jswortz/gemini-model-router) demonstrated",
-        "35% cost savings with a 4-backend router (Gemma4, Gemini, Claude, Vertex API) using",
-        "embedding-based classification. This demo validates the same thesis using GCP-native",
-        "infrastructure (ADK + Model Armor + Gateway) with an LLM-as-classifier approach.",
-        "The key insight is identical: **you pay for what you need** — most prompts don't",
-        "require frontier-model reasoning.",
-    ])
 
     report = "\n".join(lines)
     output_path = Path("docs/multi_model_cost_comparison.md")

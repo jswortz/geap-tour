@@ -8,6 +8,8 @@ from pathlib import Path
 COST_RATES = {
     "gemini-2.5-flash-lite": {"input": 0.075, "output": 0.30},
     "gemini-2.5-flash": {"input": 0.15, "output": 0.60},
+    "gemini-2.5-pro": {"input": 1.25, "output": 10.00},
+    "claude-sonnet-4-6": {"input": 3.00, "output": 15.00},
     "claude-opus-4-6": {"input": 15.00, "output": 75.00},
     "classifier": {"input": 0.075, "output": 0.30},
 }
@@ -79,7 +81,7 @@ class CostTracker:
             "| Level | Count | Avg Cost |",
             "|-------|-------|----------|",
         ])
-        for level in ("low", "medium", "high"):
+        for level in ("low", "medium_low", "medium", "medium_high", "high"):
             level_entries = [e for e in self.entries if e.complexity_level == level]
             if level_entries:
                 avg = sum(e.cost_usd for e in level_entries) / len(level_entries)

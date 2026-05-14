@@ -14,6 +14,8 @@ EXPENSE_MCP_URL = os.environ.get("EXPENSE_MCP_URL", "http://localhost:8003/mcp")
 
 LITE_MODEL = os.environ.get("LITE_MODEL", "gemini-2.5-flash-lite")
 FLASH_MODEL = os.environ.get("FLASH_MODEL", "gemini-2.5-flash")
+PRO_MODEL = os.environ.get("PRO_MODEL", "gemini-2.5-pro")
+SONNET_MODEL = os.environ.get("SONNET_MODEL", "claude-sonnet-4-6")
 OPUS_MODEL = os.environ.get("OPUS_MODEL", "claude-opus-4-6")
 COMPLEXITY_THRESHOLD_HIGH = float(os.environ.get("COMPLEXITY_THRESHOLD_HIGH", "0.65"))
 CLASSIFIER_MODEL = os.environ.get("CLASSIFIER_MODEL", "gemini-2.5-flash-lite")

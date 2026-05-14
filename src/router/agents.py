@@ -1,4 +1,7 @@
-"""Multi-model agent definitions — routes by prompt complexity to Lite, Flash, or Opus."""
+"""Multi-model agent definitions — 5-tier router by prompt complexity.
+
+Routes to: Lite → Flash → Pro → Sonnet → Opus based on classifier score.
+"""
 
 from google.adk.agents import LlmAgent
 from google.adk.agents.callback_context import CallbackContext
@@ -6,7 +9,7 @@ from google.adk.models.lite_llm import LiteLlm
 from google.adk.tools.preload_memory_tool import PreloadMemoryTool
 from google.genai.types import Content, Part
 
-from .config import LITE_MODEL, FLASH_MODEL, OPUS_MODEL
+from .config import LITE_MODEL, FLASH_MODEL, PRO_MODEL, SONNET_MODEL, OPUS_MODEL
 from .armor import input_guardrail_callback
 from .complexity import classify_complexity
 
@@ -39,7 +42,7 @@ def _mcp_tools():
 lite_agent = LlmAgent(
     model=_resolve_model(LITE_MODEL),
     name="lite_agent",
-    description="Handles simple, single-intent lookups — flight searches, policy checks, quick facts.",
+    description="Handles trivial, single-intent lookups — direct facts, single policy checks.",
     instruction=(
         "You are a fast corporate assistant for simple queries. "
         "Give direct, concise answers. Use tools when needed."
@@ -50,10 +53,32 @@ lite_agent = LlmAgent(
 flash_agent = LlmAgent(
     model=_resolve_model(FLASH_MODEL),
     name="flash_agent",
-    description="Handles moderate tasks requiring reasoning — comparisons, multi-step lookups, summaries.",
+    description="Handles simple tasks with light reasoning — formatted searches, single submissions.",
     instruction=(
-        "You are a capable corporate assistant for moderately complex requests. "
-        "Break down the problem, use tools as needed, and provide clear structured answers."
+        "You are a capable corporate assistant for straightforward requests. "
+        "Use tools as needed and provide clear, formatted answers."
+    ),
+    tools=_mcp_tools(),
+)
+
+pro_agent = LlmAgent(
+    model=_resolve_model(PRO_MODEL),
+    name="pro_agent",
+    description="Handles moderate tasks requiring reasoning — comparisons, multi-step lookups, policy analysis.",
+    instruction=(
+        "You are a thorough corporate assistant for moderately complex requests. "
+        "Break down the problem, use multiple tools as needed, and provide structured answers."
+    ),
+    tools=_mcp_tools(),
+)
+
+sonnet_agent = LlmAgent(
+    model=_resolve_model(SONNET_MODEL),
+    name="sonnet_agent",
+    description="Handles complex, multi-intent requests requiring cross-domain analysis.",
+    instruction=(
+        "You are an advanced corporate assistant for complex requests. "
+        "Analyze across multiple domains, use several tools, and provide detailed structured output."
     ),
     tools=_mcp_tools(),
 )
@@ -61,9 +86,9 @@ flash_agent = LlmAgent(
 opus_agent = LlmAgent(
     model=_resolve_model(OPUS_MODEL),
     name="opus_agent",
-    description="Handles complex, multi-step requests requiring deep analysis and cross-domain reasoning.",
+    description="Handles expert-level requests requiring deep multi-step planning, budget optimization, and strategic synthesis.",
     instruction=(
-        "You are an expert corporate assistant for complex, high-stakes requests. "
+        "You are an expert corporate assistant for the most complex, high-stakes requests. "
         "Provide thorough analysis with multi-step planning. "
         "Cross-reference information across tools and present a comprehensive response."
     ),
@@ -101,9 +126,6 @@ async def save_memories_callback(callback_context: CallbackContext = None, **kwa
     try:
         await callback_context.add_session_to_memory()
     except (ValueError, RuntimeError):
-        # Memory Bank is only available when deployed to Agent Engine.
-        # Local dev and eval runs don't have a memory service configured,
-        # so add_session_to_memory raises ValueError. Safe to skip.
         pass
     return None
 
@@ -117,7 +139,9 @@ You are a routing coordinator. A complexity classifier assessed the user's reque
 
 You MUST call the transfer_to_agent function to delegate to the correct specialist:
 - "low" → transfer_to_agent(agent_name="lite_agent")
-- "medium" → transfer_to_agent(agent_name="flash_agent")
+- "medium_low" → transfer_to_agent(agent_name="flash_agent")
+- "medium" → transfer_to_agent(agent_name="pro_agent")
+- "medium_high" → transfer_to_agent(agent_name="sonnet_agent")
 - "high" → transfer_to_agent(agent_name="opus_agent")
 
 Always call transfer_to_agent. Do not answer the user's question yourself.\
@@ -128,7 +152,7 @@ router_agent = LlmAgent(
     name="router_agent",
     instruction=ROUTER_INSTRUCTION,
     tools=[PreloadMemoryTool()],
-    sub_agents=[lite_agent, flash_agent, opus_agent],
+    sub_agents=[lite_agent, flash_agent, pro_agent, sonnet_agent, opus_agent],
     before_agent_callback=complexity_router_callback,
     after_agent_callback=save_memories_callback,
 )

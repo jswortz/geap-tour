@@ -21,6 +21,8 @@ from src.config import (
     AGENT_GATEWAY_EGRESS_PATH,
     AGENT_ENGINE_ID,
     OPUS_MODEL,
+    SONNET_MODEL,
+    PRO_MODEL,
     LITE_MODEL,
     FLASH_MODEL,
     COMPLEXITY_THRESHOLD_HIGH,
@@ -90,6 +92,8 @@ def deploy_agent(agent, display_name: str | None = None) -> str:
         "EXPENSE_MCP_URL": EXPENSE_MCP_URL,
         "AGENT_ENGINE_ID": AGENT_ENGINE_ID,
         "OPUS_MODEL": OPUS_MODEL,
+        "SONNET_MODEL": SONNET_MODEL,
+        "PRO_MODEL": PRO_MODEL,
         "LITE_MODEL": LITE_MODEL,
         "FLASH_MODEL": FLASH_MODEL,
         "COMPLEXITY_THRESHOLD_HIGH": str(COMPLEXITY_THRESHOLD_HIGH),
@@ -108,17 +112,17 @@ def deploy_agent(agent, display_name: str | None = None) -> str:
         "display_name": display_name or agent.name,
         "env_vars": env_vars,
         "extra_packages": ["src"],
-        "agent_gateway_config": {
-            # Inbound: users → agent
-            "client_to_agent_config": {
-                "agent_gateway": AGENT_GATEWAY_PATH
-            },
-            # Outbound: agent → models, tools, APIs
-            "agent_to_anywhere_config": {
-                "agent_gateway": AGENT_GATEWAY_EGRESS_PATH
-            },
-        },
-        "identity_type": "AGENT_IDENTITY",
+        # "agent_gateway_config": {
+        #     # Inbound: users → agent
+        #     "client_to_agent_config": {
+        #         "agent_gateway": AGENT_GATEWAY_PATH
+        #     },
+        #     # Outbound: agent → models, tools, APIs
+        #     "agent_to_anywhere_config": {
+        #         "agent_gateway": AGENT_GATEWAY_EGRESS_PATH
+        #     },
+        # },
+        # "identity_type": types.IdentityType.AGENT_IDENTITY,
     }
 
     # Agent Gateway and AGENT_IDENTITY require IdentityType and
