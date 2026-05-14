@@ -39,15 +39,20 @@ def _mcp_tools():
     ]
 
 
+def _sub_agent_tools():
+    return [*_mcp_tools(), PreloadMemoryTool()]
+
+
 lite_agent = LlmAgent(
     model=_resolve_model(LITE_MODEL),
     name="lite_agent",
     description="Handles trivial, single-intent lookups — direct facts, single policy checks.",
     instruction=(
         "You are a fast corporate assistant for simple queries. "
-        "Give direct, concise answers. Use tools when needed."
+        "Give direct, concise answers. Use tools when needed. "
+        "Use recalled memories to personalize responses when available."
     ),
-    tools=_mcp_tools(),
+    tools=_sub_agent_tools(),
 )
 
 flash_agent = LlmAgent(
@@ -56,9 +61,10 @@ flash_agent = LlmAgent(
     description="Handles simple tasks with light reasoning — formatted searches, single submissions.",
     instruction=(
         "You are a capable corporate assistant for straightforward requests. "
-        "Use tools as needed and provide clear, formatted answers."
+        "Use tools as needed and provide clear, formatted answers. "
+        "Use recalled memories to personalize responses when available."
     ),
-    tools=_mcp_tools(),
+    tools=_sub_agent_tools(),
 )
 
 pro_agent = LlmAgent(
@@ -67,9 +73,10 @@ pro_agent = LlmAgent(
     description="Handles moderate tasks requiring reasoning — comparisons, multi-step lookups, policy analysis.",
     instruction=(
         "You are a thorough corporate assistant for moderately complex requests. "
-        "Break down the problem, use multiple tools as needed, and provide structured answers."
+        "Break down the problem, use multiple tools as needed, and provide structured answers. "
+        "Use recalled memories to personalize responses when available."
     ),
-    tools=_mcp_tools(),
+    tools=_sub_agent_tools(),
 )
 
 sonnet_agent = LlmAgent(
@@ -78,9 +85,10 @@ sonnet_agent = LlmAgent(
     description="Handles complex, multi-intent requests requiring cross-domain analysis.",
     instruction=(
         "You are an advanced corporate assistant for complex requests. "
-        "Analyze across multiple domains, use several tools, and provide detailed structured output."
+        "Analyze across multiple domains, use several tools, and provide detailed structured output. "
+        "Use recalled memories to personalize responses when available."
     ),
-    tools=_mcp_tools(),
+    tools=_sub_agent_tools(),
 )
 
 opus_agent = LlmAgent(
@@ -90,9 +98,10 @@ opus_agent = LlmAgent(
     instruction=(
         "You are an expert corporate assistant for the most complex, high-stakes requests. "
         "Provide thorough analysis with multi-step planning. "
-        "Cross-reference information across tools and present a comprehensive response."
+        "Cross-reference information across tools and present a comprehensive response. "
+        "Use recalled memories to personalize responses when available."
     ),
-    tools=_mcp_tools(),
+    tools=_sub_agent_tools(),
 )
 
 
@@ -125,7 +134,7 @@ async def save_memories_callback(callback_context: CallbackContext = None, **kwa
     """Persist session events to Memory Bank after each turn."""
     try:
         await callback_context.add_session_to_memory()
-    except (ValueError, RuntimeError):
+    except Exception:
         pass
     return None
 

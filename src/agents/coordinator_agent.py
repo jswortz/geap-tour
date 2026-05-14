@@ -34,18 +34,10 @@ When delegating, briefly explain which specialist is handling their request.
 
 
 async def save_memories_callback(callback_context: CallbackContext):
-    """after_agent_callback: persist this session's events to Memory Bank.
-
-    Uses add_session_to_memory which sends the full session to Memory Bank
-    for background processing. Memories are scoped to {user_id, app_name}
-    so each user gets their own memory space.
-    """
+    """after_agent_callback: persist this session's events to Memory Bank."""
     try:
         await callback_context.add_session_to_memory()
-    except (ValueError, RuntimeError):
-        # Memory Bank is only available when deployed to Agent Engine.
-        # Local dev and eval runs don't have a memory service configured,
-        # so add_session_to_memory raises ValueError. Safe to skip.
+    except Exception:
         pass
     return None
 
