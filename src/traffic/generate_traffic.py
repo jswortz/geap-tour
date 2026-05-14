@@ -1,6 +1,12 @@
-"""Generate test traffic to populate OTel traces for evaluation and monitoring."""
+"""Generate test traffic to populate OTel traces for evaluation and monitoring.
+
+Supports both burst mode (send N rounds immediately) and steady-state mode
+(send queries at a fixed interval for a duration, simulating production traffic).
+"""
 
 import argparse
+import random
+import time
 
 import vertexai
 from vertexai import agent_engines
@@ -254,14 +260,117 @@ def generate_router_traffic(
     print(f"  By complexity:   low={complexity_counts['low']}  medium={complexity_counts['medium']}  high={complexity_counts['high']}")
 
 
+def _send_single_query(agent, sessions: dict, query: str, user_id: str, complexity: str) -> bool:
+    """Send a single query to an agent. Returns True on success."""
+    try:
+        if user_id not in sessions:
+            session = agent.create_session(user_id=user_id)
+            sessions[user_id] = session["id"]
+
+        response = agent.stream_query(
+            user_id=user_id,
+            session_id=sessions[user_id],
+            message=query,
+        )
+        for chunk in response:
+            pass
+        return True
+    except Exception as e:
+        print(f"  x Error: {e}")
+        return False
+
+
+def generate_steady_traffic(
+    agent_resource_name: str | None = None,
+    duration_minutes: int = 30,
+    interval_seconds: int = 60,
+    queries_per_interval: int = 3,
+):
+    """Send queries at a steady rate over an extended period.
+
+    Simulates production traffic by picking random queries from the full
+    query set and sending them at regular intervals. Useful for populating
+    OTel traces and exercising online evaluators over time.
+
+    Args:
+        agent_resource_name: Full resource name or agent engine ID.
+        duration_minutes: How long to generate traffic (default: 30 min).
+        interval_seconds: Seconds between each batch (default: 60s).
+        queries_per_interval: Number of queries per interval (default: 3).
+    """
+    vertexai.init(project=GCP_PROJECT_ID, location=GCP_REGION)
+
+    if agent_resource_name is None:
+        agent_resource_name = (
+            f"projects/{GCP_PROJECT_ID}/locations/{GCP_REGION}"
+            f"/reasoningEngines/{AGENT_ENGINE_ID}"
+        )
+
+    agent = agent_engines.get(agent_resource_name)
+    sessions: dict[str, str] = {}
+    total_queries = 0
+    total_errors = 0
+    end_time = time.time() + (duration_minutes * 60)
+    total_intervals = (duration_minutes * 60) // interval_seconds
+
+    print(f"{'=' * 60}")
+    print(f"STEADY-STATE TRAFFIC GENERATION")
+    print(f"{'=' * 60}")
+    print(f"  Agent:     {agent_resource_name}")
+    print(f"  Duration:  {duration_minutes} minutes")
+    print(f"  Interval:  every {interval_seconds}s")
+    print(f"  Queries:   {queries_per_interval} per interval")
+    print(f"  Estimated: ~{total_intervals * queries_per_interval} total queries")
+    print(f"  Start:     {time.strftime('%H:%M:%S')}")
+    print(f"  End:       {time.strftime('%H:%M:%S', time.localtime(end_time))}")
+    print()
+
+    interval_num = 0
+    while time.time() < end_time:
+        interval_num += 1
+        batch = random.sample(QUERIES, min(queries_per_interval, len(QUERIES)))
+        remaining = int((end_time - time.time()) / 60)
+
+        print(f"[Interval {interval_num}/{total_intervals}] {time.strftime('%H:%M:%S')} — {remaining}min remaining")
+
+        for query, user_id, complexity in batch:
+            total_queries += 1
+            print(f"  ({complexity}) {query[:60]}")
+            if not _send_single_query(agent, sessions, query, user_id, complexity):
+                total_errors += 1
+
+        if time.time() < end_time:
+            time.sleep(interval_seconds)
+
+    print(f"\n{'=' * 60}")
+    print(f"STEADY-STATE TRAFFIC COMPLETE")
+    print(f"{'=' * 60}")
+    print(f"  Total queries: {total_queries}")
+    print(f"  Errors:        {total_errors}")
+    print(f"  Duration:      {duration_minutes} minutes")
+    print(f"  Avg rate:      {total_queries / max(duration_minutes, 1):.1f} queries/min")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate test traffic for OTel traces")
     parser.add_argument("agent", nargs="?", default=None, help="Agent resource name or engine ID")
     parser.add_argument("--count", type=int, default=1, help="Repeat query set N times (default: 1)")
     parser.add_argument("--router", action="store_true", help="Also send traffic to the multi-model router")
     parser.add_argument("--router-only", action="store_true", help="Only send traffic to the multi-model router")
+    parser.add_argument("--steady", action="store_true", help="Run in steady-state mode (continuous traffic over time)")
+    parser.add_argument("--duration", type=int, default=30, help="Steady-state duration in minutes (default: 30)")
+    parser.add_argument("--interval", type=int, default=60, help="Seconds between batches in steady-state mode (default: 60)")
+    parser.add_argument("--qps", type=int, default=3, help="Queries per interval in steady-state mode (default: 3)")
     args = parser.parse_args()
-    if args.router_only:
+
+    if args.steady:
+        generate_steady_traffic(
+            agent_resource_name=args.agent,
+            duration_minutes=args.duration,
+            interval_seconds=args.interval,
+            queries_per_interval=args.qps,
+        )
+    elif args.router_only:
         generate_router_traffic(count=args.count)
     else:
         generate_traffic(args.agent, count=args.count)
