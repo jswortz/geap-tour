@@ -4,7 +4,6 @@ from google.adk.agents import LlmAgent
 
 from src.config import AGENT_MODEL, SEARCH_MCP_SERVER, BOOKING_MCP_SERVER
 from src.registry import get_mcp_tools
-from src.armor.config import get_armored_generate_config, input_guardrail_callback
 
 INSTRUCTION = """\
 You are a corporate travel assistant. You help employees search for and book \
@@ -28,8 +27,6 @@ travel_agent = LlmAgent(
         get_mcp_tools(SEARCH_MCP_SERVER),
         get_mcp_tools(BOOKING_MCP_SERVER),
     ],
-    generate_content_config=get_armored_generate_config(),
-    before_agent_callback=input_guardrail_callback,
 )
 
 root_agent = travel_agent

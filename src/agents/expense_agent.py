@@ -4,7 +4,6 @@ from google.adk.agents import LlmAgent
 
 from src.config import AGENT_MODEL, EXPENSE_MCP_SERVER
 from src.registry import get_mcp_tools
-from src.armor.config import get_armored_generate_config, input_guardrail_callback
 
 INSTRUCTION = """\
 You are a corporate expense management assistant. You help employees submit \
@@ -30,8 +29,6 @@ expense_agent = LlmAgent(
     tools=[
         get_mcp_tools(EXPENSE_MCP_SERVER),
     ],
-    generate_content_config=get_armored_generate_config(),
-    before_agent_callback=input_guardrail_callback,
 )
 
 root_agent = expense_agent

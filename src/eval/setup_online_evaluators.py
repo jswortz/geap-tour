@@ -23,8 +23,12 @@ import google.auth
 import google.auth.transport.requests
 import requests
 
-from src.config import AGENT_ENGINE_ID, GCP_PROJECT_ID, GCP_REGION, PROJECT_NUMBER, ROUTER_ENGINE_ID
+from src.config import GCP_PROJECT_ID, GCP_REGION, PROJECT_NUMBER
 API_BASE = f"https://{GCP_REGION}-aiplatform.googleapis.com/v1beta1/projects/{PROJECT_NUMBER}/locations/{GCP_REGION}"
+
+import os
+COORDINATOR_ENGINE_ID = os.environ.get("COORDINATOR_AGENT_ID", "8296365537139621888")
+ROUTER_ENGINE_ID = os.environ.get("ROUTER_ENGINE_ID", os.environ.get("AGENT_ENGINE_ID", "4709107696450666496"))
 
 CUSTOM_METRICS = [
     {
@@ -131,7 +135,7 @@ PREDEFINED_METRICS = [
 ]
 
 AGENTS = {
-    "coordinator": AGENT_ENGINE_ID,
+    "coordinator": COORDINATOR_ENGINE_ID,
     "router": ROUTER_ENGINE_ID,
 }
 

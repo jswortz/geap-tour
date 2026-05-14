@@ -151,3 +151,6 @@ Greet the user and ask how you can help if intent is unclear.""",
     before_agent_callback=input_guardrail_callback,
     after_agent_callback=save_memories_callback,
 )
+
+import types as _t
+agent = _t.SimpleNamespace(root_agent=root_agent)

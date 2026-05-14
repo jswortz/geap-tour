@@ -1,0 +1,82 @@
+{
+  "eval_set_id": "coordinator_eval_set",
+  "eval_cases": [
+    {
+      "eval_id": "hotel_search_nyc",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Search for hotels in New York under $350 per night"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I found hotels in New York under $350 per night: Grand Hyatt New York at $320/night (4.5 rating) and Budget Inn Downtown at $120/night (3.2 rating)."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "search_hotels", "args": {"city": "New York", "max_price": 350}}]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "hotel_search_miami",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Find me a hotel in Miami"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I found the Fontainebleau Miami at $400/night with a 4.7 rating."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "search_hotels", "args": {"city": "Miami"}}]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "book_flight",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Book flight FL001 for Alice Johnson"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Flight FL001 has been booked for Alice Johnson. Booking confirmed."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "book_flight", "args": {"flight_id": "FL001", "passenger_name": "Alice Johnson"}}]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "expense_policy_check_within",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Check if a $50 meal expense is within policy"}], "role": "user"},
+        "final_response": {"parts": [{"text": "A $50 meal expense is within policy. The meal limit is $75."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "check_expense_policy", "args": {"category": "meals", "amount": 50}}]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "expense_policy_over_limit",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Check policy for a $500 entertainment expense"}], "role": "user"},
+        "final_response": {"parts": [{"text": "A $500 entertainment expense exceeds the $150 policy limit for entertainment. It requires manager review."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "check_expense_policy", "args": {"category": "entertainment", "amount": 500}}]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "expense_submit_within",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Submit a $45 meals expense for lunch meeting, user ID EMP001"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Expense submitted: $45 for meals (lunch meeting) for user EMP001. Status: approved, within the $75 meal policy limit."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "submit_expense", "args": {"user_id": "EMP001", "category": "meals", "amount": 45, "description": "lunch meeting"}}]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "expense_history",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Show all expenses for user EMP001"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Here are the expenses for user EMP001."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "get_user_expenses", "args": {"user_id": "EMP001"}}]
+        }
+      }],
+      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+    }
+  ]
+}

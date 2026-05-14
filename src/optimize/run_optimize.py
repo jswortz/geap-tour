@@ -5,41 +5,52 @@ The GEPA algorithm iteratively refines agent system instructions by:
 2. Analyzing failure patterns
 3. Generating instruction variants
 4. Evaluating variants and selecting the best performer
+
+Usage:
+    uv run python -m src.optimize.run_optimize src/agents/travel_agent
+    uv run python -m src.optimize.run_optimize src/agents/coordinator_agent
+    uv run python -m src.optimize.run_optimize src/router --sampler-config src/optimize/router_sampler_config.json
 """
 
+import os
 import subprocess
 import sys
 
-from src.config import GCP_PROJECT_ID, GCP_REGION
+
+SAMPLER_CONFIG = os.path.join(os.path.dirname(__file__), "sampler_config.json")
 
 
 def run_optimize(
-    agent_module: str = "src.agents.travel_agent",
-    eval_dataset_path: str | None = None,
-    iterations: int = 3,
+    agent_module_path: str = "src/agents/travel_agent",
+    sampler_config_path: str = SAMPLER_CONFIG,
+    optimizer_config_path: str | None = None,
+    print_detailed: bool = True,
 ):
     """Run adk optimize on an agent module.
 
     Args:
-        agent_module: Python module path to the agent (must export the agent variable)
-        eval_dataset_path: Path to eval dataset JSON. If None, uses generated scenarios.
-        iterations: Number of optimization iterations
+        agent_module_path: File path to the agent module directory
+            (must contain __init__.py exporting root_agent via agent namespace).
+        sampler_config_path: Path to LocalEvalSampler config JSON.
+        optimizer_config_path: Optional path to GEPA optimizer config JSON.
+        print_detailed: Print detailed optimization results to console.
     """
     print(f"=== Agent Optimization (GEPA) ===")
-    print(f"Agent module: {agent_module}")
-    print(f"Iterations: {iterations}")
+    print(f"Agent module path: {agent_module_path}")
+    print(f"Sampler config:    {sampler_config_path}")
     print()
 
     cmd = [
         "adk", "optimize",
-        "--agent-module", agent_module,
-        "--project", GCP_PROJECT_ID,
-        "--location", GCP_REGION,
-        "--iterations", str(iterations),
+        agent_module_path,
+        "--sampler_config_file_path", sampler_config_path,
     ]
 
-    if eval_dataset_path:
-        cmd.extend(["--eval-dataset", eval_dataset_path])
+    if optimizer_config_path:
+        cmd.extend(["--optimizer_config_file_path", optimizer_config_path])
+
+    if print_detailed:
+        cmd.append("--print_detailed_results")
 
     print(f"Running: {' '.join(cmd)}\n")
 
@@ -54,7 +65,6 @@ def run_optimize(
 
 
 if __name__ == "__main__":
-    module = sys.argv[1] if len(sys.argv) > 1 else "src.agents.travel_agent"
-    dataset = sys.argv[2] if len(sys.argv) > 2 else None
-    iters = int(sys.argv[3]) if len(sys.argv) > 3 else 3
-    sys.exit(run_optimize(module, dataset, iters))
+    module_path = sys.argv[1] if len(sys.argv) > 1 else "src/agents/travel_agent"
+    sampler = sys.argv[2] if len(sys.argv) > 2 else SAMPLER_CONFIG
+    sys.exit(run_optimize(module_path, sampler))
