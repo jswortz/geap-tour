@@ -1,0 +1,93 @@
+Create a comprehensive reference architecture diagram for Google's Agentic Platform on Google Cloud. This is a single enterprise-grade overview showing the complete platform from development through production with governance, observability, and Gemini Enterprise integration.
+
+Layout: A large "Google Cloud Platform" outer boundary containing four distinct project zones arranged left-to-right, with a shared services layer at top, Agent Registry spanning the bottom, and Gemini Enterprise on the far right.
+
+TOP LAYER — "Shared Service Project" (horizontal bar spanning the width):
+- Left section: "Agent Gateway" with a gateway icon
+  - Two sub-components stacked: "Ingress Gateway (Client-to-Agent)" and "Egress Gateway (Agent-to-Anywhere)"
+  - Sub-labels: AuthN, Rate Limiting, IAM Allow Policies, SGP Enforcement
+- Center section: "Model Armor" with a shield icon
+  - Sub-labels: Prompt Injection Detection, Content Safety (RAI), Sensitive Data Protection, Malicious URL Screening
+  - Two template badges: "Input Screening Template" and "Output Screening Template"
+- Right section: "Cloud Armor" with a firewall icon
+  - Sub-label: DDoS Protection, WAF Rules
+- Below shared services: "Secret Manager" and "Source Repositories" icons
+
+BUILD & CI/CD ROW (below shared services, spanning left two columns):
+- "Cloud Build" icon with arrow to "Artifact Registry" icon
+- Sub-label: Container images, agent bundles
+- Arrow from Artifact Registry down to Testing and Production projects
+- "Workload Identity Federation" badge connecting build to deploy
+
+PROJECT ZONE 1 — "GenAI App Development Project" (left column, blue border):
+- Title: "Development"
+- Top box: "ADK App Development" with Agent Development Kit icon
+  - Sub-components: LlmAgent definitions, Callback handlers, MCP tool integration
+  - Sub-label: "google-adk SDK"
+- Middle box: "Evaluation Framework" with chart icon
+  - Sub-components: Batch Evaluation, Online Evaluators (10-min cycles), Simulated Eval (CI/CD Gate)
+  - Sub-label: Custom rubrics via PointwiseMetric
+- Below: "Prompt Management & Lineage" box
+  - Sub-label: GEPA Optimization (genetic algorithm), version tracking
+- Below: "Observability" box
+  - Sub-components: Cloud Trace (OTel OTLP), Cloud Logging, BigQuery Sink, Cloud Monitoring Alerts
+- Bottom: "Agent/MCP Tools as a Service" box
+  - Sub-components: FastMCP servers (search, booking, expense), StreamableHTTP transport
+
+PROJECT ZONE 2 — "GenAI App Testing Project" (center-left column, orange border):
+- Title: "Testing / Staging"
+- Top box: "GenAI App Backend" with server icon
+  - Sub-label: Agent Engine (staging deployment)
+  - Sub-components: Coordinator Agent, Travel Agent, Expense Agent
+  - Badge: "SPIFFE Identity" with lock icon
+- Middle box: "GenAI App Frontend" with browser icon
+  - Sub-label: Testing UI
+- Bottom box: "OpenAPI/MCP Tools as a Service" box
+  - Sub-components: Cloud Run MCP services (search-mcp :8001, booking-mcp :8002, expense-mcp :8003)
+  - Badge: "Agent Registry Discovery"
+
+PROJECT ZONE 3 — "GenAI App Production Project" (center-right column, green border):
+- Title: "Production"
+- Top box: "GenAI App Backend" with server icon
+  - Sub-label: "Vertex AI Agent Engine (Agent Runtime)"
+  - Sub-components: Coordinator Agent, Travel Agent, Expense Agent
+  - Badges: "AGENT_IDENTITY", "Memory Bank", "OTel Tracing"
+  - Arrow from backend through Egress Gateway to MCP servers
+- Middle box: "GenAI App Frontend" with browser icon
+  - Sub-label: Production UI
+- Bottom box: "GenAI App Tools as a Service" box
+  - Sub-components: Production Cloud Run MCP services
+  - Arrow through Agent Registry for discovery and governance routing
+
+BOTTOM SPANNING LAYER — "Agent Registry" (wide bar at bottom, connecting all project zones):
+- Central icon: Agent Registry catalog
+- Sub-label: "Fleet catalog — agent discovery, MCP server registration, tool specifications, lifecycle governance"
+- Arrows connecting up to all three project zones
+- Arrows connecting up to Shared Service Project (Agent Gateway and Model Armor)
+- Three registered MCP server entries: Search MCP, Booking MCP, Expense MCP with UUIDs
+
+RIGHT COLUMN — "Gemini Enterprise" (far right, red border, outside the GCP project zones):
+- Title: "Gemini Enterprise"
+- Icon: Group of business users
+- Sub-label: "Business End Users"
+- Arrow from Gemini Enterprise left through "Global Agent Gateway" into Production project
+- Sub-note: "Global gateways (separate from regional Agent Runtime gateways)"
+- Badge: "A2A Protocol" for agent-to-agent communication
+
+CONNECTING ARROWS AND FLOWS:
+- User/Developer at top-left with arrow down into Development project
+- CI/CD arrow from Development → Testing → Production (left to right)
+- Agent Gateway arrows: Ingress from Users/Gemini Enterprise into Production agents, Egress from agents to MCP servers and external APIs
+- Observability arrows: OTel spans from Production agents → Cloud Trace → Cloud Logging → BigQuery → Cloud Monitoring → Alert Policies
+- Evaluation feedback loop: circular arrow from Evaluation Framework back to ADK App Development (GEPA optimization)
+- Model Armor arrows: bidirectional screening on ingress (input) and egress (output) paths
+- Agent Registry arrows: discovery connections from all agents to registry, from registry to MCP servers
+
+ADDITIONAL COMPONENTS (scattered across zones):
+- "Multi-Model Router" badge on Production backend: Flash Lite → Flash → Opus (complexity-based routing)
+- "Semantic Governance Policies (SGP)" badge on Egress Gateway: natural language business rules
+- "IAM Allow Policies" badge on Egress Gateway: CEL-based tool-level access control
+- "Workload Identity Pool" connecting agent identity to IAM
+- "Vertex AI Models" box below Production: gemini-2.5-flash, gemini-2.5-pro, Claude Opus via LiteLLM
+
+Style: Google Cloud official architecture diagram style with GCP product icons throughout. White background, clean and professional. Use Google Cloud blue (#4285F4) for project boundaries, Google orange for testing, Google green for production, Google red for Gemini Enterprise. Rounded corners on all boxes. Clear labeled arrows with thin lines. Title at top: "Google's Agentic Reference Architecture — Gemini Enterprise Agent Platform". Subtitle: "Development → Testing → Production lifecycle with governance, observability, and Gemini Enterprise integration". Google Cloud logo in bottom-right corner.
