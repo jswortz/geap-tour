@@ -6,7 +6,8 @@ from pptx import Presentation
 from pptx.util import Inches, Pt, Emu
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
-from pptx.enum.shapes import MSO_SHAPE
+from pptx.enum.shapes import MSO_SHAPE, MSO_CONNECTOR_TYPE
+from pptx.oxml.ns import qn
 
 DOCS = os.path.join(os.path.dirname(__file__), "..", "docs")
 SCREENSHOTS = os.path.join(DOCS, "screenshots")
@@ -256,6 +257,303 @@ def add_image_safe(slide, path, left, top, width=None, height=None):
     return False
 
 
+MEDIUM_GRAY = RGBColor(0xE0, 0xE0, 0xE0)
+ARCH_BG = RGBColor(0xF0, 0xF0, 0xF0)
+ARCH_INNER_BG = RGBColor(0xE8, 0xE8, 0xE8)
+BORDER_GRAY = RGBColor(0xCC, 0xCC, 0xCC)
+
+
+def _add_arch_box(slide, left, top, width, height, fill_color=WHITE,
+                  border_color=BORDER_GRAY, border_width=Pt(1), radius=None):
+    shape = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left, top, width, height)
+    shape.fill.solid()
+    shape.fill.fore_color.rgb = fill_color
+    shape.line.color.rgb = border_color
+    shape.line.width = border_width
+    return shape
+
+
+def _add_arch_label(slide, left, top, width, height, text, font_size=14,
+                    bold=False, color=DARK, align=PP_ALIGN.CENTER):
+    txBox = slide.shapes.add_textbox(left, top, width, height)
+    tf = txBox.text_frame
+    tf.word_wrap = True
+    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    p = tf.paragraphs[0]
+    p.text = text
+    p.font.size = Pt(font_size)
+    p.font.bold = bold
+    p.font.color.rgb = color
+    p.font.name = FONT
+    p.alignment = align
+    return txBox
+
+
+def _add_arch_sublabel(text_frame, text, font_size=11, color=GRAY):
+    p = text_frame.add_paragraph()
+    p.text = text
+    p.font.size = Pt(font_size)
+    p.font.color.rgb = color
+    p.font.name = FONT
+    p.alignment = PP_ALIGN.CENTER
+    p.space_before = Pt(2)
+    return p
+
+
+def _add_arrow(slide, start_x, start_y, end_x, end_y, color=GRAY, width=Pt(2)):
+    connector = slide.shapes.add_connector(
+        MSO_CONNECTOR_TYPE.STRAIGHT,
+        int(start_x), int(start_y), int(end_x), int(end_y)
+    )
+    connector.line.color.rgb = color
+    connector.line.width = width
+    ln = connector.line._ln
+    tail = ln.makeelement(qn('a:tailEnd'), {'type': 'triangle', 'w': 'med', 'len': 'med'})
+    ln.append(tail)
+    return connector
+
+
+def build_architecture_slide(slide):
+    """Build editable GEAP platform architecture diagram matching the reference image."""
+
+    # -- Outer rounded container (light gray background) --
+    _add_arch_box(slide, Inches(0.4), Inches(1.0), Inches(12.5), Inches(5.8),
+                  fill_color=ARCH_BG, border_color=MEDIUM_GRAY, border_width=Pt(0))
+
+    # ========================================
+    # TOP GOVERNANCE BAR: Agent Registry | AI Security | Access Authorization
+    # ========================================
+    gov_y = Inches(1.2)
+    gov_h = Inches(0.55)
+    gov_labels = ["Agent Registry", "AI Security", "Access Authorization"]
+    gov_widths = [Inches(3.2), Inches(3.2), Inches(3.2)]
+    gov_x_start = Inches(1.7)
+    gov_gap = Inches(0.4)
+    for i, (label, w) in enumerate(zip(gov_labels, gov_widths)):
+        x = gov_x_start + i * (w + gov_gap)
+        box = _add_arch_box(slide, x, gov_y, w, gov_h,
+                            fill_color=WHITE, border_color=BORDER_GRAY)
+        tf = box.text_frame
+        tf.word_wrap = True
+        tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+        p = tf.paragraphs[0]
+        p.text = label
+        p.font.size = Pt(13)
+        p.font.bold = True
+        p.font.color.rgb = DARK
+        p.font.name = FONT
+        p.alignment = PP_ALIGN.CENTER
+
+    # ========================================
+    # MAIN FLOW ROW
+    # ========================================
+    flow_y = Inches(2.2)
+
+    # -- User icon (person silhouette placeholder) --
+    user_x = Inches(0.6)
+    user_w = Inches(0.8)
+    _add_arch_label(slide, user_x, flow_y - Inches(0.1), user_w, Inches(0.5),
+                    "User", font_size=13, bold=True, color=DARK)
+
+    # -- Arrow: User → Frontend --
+    _add_arrow(slide, Inches(1.4), flow_y + Inches(0.15),
+               Inches(1.8), flow_y + Inches(0.15))
+
+    # -- Frontend box --
+    fe_x = Inches(1.8)
+    fe_w = Inches(1.5)
+    fe_h = Inches(1.1)
+    fe_box = _add_arch_box(slide, fe_x, flow_y - Inches(0.2), fe_w, fe_h,
+                           fill_color=WHITE, border_color=BORDER_GRAY)
+    tf = fe_box.text_frame
+    tf.word_wrap = True
+    tf.vertical_anchor = MSO_ANCHOR.TOP
+    tf.margin_top = Pt(8)
+    p = tf.paragraphs[0]
+    p.text = "Frontend"
+    p.font.size = Pt(13)
+    p.font.bold = True
+    p.font.color.rgb = DARK
+    p.font.name = FONT
+    p.alignment = PP_ALIGN.CENTER
+    _add_arch_sublabel(tf, "Web / Mobile / API", font_size=10, color=GRAY)
+
+    # -- Arrow: Frontend → Ingress Gateway --
+    _add_arrow(slide, Inches(3.3), flow_y + Inches(0.15),
+               Inches(3.7), flow_y + Inches(0.15))
+
+    # -- Ingress Agent Gateway --
+    gw_in_x = Inches(3.7)
+    gw_w = Inches(1.4)
+    gw_h = Inches(1.6)
+    gw_in_box = _add_arch_box(slide, gw_in_x, flow_y - Inches(0.4), gw_w, gw_h,
+                               fill_color=WHITE, border_color=BLUE, border_width=Pt(2))
+    tf = gw_in_box.text_frame
+    tf.word_wrap = True
+    tf.vertical_anchor = MSO_ANCHOR.TOP
+    tf.margin_top = Pt(10)
+    tf.margin_left = Pt(4)
+    tf.margin_right = Pt(4)
+    p = tf.paragraphs[0]
+    p.text = "Agent\nGateway"
+    p.font.size = Pt(13)
+    p.font.bold = True
+    p.font.color.rgb = BLUE
+    p.font.name = FONT
+    p.alignment = PP_ALIGN.CENTER
+    _add_arch_sublabel(tf, "(Ingress)", font_size=10, color=BLUE)
+
+    # -- Arrow: Ingress → Agent Identity/Runtime --
+    _add_arrow(slide, Inches(5.1), flow_y + Inches(0.15),
+               Inches(5.5), flow_y + Inches(0.15))
+
+    # ========================================
+    # CENTER: Agent Identity / Agent Platform Runtime (large box)
+    # ========================================
+    rt_x = Inches(5.5)
+    rt_w = Inches(3.8)
+    rt_h = Inches(3.6)
+    rt_y = flow_y - Inches(0.6)
+
+    rt_box = _add_arch_box(slide, rt_x, rt_y, rt_w, rt_h,
+                           fill_color=ARCH_INNER_BG, border_color=BORDER_GRAY, border_width=Pt(1.5))
+    # Runtime title
+    _add_arch_label(slide, rt_x, rt_y + Inches(0.05), rt_w, Inches(0.4),
+                    "Agent Identity", font_size=14, bold=True, color=DARK)
+    _add_arch_label(slide, rt_x, rt_y + Inches(0.35), rt_w, Inches(0.3),
+                    "Agent Platform Runtime", font_size=10, bold=False, color=GRAY)
+
+    # -- Inner Agent box --
+    agent_x = rt_x + Inches(0.3)
+    agent_y = rt_y + Inches(0.75)
+    agent_w = rt_w - Inches(0.6)
+    agent_h = Inches(1.4)
+    agent_box = _add_arch_box(slide, agent_x, agent_y, agent_w, agent_h,
+                              fill_color=WHITE, border_color=BORDER_GRAY)
+    tf = agent_box.text_frame
+    tf.word_wrap = True
+    tf.vertical_anchor = MSO_ANCHOR.TOP
+    tf.margin_top = Pt(8)
+    tf.margin_left = Pt(8)
+    p = tf.paragraphs[0]
+    p.text = "Agent"
+    p.font.size = Pt(13)
+    p.font.bold = True
+    p.font.color.rgb = DARK
+    p.font.name = FONT
+    p.alignment = PP_ALIGN.CENTER
+    _add_arch_sublabel(tf, "Profile, goals, skills,\ninstructions, tools...", font_size=9, color=GRAY)
+    _add_arch_sublabel(tf, "Model-based reasoning/planning\nand task execution loop", font_size=9, color=GRAY)
+
+    # -- Memory & Sessions box --
+    mem_x = rt_x + Inches(0.3)
+    mem_y = agent_y + agent_h + Inches(0.15)
+    mem_w = Inches(1.4)
+    mem_h = Inches(0.5)
+    mem_box = _add_arch_box(slide, mem_x, mem_y, mem_w, mem_h,
+                            fill_color=WHITE, border_color=BORDER_GRAY)
+    tf = mem_box.text_frame
+    tf.word_wrap = True
+    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    p = tf.paragraphs[0]
+    p.text = "Memory &\nSessions"
+    p.font.size = Pt(10)
+    p.font.bold = False
+    p.font.color.rgb = DARK
+    p.font.name = FONT
+    p.alignment = PP_ALIGN.CENTER
+
+    # -- Models (Gemini/3P) box --
+    mod_x = mem_x + mem_w + Inches(0.4)
+    mod_w = Inches(1.4)
+    mod_box = _add_arch_box(slide, mod_x, mem_y, mod_w, mem_h,
+                            fill_color=WHITE, border_color=BORDER_GRAY)
+    tf = mod_box.text_frame
+    tf.word_wrap = True
+    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    p = tf.paragraphs[0]
+    p.text = "Models\n(Gemini / 3P)"
+    p.font.size = Pt(10)
+    p.font.bold = False
+    p.font.color.rgb = DARK
+    p.font.name = FONT
+    p.alignment = PP_ALIGN.CENTER
+
+    # -- Arrow: Runtime → Egress Gateway --
+    _add_arrow(slide, Inches(9.3), flow_y + Inches(0.15),
+               Inches(9.7), flow_y + Inches(0.15))
+
+    # -- Egress Agent Gateway --
+    gw_out_x = Inches(9.7)
+    gw_out_box = _add_arch_box(slide, gw_out_x, flow_y - Inches(0.4), gw_w, gw_h,
+                                fill_color=WHITE, border_color=BLUE, border_width=Pt(2))
+    tf = gw_out_box.text_frame
+    tf.word_wrap = True
+    tf.vertical_anchor = MSO_ANCHOR.TOP
+    tf.margin_top = Pt(10)
+    tf.margin_left = Pt(4)
+    tf.margin_right = Pt(4)
+    p = tf.paragraphs[0]
+    p.text = "Agent\nGateway"
+    p.font.size = Pt(13)
+    p.font.bold = True
+    p.font.color.rgb = BLUE
+    p.font.name = FONT
+    p.alignment = PP_ALIGN.CENTER
+    _add_arch_sublabel(tf, "(Egress)", font_size=10, color=BLUE)
+
+    # ========================================
+    # RIGHT: Destination boxes (Agents, Tools, Models, APIs)
+    # ========================================
+    dest_x = Inches(11.5)
+    dest_w = Inches(1.2)
+    dest_h = Inches(0.45)
+    dest_labels = ["Agents", "Tools", "Models", "APIs"]
+    dest_colors = [BLUE, GREEN, YELLOW, RED]
+
+    for i, (label, dcolor) in enumerate(zip(dest_labels, dest_colors)):
+        dy = flow_y - Inches(0.3) + i * Inches(0.55)
+        dbox = _add_arch_box(slide, dest_x, dy, dest_w, dest_h,
+                             fill_color=WHITE, border_color=dcolor, border_width=Pt(2))
+        tf = dbox.text_frame
+        tf.word_wrap = True
+        tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+        p = tf.paragraphs[0]
+        p.text = label
+        p.font.size = Pt(12)
+        p.font.bold = True
+        p.font.color.rgb = dcolor
+        p.font.name = FONT
+        p.alignment = PP_ALIGN.CENTER
+
+        # Arrow from egress gateway to each destination
+        _add_arrow(slide, Inches(11.1), dy + dest_h / 2,
+                   dest_x, dy + dest_h / 2, color=dcolor)
+
+    # ========================================
+    # BOTTOM: AI Observability bar
+    # ========================================
+    obs_y = Inches(5.6)
+    obs_w = Inches(8.0)
+    obs_x = Inches(2.7)
+    obs_box = _add_arch_box(slide, obs_x, obs_y, obs_w, Inches(0.55),
+                            fill_color=WHITE, border_color=BORDER_GRAY)
+    tf = obs_box.text_frame
+    tf.word_wrap = True
+    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    p = tf.paragraphs[0]
+    p.text = "AI Observability"
+    p.font.size = Pt(13)
+    p.font.bold = True
+    p.font.color.rgb = DARK
+    p.font.name = FONT
+    p.alignment = PP_ALIGN.CENTER
+
+    # Vertical connector from runtime down to observability
+    _add_arrow(slide, rt_x + rt_w / 2, rt_y + rt_h,
+               rt_x + rt_w / 2, obs_y, color=GRAY, width=Pt(1.5))
+
+
 def build_deck():
     prs = Presentation()
     prs.slide_width = SLIDE_W
@@ -329,14 +627,12 @@ def build_deck():
               "Sessions 3 and 4 are shorter focused deep-dives on Agent Registry and Model Armor. "
               "There's a lunch break between sessions 1 and 2, and a short break before the final wrap-up.")
 
-    # ===== SLIDE 3: ARCHITECTURE =====
+    # ===== SLIDE 3: ARCHITECTURE (editable shapes) =====
     s = prs.slides.add_slide(blank)
     add_text(s, Inches(0.8), Inches(0.3), Inches(8), Inches(0.8), "Platform Architecture", 42, bold=True)
-    add_image_safe(s, os.path.join(SCREENSHOTS, "geap_architecture.png"),
-                   Inches(1.5), Inches(1.4), width=Inches(10))
-    add_text(s, Inches(1), Inches(6.5), Inches(11), Inches(0.5),
-             "User → Frontend → Agent Gateway → Agent Identity (Runtime) → Agent Gateway → Agents, Tools, Models, APIs",
-             16, color=GRAY, align=PP_ALIGN.CENTER)
+    build_architecture_slide(s)
+    add_text(s, Inches(1), Inches(6.9), Inches(11), Inches(0.4),
+             "Governing AI Agents with Google Cloud", 12, color=GRAY, align=PP_ALIGN.LEFT)
     add_logo(s)
     add_notes(s, "This is the high-level architecture of GEAP. Key point: the Agent Gateway sits at the network boundary — "
               "all traffic between users, agents, and external services flows through it. "
