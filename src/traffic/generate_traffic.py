@@ -2,6 +2,12 @@
 
 Supports both burst mode (send N rounds immediately) and steady-state mode
 (send queries at a fixed interval for a duration, simulating production traffic).
+
+# 1 hour, 5 queries every 30s (~600 total queries)
+uv run python -m src.traffic.generate_traffic 4709107696450666496 --steady --duration 15 --interval 30 --qps 5
+
+# Coordinator agent, 15 min, light traffic
+uv run python -m src.traffic.generate_traffic 8296365537139621888 --steady --duration 15 --interval 120 --qps 2
 """
 
 import argparse
