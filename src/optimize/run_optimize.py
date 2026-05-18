@@ -166,7 +166,8 @@ def run_optimize(
     print("-" * 80)
 
     print(f"\nBest variant: {best_idx}")
-    print(f"Score: {best_agent.score}")
+    best_scores = getattr(best_agent, "scores", getattr(best_agent, "score", None))
+    print(f"Scores: {best_scores}")
 
     if print_detailed and hasattr(optimization_result, "gepa_result"):
         gepa = optimization_result.gepa_result
