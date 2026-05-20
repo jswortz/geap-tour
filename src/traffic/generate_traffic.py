@@ -39,27 +39,65 @@ QUERIES = [
     ("I need to book a trip to Chicago and submit my last meal receipt", "alice", "medium"),
     ("What hotels are available in Miami?", "bob", "low"),
     ("Can you help me with an expense report?", "charlie", "low"),
-    # Router-specific: medium complexity
+    # Medium complexity — comparison and multi-step
     ("Find flights to NYC and compare the cheapest options by airline", "alice", "medium"),
-    ("Search hotels in Boston, then check if the nightly rate fits our lodging policy", "bob", "medium"),
-    ("Show my expense history and flag any items that exceeded policy limits", "charlie", "medium"),
-    # Router-specific: high complexity
+    ("Search hotels in New York, then check if the nightly rate fits our lodging policy", "bob", "medium"),
+    ("Show expense history for EMP001 and flag any items that exceeded policy limits", "charlie", "medium"),
+    ("Find the cheapest flight from SFO to JFK and tell me how much I'd save vs the most expensive", "alice", "medium"),
+    ("Compare hotels in New York by price and rating — which is the best value?", "bob", "medium"),
+    ("Check if a $100 meal and a $250 entertainment expense are both within policy", "charlie", "medium"),
+    # Medium-high complexity — 3+ intents, cross-domain
     (
-        "Plan a 5-day trip to Tokyo for a team of 4: find flights, hotels near Shibuya, "
-        "estimate daily meal expenses, and check entertainment policy",
+        "Show expense history for EMP001, check the entertainment policy limit, "
+        "and submit a $45 lunch receipt for EMP001",
+        "alice",
+        "medium_high",
+    ),
+    (
+        "Compare flights from SFO to JFK vs LAX to ORD, factoring in per-diem "
+        "meals and hotel costs in each destination city",
+        "bob",
+        "medium_high",
+    ),
+    (
+        "Book flight FL001 for Alice Johnson, then check if a $320 hotel "
+        "is within lodging policy, and submit a $75 meals expense for EMP001",
+        "charlie",
+        "medium_high",
+    ),
+    (
+        "Review EMP002's expense history, check all policy categories, "
+        "and submit a $150 supplies expense for office equipment for EMP002",
+        "alice",
+        "medium_high",
+    ),
+    # High complexity — multi-step planning, budget optimization, synthesis
+    (
+        "Plan a 5-day trip to Tokyo for a team of 4: find flights from SFO, "
+        "hotels, estimate daily meal expenses, and check entertainment policy",
         "alice",
         "high",
     ),
     (
-        "Compare individual vs group flight bookings for Denver, factoring in "
-        "cancellation policies, per-diem meals, and hotel location trade-offs",
+        "I have a $2000 budget for a London trip. Find flights, hotels, check "
+        "lodging and meal policies, and tell me if I can afford it within "
+        "corporate limits. Also draft a pre-trip expense estimate.",
         "bob",
         "high",
     ),
     (
         "Analyze EMP001's expense history for overspending on entertainment, "
-        "draft a policy recommendation, and submit my $45 lunch receipt",
+        "compare it against the policy limit, draft a policy recommendation "
+        "for new entertainment limits, and submit my $45 lunch receipt",
         "charlie",
+        "high",
+    ),
+    (
+        "I need to visit New York and Chicago next month. Find the cheapest "
+        "flight route, compare hotel costs in each city under the lodging policy, "
+        "estimate total trip expenses including meals and transport, and book "
+        "the cheapest flights for Bob Smith",
+        "bob",
         "high",
     ),
 ]

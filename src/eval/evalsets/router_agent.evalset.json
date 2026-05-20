@@ -131,7 +131,7 @@
           "final_response": {
             "parts": [
               {
-                "text": "Expense submitted: $30 for meals (coffee) for user EMP001. Status: approved, within the $75 meal policy limit."
+                "text": "The $30 meals expense for coffee by user EMP001 has been submitted and approved."
               }
             ],
             "role": "model"
@@ -148,7 +148,7 @@
                 }
               }
             ],
-            "expected_complexity": "medium_low"
+            "expected_complexity": "low"
           }
         }
       ],
@@ -187,7 +187,7 @@
                 }
               }
             ],
-            "expected_complexity": "medium_low"
+            "expected_complexity": "low"
           }
         }
       ],
@@ -269,7 +269,7 @@
                 }
               }
             ],
-            "expected_complexity": "medium_low"
+            "expected_complexity": "low"
           }
         }
       ],
@@ -341,7 +341,7 @@
           "final_response": {
             "parts": [
               {
-                "text": "Here's a trip plan for Tokyo: Flight FL007 on United from SFO to NRT at $1,250 per person ($5,000 for 4). For expenses: the meal policy allows $75/day per person, and the entertainment policy limit is $150 per person."
+                "text": "Here is a trip plan for Tokyo: Flight FL007 on United from SFO to NRT at $1,250 per person. Meal policy allows $75/day per person. Entertainment policy limit is $150 per person. The plan covers flights, hotels, meals, and entertainment for a team of 4 over 5 days."
               }
             ],
             "role": "model"
@@ -444,7 +444,7 @@
                 }
               }
             ],
-            "expected_complexity": "medium_high"
+            "expected_complexity": "high"
           }
         }
       ],
@@ -497,7 +497,7 @@
                 }
               }
             ],
-            "expected_complexity": "medium_high"
+            "expected_complexity": "high"
           }
         }
       ],
@@ -714,7 +714,7 @@
                 }
               }
             ],
-            "expected_complexity": "medium_low"
+            "expected_complexity": "low"
           }
         }
       ],
@@ -759,7 +759,7 @@
                 }
               }
             ],
-            "expected_complexity": "medium_low"
+            "expected_complexity": "low"
           }
         }
       ],
@@ -843,7 +843,7 @@
                 }
               }
             ],
-            "expected_complexity": "medium_low"
+            "expected_complexity": "low"
           }
         }
       ],
@@ -953,7 +953,375 @@
                 }
               }
             ],
-            "expected_complexity": "medium_high"
+            "expected_complexity": "high"
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "geap_workshop",
+        "user_id": "eval_user"
+      }
+    },
+    {
+      "eval_id": "medium_high_expense_review_and_submit",
+      "conversation": [
+        {
+          "user_content": {
+            "parts": [
+              {
+                "text": "Show expense history for EMP001, check the entertainment policy limit, and submit a $45 lunch receipt for EMP001"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "I reviewed EMP001 expenses, checked the entertainment limit of $150, and submitted the $45 lunch expense \u2014 approved within the $75 meal limit."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "get_user_expenses",
+                "args": {
+                  "user_id": "EMP001"
+                }
+              },
+              {
+                "name": "check_expense_policy",
+                "args": {
+                  "category": "entertainment"
+                }
+              },
+              {
+                "name": "submit_expense",
+                "args": {
+                  "user_id": "EMP001",
+                  "category": "meals",
+                  "amount": 45,
+                  "description": "lunch"
+                }
+              }
+            ],
+            "expected_complexity": "high"
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "geap_workshop",
+        "user_id": "eval_user"
+      }
+    },
+    {
+      "eval_id": "medium_high_book_and_policy_and_expense",
+      "conversation": [
+        {
+          "user_content": {
+            "parts": [
+              {
+                "text": "Book flight FL001 for Alice Johnson, check if a $320 hotel is within lodging policy, and submit a $75 meals expense for EMP001"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Flight FL001 booked for Alice Johnson. The $320 hotel is within the $400 lodging limit. The $75 meals expense was submitted \u2014 it is at the policy limit."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "book_flight",
+                "args": {
+                  "flight_id": "FL001",
+                  "passenger_name": "Alice Johnson"
+                }
+              },
+              {
+                "name": "check_expense_policy",
+                "args": {
+                  "category": "lodging",
+                  "amount": 320
+                }
+              },
+              {
+                "name": "submit_expense",
+                "args": {
+                  "user_id": "EMP001",
+                  "category": "meals",
+                  "amount": 75
+                }
+              }
+            ],
+            "expected_complexity": "high"
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "geap_workshop",
+        "user_id": "eval_user"
+      }
+    },
+    {
+      "eval_id": "medium_high_multi_route_comparison",
+      "conversation": [
+        {
+          "user_content": {
+            "parts": [
+              {
+                "text": "Compare flights from SFO to JFK vs LAX to ORD, factoring in per-diem meals and hotel costs in each destination city"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "SFO to JFK: United FL001 at $450, Delta FL002 at $520. LAX to ORD: American FL003 at $380. NYC hotels: Grand Hyatt $320, Budget Inn $120. Chicago: Palmer House $250. All within $400 lodging policy. Daily meal allowance is $75."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "search_flights",
+                "args": {
+                  "origin": "SFO",
+                  "destination": "JFK"
+                }
+              },
+              {
+                "name": "search_flights",
+                "args": {
+                  "origin": "LAX",
+                  "destination": "ORD"
+                }
+              },
+              {
+                "name": "search_hotels",
+                "args": {
+                  "city": "New York"
+                }
+              },
+              {
+                "name": "search_hotels",
+                "args": {
+                  "city": "Chicago"
+                }
+              },
+              {
+                "name": "check_expense_policy",
+                "args": {
+                  "category": "meals"
+                }
+              },
+              {
+                "name": "check_expense_policy",
+                "args": {
+                  "category": "lodging"
+                }
+              }
+            ],
+            "expected_complexity": "high"
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "geap_workshop",
+        "user_id": "eval_user"
+      }
+    },
+    {
+      "eval_id": "high_london_budget_trip",
+      "conversation": [
+        {
+          "user_content": {
+            "parts": [
+              {
+                "text": "I have a $2000 budget for a London trip. Find flights, hotels, check lodging and meal policies, and tell me if I can afford it within corporate limits"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Flight FL006 JFK to LHR at $890. London hotel: Claridges at $680/night (exceeds $400 lodging policy). Meal allowance is $75/day. The hotel cost alone would exceed your budget and the lodging policy."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "search_flights",
+                "args": {
+                  "destination": "LHR"
+                }
+              },
+              {
+                "name": "search_hotels",
+                "args": {
+                  "city": "London"
+                }
+              },
+              {
+                "name": "check_expense_policy",
+                "args": {
+                  "category": "lodging"
+                }
+              },
+              {
+                "name": "check_expense_policy",
+                "args": {
+                  "category": "meals"
+                }
+              }
+            ],
+            "expected_complexity": "high"
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "geap_workshop",
+        "user_id": "eval_user"
+      }
+    },
+    {
+      "eval_id": "high_multi_city_book_and_expense",
+      "conversation": [
+        {
+          "user_content": {
+            "parts": [
+              {
+                "text": "I need to visit New York and Chicago. Find the cheapest flights from SFO, compare hotel costs in each city under the lodging policy, estimate total trip expenses including meals, and book the cheapest flight for Bob Smith"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Cheapest flight: SFO to JFK at $450 (United FL001) \u2014 booked for Bob Smith. NYC hotels: Grand Hyatt $320, Budget Inn $120. Chicago: Palmer House $250. All within $400 lodging policy. Daily meals: $75."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "search_flights",
+                "args": {
+                  "origin": "SFO",
+                  "destination": "JFK"
+                }
+              },
+              {
+                "name": "search_hotels",
+                "args": {
+                  "city": "New York"
+                }
+              },
+              {
+                "name": "search_hotels",
+                "args": {
+                  "city": "Chicago"
+                }
+              },
+              {
+                "name": "check_expense_policy",
+                "args": {
+                  "category": "lodging"
+                }
+              },
+              {
+                "name": "check_expense_policy",
+                "args": {
+                  "category": "meals"
+                }
+              },
+              {
+                "name": "book_flight",
+                "args": {
+                  "flight_id": "FL001",
+                  "passenger_name": "Bob Smith"
+                }
+              }
+            ],
+            "expected_complexity": "high"
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "geap_workshop",
+        "user_id": "eval_user"
+      }
+    },
+    {
+      "eval_id": "high_expense_audit_full",
+      "conversation": [
+        {
+          "user_content": {
+            "parts": [
+              {
+                "text": "Analyze EMP001 expense history for overspending, compare against all policy categories, draft a recommendation for new limits, and submit a $45 lunch receipt for EMP001"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Reviewed EMP001 expenses. Policy limits: meals $75, transport $200, lodging $400, supplies $100, entertainment $150. Submitted $45 lunch expense \u2014 approved. Recommendation: maintain current limits with quarterly reviews."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "get_user_expenses",
+                "args": {
+                  "user_id": "EMP001"
+                }
+              },
+              {
+                "name": "check_expense_policy",
+                "args": {
+                  "category": "meals"
+                }
+              },
+              {
+                "name": "check_expense_policy",
+                "args": {
+                  "category": "entertainment"
+                }
+              },
+              {
+                "name": "check_expense_policy",
+                "args": {
+                  "category": "lodging"
+                }
+              },
+              {
+                "name": "submit_expense",
+                "args": {
+                  "user_id": "EMP001",
+                  "category": "meals",
+                  "amount": 45,
+                  "description": "lunch"
+                }
+              }
+            ],
+            "expected_complexity": "high"
           }
         }
       ],
