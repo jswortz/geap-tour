@@ -101,11 +101,15 @@ async def classify_complexity(prompt: str) -> ComplexityResult:
             response_schema=RESPONSE_SCHEMA,
             # Thinking models (gemini-3.x) use output tokens for reasoning,
             # so we need extra headroom beyond the ~80 tokens of JSON output
-            max_output_tokens=256,
+            max_output_tokens=2048,
             temperature=0.0,
         ),
     )
-    data = json.loads(response.text)
+    # Thinking models may return None text if all tokens went to reasoning
+    text = response.text
+    if not text:
+        return ComplexityResult(level="low", score=0.1, reason="classifier returned empty response")
+    data = json.loads(text)
     score = max(0.0, min(1.0, float(data["score"])))
     return ComplexityResult(
         level=_score_to_level(score),

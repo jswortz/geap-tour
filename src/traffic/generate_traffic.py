@@ -51,25 +51,25 @@ QUERIES = [
         "Show expense history for EMP001, check the entertainment policy limit, "
         "and submit a $45 lunch receipt for EMP001",
         "alice",
-        "medium_high",
+        "high",
     ),
     (
         "Compare flights from SFO to JFK vs LAX to ORD, factoring in per-diem "
         "meals and hotel costs in each destination city",
         "bob",
-        "medium_high",
+        "high",
     ),
     (
         "Book flight FL001 for Alice Johnson, then check if a $320 hotel "
         "is within lodging policy, and submit a $75 meals expense for EMP001",
         "charlie",
-        "medium_high",
+        "high",
     ),
     (
         "Review EMP002's expense history, check all policy categories, "
         "and submit a $150 supplies expense for office equipment for EMP002",
         "alice",
-        "medium_high",
+        "high",
     ),
     # High complexity — multi-step planning, budget optimization, synthesis
     (
