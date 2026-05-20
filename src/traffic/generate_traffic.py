@@ -152,7 +152,7 @@ def generate_traffic(
     agent = agent_engines.get(agent_resource_name)
     sessions: dict[str, str] = {}
     total_queries = len(QUERIES) * count
-    complexity_counts = {"low": 0, "medium": 0, "high": 0}
+    complexity_counts: dict[str, int] = {}
     errors = 0
     query_num = 0
 
@@ -166,7 +166,7 @@ def generate_traffic(
         for query, user_id, complexity in QUERIES:
             query_num += 1
             print(f"[{query_num}/{total_queries}] ({complexity}) {query[:70]}")
-            complexity_counts[complexity] += 1
+            complexity_counts[complexity] = complexity_counts.get(complexity, 0) + 1
 
             try:
                 if user_id not in sessions:
@@ -233,7 +233,7 @@ def generate_traffic(
     print(f"  Total queries:  {total_queries}")
     print(f"  Errors:         {errors}")
     print(f"  Users:          {', '.join(sessions.keys())}")
-    print(f"  By complexity:  low={complexity_counts['low']}  medium={complexity_counts['medium']}  high={complexity_counts['high']}")
+    print(f"  By complexity:  {', '.join(f'{k}={v}' for k, v in sorted(complexity_counts.items()))}")
     print(f"\n  Check Cloud Trace for spans.")
     print(f"  Memory Bank events saved for users: alice, bob, charlie")
 
@@ -259,7 +259,7 @@ def generate_router_traffic(
     agent = agent_engines.get(router_resource_name)
     sessions: dict[str, str] = {}
     total_queries = len(QUERIES) * count
-    complexity_counts = {"low": 0, "medium": 0, "high": 0}
+    complexity_counts: dict[str, int] = {}
     errors = 0
     query_num = 0
 
@@ -276,7 +276,7 @@ def generate_router_traffic(
         for query, user_id, complexity in QUERIES:
             query_num += 1
             print(f"[{query_num}/{total_queries}] ({complexity}) {query[:70]}")
-            complexity_counts[complexity] += 1
+            complexity_counts[complexity] = complexity_counts.get(complexity, 0) + 1
 
             try:
                 if user_id not in sessions:
@@ -301,7 +301,7 @@ def generate_router_traffic(
 
     print(f"\n  Router queries:  {total_queries}")
     print(f"  Errors:          {errors}")
-    print(f"  By complexity:   low={complexity_counts['low']}  medium={complexity_counts['medium']}  high={complexity_counts['high']}")
+    print(f"  By complexity:   {', '.join(f'{k}={v}' for k, v in sorted(complexity_counts.items()))}")
 
 
 def _send_single_query(agent, sessions: dict, query: str, user_id: str, complexity: str) -> bool:
