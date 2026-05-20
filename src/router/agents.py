@@ -6,6 +6,7 @@ Routes to: Lite → Flash → Pro → Sonnet → Opus based on classifier score.
 from google.adk.agents import LlmAgent
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.models.lite_llm import LiteLlm
+from google.adk.tools.agent_tool import AgentTool
 from google.adk.tools.preload_memory_tool import PreloadMemoryTool
 from google.genai.types import Content, Part
 
@@ -155,22 +156,28 @@ A complexity classifier has assessed the user's request:
 - Model tier: {model_tier}
 - Reason: {complexity_reason}
 
-You MUST call transfer_to_agent exactly once based on the model_tier:
-- "lite" → transfer_to_agent(agent_name="lite_agent")
-- "flash" → transfer_to_agent(agent_name="flash_agent")
-- "pro" → transfer_to_agent(agent_name="pro_agent")
-- "sonnet" → transfer_to_agent(agent_name="sonnet_agent")
-- "opus" → transfer_to_agent(agent_name="opus_agent")
+You MUST call the appropriate specialist agent tool based on the model_tier:
+- "lite" → use the lite_agent tool
+- "flash" → use the flash_agent tool
+- "pro" → use the pro_agent tool
+- "sonnet" → use the sonnet_agent tool
+- "opus" → use the opus_agent tool
 
-Never answer the user's question yourself. Always delegate.\
+Never answer the user's question yourself. Always use a specialist agent tool.\
 """
 
 router_agent = LlmAgent(
     model=_resolve_model(LITE_MODEL),
     name="router_agent",
     instruction=ROUTER_INSTRUCTION,
-    tools=[PreloadMemoryTool()],
-    sub_agents=[lite_agent, flash_agent, pro_agent, sonnet_agent, opus_agent],
+    tools=[
+        PreloadMemoryTool(),
+        AgentTool(agent=lite_agent),
+        AgentTool(agent=flash_agent),
+        AgentTool(agent=pro_agent),
+        AgentTool(agent=sonnet_agent),
+        AgentTool(agent=opus_agent),
+    ],
     before_agent_callback=complexity_router_callback,
     after_agent_callback=save_memories_callback,
 )
