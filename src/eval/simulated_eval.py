@@ -99,7 +99,7 @@ def run_simulated_eval(
 
     import vertexai
     from vertexai import Client, types
-    from src.config import GCP_PROJECT_ID, GCP_REGION
+    from src.config import GCP_PROJECT_ID, GCP_REGION, FLASH_MODEL
     from src.eval.agent_eval_configs import build_agent_info
 
     vertexai.init(project=GCP_PROJECT_ID, location=GCP_REGION)
@@ -135,7 +135,7 @@ def run_simulated_eval(
         config={
             "user_simulator_config": {
                 "max_turn": max_turns,
-                "model_name": "gemini-2.5-flash",
+                "model_name": FLASH_MODEL,
             },
         },
     )

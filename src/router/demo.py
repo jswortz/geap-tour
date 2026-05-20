@@ -3,7 +3,8 @@
 import asyncio
 import time
 
-from .complexity import classify_complexity
+from .complexity import classify_complexity, score_to_model_tier
+from .config import LITE_MODEL, FLASH_MODEL, PRO_MODEL, SONNET_MODEL, OPUS_MODEL
 from .cost_tracker import CostTracker, RequestLog, estimate_cost
 
 DEMO_PROMPTS = [
@@ -39,13 +40,16 @@ DEMO_PROMPTS = [
     ),
 ]
 
-MODEL_MAP = {
-    "low": "gemini-2.5-flash-lite",
-    "medium_low": "gemini-2.5-flash",
-    "medium": "gemini-2.5-pro",
-    "medium_high": "claude-sonnet-4-6",
-    "high": "claude-opus-4-6",
+MODEL_TIER_MAP = {
+    "lite": LITE_MODEL,
+    "flash": FLASH_MODEL,
+    "pro": PRO_MODEL,
+    "sonnet": SONNET_MODEL,
+    "opus": OPUS_MODEL,
 }
+
+# For backward compat with run_comparison imports
+MODEL_MAP = MODEL_TIER_MAP
 
 AVG_INPUT_TOKENS = 200
 AVG_OUTPUT_TOKENS = 500
@@ -56,15 +60,16 @@ async def run_demo():
     print("\n" + "=" * 80)
     print("5-TIER MULTI-MODEL PROMPT ROUTER DEMO")
     print("=" * 80)
-    print(f"\n{'#':<3} {'Expected':<12} {'Classified':<12} {'Score':<6} {'Model':<30} {'Cost':>10}")
-    print("-" * 80)
+    print(f"\n{'#':<3} {'Expected':<12} {'Level':<8} {'Tier':<8} {'Score':<6} {'Model':<30} {'Cost':>10}")
+    print("-" * 90)
 
     for i, (prompt, expected) in enumerate(DEMO_PROMPTS, 1):
         start = time.monotonic()
         result = await classify_complexity(prompt)
         latency = (time.monotonic() - start) * 1000
 
-        model = MODEL_MAP[result.level]
+        tier = score_to_model_tier(result.score)
+        model = MODEL_TIER_MAP[tier]
         cost = estimate_cost(model, AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
         classifier_cost = estimate_cost("classifier", len(prompt.split()) * 2, 20)
         total_cost = cost + classifier_cost
@@ -89,7 +94,7 @@ async def run_demo():
     print("\n" + tracker.generate_report())
 
     all_opus_cost = len(DEMO_PROMPTS) * estimate_cost(
-        "claude-opus-4-6", AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS
+        OPUS_MODEL, AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS
     )
     routed_cost = tracker.total_cost()
     savings_pct = (1 - routed_cost / all_opus_cost) * 100 if all_opus_cost else 0

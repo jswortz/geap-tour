@@ -4,15 +4,16 @@ import asyncio
 from pathlib import Path
 
 from .complexity import classify_complexity
+from .config import LITE_MODEL, FLASH_MODEL, PRO_MODEL, SONNET_MODEL, OPUS_MODEL
 from .cost_tracker import estimate_cost
 from .demo import DEMO_PROMPTS, MODEL_MAP, AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS
 
 CONFIGS = {
-    "All Flash Lite": lambda _level: "gemini-2.5-flash-lite",
-    "All Flash": lambda _level: "gemini-2.5-flash",
-    "All Pro": lambda _level: "gemini-2.5-pro",
-    "All Opus": lambda _level: "claude-opus-4-6",
-    "5-Tier Router": lambda level: MODEL_MAP[level],
+    "All Lite": lambda _level: LITE_MODEL,
+    "All Flash": lambda _level: FLASH_MODEL,
+    "All Pro": lambda _level: PRO_MODEL,
+    "All Opus": lambda _level: OPUS_MODEL,
+    "Smart Router": lambda level: MODEL_MAP[level],
 }
 
 
@@ -40,15 +41,15 @@ async def run_comparison():
         "[Model Armor] -- safety screening",
         "    |",
         "    v",
-        "[Router Agent] (gemini-2.5-flash-lite)",
+        f"[Router Agent] ({LITE_MODEL})",
         "    |  before_agent_callback: classify_complexity()",
         "    |  Scores prompt 0-1, maps to 5 tiers",
         "    |",
-        "    |-- low ----------> [Lite Agent]   gemini-2.5-flash-lite  $0.075/M in",
-        "    |-- medium_low ----> [Flash Agent]  gemini-2.5-flash       $0.15/M in",
-        "    |-- medium --------> [Pro Agent]    gemini-2.5-pro         $1.25/M in",
-        "    |-- medium_high ---> [Sonnet Agent] claude-sonnet-4-6      $3.00/M in",
-        "    |-- high ----------> [Opus Agent]   claude-opus-4-6       $15.00/M in",
+        f"    |-- low ----------> [Lite Agent]   {LITE_MODEL}",
+        f"    |-- medium_low ----> [Flash Agent]  {FLASH_MODEL}",
+        f"    |-- medium --------> [Pro Agent]    {PRO_MODEL}",
+        f"    |-- medium_high ---> [Sonnet Agent] {SONNET_MODEL}",
+        f"    |-- high ----------> [Opus Agent]   {OPUS_MODEL}",
         "```",
         "",
         "## Results",
@@ -100,11 +101,11 @@ async def run_comparison():
         "| Scenario | Requests/mo | All-Opus | 5-Tier Router | Savings |",
         "|----------|------------|----------|--------------|---------|",
     ])
-    opus_per_req = estimate_cost("claude-opus-4-6", AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
-    lite_per_req = estimate_cost("gemini-2.5-flash-lite", AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
-    flash_per_req = estimate_cost("gemini-2.5-flash", AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
-    pro_per_req = estimate_cost("gemini-2.5-pro", AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
-    sonnet_per_req = estimate_cost("claude-sonnet-4-6", AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
+    opus_per_req = estimate_cost(OPUS_MODEL, AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
+    lite_per_req = estimate_cost(LITE_MODEL, AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
+    flash_per_req = estimate_cost(FLASH_MODEL, AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
+    pro_per_req = estimate_cost(PRO_MODEL, AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
+    sonnet_per_req = estimate_cost(SONNET_MODEL, AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
 
     for name, count, low_pct, mlow_pct, med_pct, mhigh_pct, high_pct in [
         ("Light usage", 1_000, 0.40, 0.25, 0.20, 0.10, 0.05),

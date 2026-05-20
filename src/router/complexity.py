@@ -1,7 +1,11 @@
-"""Prompt complexity classifier using Gemini Flash Lite as a micro-judge.
+"""Prompt complexity classifier using a lightweight model as a micro-judge.
 
-Classifies prompts into 5 tiers for multi-model routing:
-  low → medium_low → medium → medium_high → high
+Classifies prompts into 3 logical tiers, with score-based model selection
+within the medium and high tiers:
+
+  low    (0.0–0.30)  → LITE_MODEL
+  medium (0.30–0.60) → FLASH_MODEL (0.30–0.45) or SONNET_MODEL (0.45–0.60)
+  high   (0.60–1.0)  → PRO_MODEL (0.60–0.80) or OPUS_MODEL (0.80–1.0)
 """
 
 import json
@@ -10,26 +14,23 @@ from dataclasses import dataclass
 from google import genai
 from google.genai.types import GenerateContentConfig
 
-from .config import GCP_PROJECT_ID, GCP_REGION
+from .config import GCP_PROJECT_ID, GCP_REGION, CLASSIFIER_MODEL
 
 CLASSIFIER_PROMPT_TEMPLATE = (
     "Rate the complexity of this user prompt on a 0-1 scale.\n\n"
     "Criteria:\n"
-    "- 0.0-0.19: Trivial — a single read-only lookup with no reasoning "
-    '(e.g. "what is the meal limit?", "find hotels in Miami", "show expenses for EMP001")\n'
-    "- 0.20-0.39: Simple — a single action (booking, submission) or a lookup with formatting/sorting "
-    '(e.g. "book flight FL001 for Alice", "submit a $30 expense", "find flights and show cheapest")\n'
-    "- 0.40-0.59: Moderate — 2 distinct tool calls or comparison across multiple results "
-    '(e.g. "find flights to NYC and compare by airline", "search hotels then check lodging policy")\n'
-    "- 0.60-0.79: Complex — 3+ tool calls across different domains, or structured multi-factor analysis "
-    '(e.g. "compare flights on two routes plus hotels and meal costs in each city")\n'
-    "- 0.80-1.0: Expert — multi-step planning for a group/trip, budget optimization, or strategic synthesis "
-    '(e.g. "plan a 5-day trip for a team of 4 with flights, hotels, and expense policies")\n\n'
+    "- 0.0-0.29: Simple — single intent, direct lookup, one tool call, or a single action "
+    '(e.g. "what is the meal limit?", "find hotels in Miami", "book flight FL001")\n'
+    "- 0.30-0.59: Moderate — 2 related intents, comparison across options, or multi-step lookup "
+    '(e.g. "compare flights by airline", "search hotels then check policy", "check two policy categories")\n'
+    "- 0.60-1.0: Complex — 3+ intents, cross-domain analysis, multi-step planning, "
+    "budget optimization, or strategic synthesis "
+    '(e.g. "plan a multi-city trip with budget constraints", "review expenses and submit new ones")\n\n'
     "Scoring guidance:\n"
-    "- Any booking or submission action is at least 0.20.\n"
-    "- Any comparison across options is at least 0.40.\n"
-    "- Mentioning 3+ distinct tasks or cross-domain analysis is at least 0.60.\n"
-    "- Team planning, budget constraints, or multi-city optimization is at least 0.80.\n\n"
+    "- Single lookups and simple bookings: 0.0–0.29.\n"
+    "- Any comparison or 2-tool task: 0.30–0.59.\n"
+    "- 3+ distinct tasks or cross-domain analysis: 0.60–0.79.\n"
+    "- Team planning, budget optimization, or multi-city trips: 0.80–1.0.\n\n"
     'Return JSON with keys "score" (float) and "reason" (one sentence).\n\n'
     "Prompt: {prompt}"
 )
@@ -42,8 +43,13 @@ class ComplexityResult:
     reason: str
 
 
-THRESHOLDS = [0.20, 0.40, 0.60, 0.80]
-LEVELS = ["low", "medium_low", "medium", "medium_high", "high"]
+# 3 logical tiers with sub-tiers for model selection
+THRESHOLDS = [0.30, 0.60]
+LEVELS = ["low", "medium", "high"]
+
+# Within-tier model selection boundaries
+MEDIUM_SPLIT = 0.45  # below → FLASH_MODEL, above → SONNET_MODEL
+HIGH_SPLIT = 0.80    # below → PRO_MODEL, above → OPUS_MODEL
 
 
 def _score_to_level(score: float) -> str:
@@ -51,6 +57,23 @@ def _score_to_level(score: float) -> str:
         if score < threshold:
             return level
     return LEVELS[-1]
+
+
+def score_to_model_tier(score: float) -> str:
+    """Map a complexity score to a specific model tier for routing.
+
+    Returns one of: 'lite', 'flash', 'sonnet', 'pro', 'opus'
+    """
+    if score < 0.30:
+        return "lite"
+    elif score < MEDIUM_SPLIT:
+        return "flash"
+    elif score < 0.60:
+        return "sonnet"
+    elif score < HIGH_SPLIT:
+        return "pro"
+    else:
+        return "opus"
 
 
 RESPONSE_SCHEMA = {
@@ -66,7 +89,7 @@ RESPONSE_SCHEMA = {
 async def classify_complexity(prompt: str) -> ComplexityResult:
     client = genai.Client(vertexai=True, project=GCP_PROJECT_ID, location=GCP_REGION)
     response = await client.aio.models.generate_content(
-        model="gemini-2.5-flash-lite",
+        model=CLASSIFIER_MODEL,
         contents=CLASSIFIER_PROMPT_TEMPLATE.format(prompt=prompt),
         config=GenerateContentConfig(
             response_mime_type="application/json",

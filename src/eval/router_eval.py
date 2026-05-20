@@ -71,10 +71,14 @@ EVAL_CASES = [
     },
 ]
 
+from src.config import LITE_MODEL, FLASH_MODEL, PRO_MODEL, SONNET_MODEL, OPUS_MODEL
+
 MODEL_MAP = {
-    "low": "gemini-2.5-flash-lite",
-    "medium": "gemini-2.5-flash",
-    "high": "claude-opus-4-6",
+    "low": LITE_MODEL,
+    "medium_low": FLASH_MODEL,
+    "medium": PRO_MODEL,
+    "medium_high": SONNET_MODEL,
+    "high": OPUS_MODEL,
 }
 
 AVG_INPUT_TOKENS = 200
@@ -129,7 +133,7 @@ async def run_single_round(cases: list[dict]) -> dict:
         routed_cost = estimate_cost(routed_model, AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
         classifier_cost = estimate_cost("classifier", CLASSIFIER_TOKEN_OVERHEAD, 20)
         total_routed_cost = routed_cost + classifier_cost
-        opus_cost = estimate_cost("claude-opus-4-6", AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
+        opus_cost = estimate_cost(OPUS_MODEL, AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
         confusion[expected][actual] += 1
         results.append({
             "prompt": case["prompt"][:80], "expected": expected, "actual": actual,
@@ -263,7 +267,7 @@ def generate_report(results: dict) -> str:
         "| Daily Volume | All-Opus Cost | Smart Router | Monthly Savings |",
         "|-------------|---------------|--------------|-----------------|"])
     for vol in (100, 1000, 10000, 100000):
-        opus_d = vol * estimate_cost("claude-opus-4-6", AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
+        opus_d = vol * estimate_cost(OPUS_MODEL, AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
         routed_d = opus_d * (1 - sav["mean_pct"] / 100)
         lines.append(f"| {vol:,} | ${opus_d:.2f}/day | ${routed_d:.2f}/day | ${(opus_d - routed_d) * 30:.0f}/mo |")
 
