@@ -150,7 +150,6 @@ def generate_traffic(
         )
 
     agent = agent_engines.get(agent_resource_name)
-    sessions: dict[str, str] = {}
     total_queries = len(QUERIES) * count
     complexity_counts: dict[str, int] = {}
     errors = 0
@@ -169,13 +168,10 @@ def generate_traffic(
             complexity_counts[complexity] = complexity_counts.get(complexity, 0) + 1
 
             try:
-                if user_id not in sessions:
-                    session = agent.create_session(user_id=user_id)
-                    sessions[user_id] = session["id"]
-
+                session = agent.create_session(user_id=user_id)
                 response = agent.stream_query(
                     user_id=user_id,
-                    session_id=sessions[user_id],
+                    session_id=session["id"],
                     message=query,
                 )
                 full_response = ""
@@ -257,7 +253,6 @@ def generate_router_traffic(
         )
 
     agent = agent_engines.get(router_resource_name)
-    sessions: dict[str, str] = {}
     total_queries = len(QUERIES) * count
     complexity_counts: dict[str, int] = {}
     errors = 0
@@ -279,13 +274,10 @@ def generate_router_traffic(
             complexity_counts[complexity] = complexity_counts.get(complexity, 0) + 1
 
             try:
-                if user_id not in sessions:
-                    session = agent.create_session(user_id=user_id)
-                    sessions[user_id] = session["id"]
-
+                session = agent.create_session(user_id=user_id)
                 response = agent.stream_query(
                     user_id=user_id,
-                    session_id=sessions[user_id],
+                    session_id=session["id"],
                     message=query,
                 )
                 full_response = ""
@@ -304,16 +296,13 @@ def generate_router_traffic(
     print(f"  By complexity:   {', '.join(f'{k}={v}' for k, v in sorted(complexity_counts.items()))}")
 
 
-def _send_single_query(agent, sessions: dict, query: str, user_id: str, complexity: str) -> bool:
-    """Send a single query to an agent. Returns True on success."""
+def _send_single_query(agent, query: str, user_id: str, complexity: str) -> bool:
+    """Send a single query to an agent in a new session. Returns True on success."""
     try:
-        if user_id not in sessions:
-            session = agent.create_session(user_id=user_id)
-            sessions[user_id] = session["id"]
-
+        session = agent.create_session(user_id=user_id)
         response = agent.stream_query(
             user_id=user_id,
-            session_id=sessions[user_id],
+            session_id=session["id"],
             message=query,
         )
         for chunk in response:
@@ -351,7 +340,6 @@ def generate_steady_traffic(
         )
 
     agent = agent_engines.get(agent_resource_name)
-    sessions: dict[str, str] = {}
     total_queries = 0
     total_errors = 0
     end_time = time.time() + (duration_minutes * 60)
@@ -380,7 +368,7 @@ def generate_steady_traffic(
         for query, user_id, complexity in batch:
             total_queries += 1
             print(f"  ({complexity}) {query[:60]}")
-            if not _send_single_query(agent, sessions, query, user_id, complexity):
+            if not _send_single_query(agent, query, user_id, complexity):
                 total_errors += 1
 
         if time.time() < end_time:

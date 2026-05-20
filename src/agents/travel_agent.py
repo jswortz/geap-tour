@@ -1,8 +1,18 @@
 """Travel Agent — searches and books flights and hotels via MCP tool servers."""
 
 from google.adk.agents import LlmAgent
+from google.adk.models.lite_llm import LiteLlm
 
 from src.config import AGENT_MODEL, SEARCH_MCP_SERVER, BOOKING_MCP_SERVER
+
+
+def _resolve_model(model_str: str):
+    """Resolve model string — Gemini 3.x and Claude need location=global."""
+    if model_str.startswith(("gemini-2", "models/")):
+        return model_str
+    if not model_str.startswith("vertex_ai/"):
+        model_str = f"vertex_ai/{model_str}"
+    return LiteLlm(model=model_str, vertex_location="global")
 from src.registry import get_mcp_tools
 
 # GEPA-optimized instruction (base score 0.70 → optimized 1.00).
@@ -44,7 +54,7 @@ assistant.\
 """
 
 travel_agent = LlmAgent(
-    model=AGENT_MODEL,
+    model=_resolve_model(AGENT_MODEL),
     name="travel_agent",
     instruction=INSTRUCTION,
     tools=[
