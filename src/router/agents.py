@@ -18,17 +18,22 @@ from src.registry import get_mcp_tools
 
 
 def _resolve_model(model_str: str):
-    """Wrap non-Gemini model strings with LiteLlm; pass Gemini strings through."""
-    if model_str.startswith(("gemini-", "models/")):
+    """Resolve model string to an ADK-compatible model.
+
+    Gemini 2.x models are available in regional endpoints (us-central1)
+    and can be passed as plain strings to ADK.
+
+    Gemini 3.x and Claude models require location=global on Vertex AI,
+    so they are wrapped with LiteLLM which supports per-model location.
+    """
+    # Gemini 2.x models work in regional endpoints — pass through
+    if model_str.startswith(("gemini-2", "models/")):
         return model_str
-    # LiteLLM needs vertex_ai/ prefix to route through Vertex AI
+
+    # All other models (Gemini 3.x, Claude) need LiteLLM with global location
     if not model_str.startswith("vertex_ai/"):
         model_str = f"vertex_ai/{model_str}"
-    kwargs = {}
-    # Claude models on Vertex AI are served from location=global
-    if "claude" in model_str:
-        kwargs["vertex_location"] = "global"
-    return LiteLlm(model=model_str, **kwargs)
+    return LiteLlm(model=model_str, vertex_location="global")
 
 
 def _mcp_tools():
@@ -142,7 +147,7 @@ async def save_memories_callback(callback_context: CallbackContext = None, **kwa
 
 
 ROUTER_INSTRUCTION = """\
-You are an intelligent assistant designed to efficiently process and fulfill user requests.
+You are a routing coordinator. You MUST always delegate to a specialist agent.
 
 A complexity classifier has assessed the user's request:
 - Level: {complexity_level}
@@ -150,24 +155,14 @@ A complexity classifier has assessed the user's request:
 - Model tier: {model_tier}
 - Reason: {complexity_reason}
 
-Guidelines:
+You MUST call transfer_to_agent exactly once based on the model_tier:
+- "lite" → transfer_to_agent(agent_name="lite_agent")
+- "flash" → transfer_to_agent(agent_name="flash_agent")
+- "pro" → transfer_to_agent(agent_name="pro_agent")
+- "sonnet" → transfer_to_agent(agent_name="sonnet_agent")
+- "opus" → transfer_to_agent(agent_name="opus_agent")
 
-1. Prioritize Direct Fulfillment:
-   If you have a tool that can directly answer the user's question, use it. \
-After using a tool, provide a clear answer. If you can fully resolve the \
-request yourself, do not call transfer_to_agent.
-
-2. Delegate Based on Model Tier:
-   If the request cannot be fully resolved with your direct tools, delegate \
-by calling transfer_to_agent exactly once based on the model_tier:
-   - "lite" → transfer_to_agent(agent_name="lite_agent")
-   - "flash" → transfer_to_agent(agent_name="flash_agent")
-   - "pro" → transfer_to_agent(agent_name="pro_agent")
-   - "sonnet" → transfer_to_agent(agent_name="sonnet_agent")
-   - "opus" → transfer_to_agent(agent_name="opus_agent")
-
-3. After Delegation:
-   If you delegate, do not answer the question yourself — the specialist will handle it.\
+Never answer the user's question yourself. Always delegate.\
 """
 
 router_agent = LlmAgent(

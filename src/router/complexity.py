@@ -14,7 +14,12 @@ from dataclasses import dataclass
 from google import genai
 from google.genai.types import GenerateContentConfig
 
+import os
+
 from .config import GCP_PROJECT_ID, GCP_REGION, CLASSIFIER_MODEL
+
+# Newer Gemini models (3.x) are only available via location=global
+CLASSIFIER_LOCATION = os.environ.get("CLASSIFIER_LOCATION", "global")
 
 CLASSIFIER_PROMPT_TEMPLATE = (
     "Rate the complexity of this user prompt on a 0-1 scale.\n\n"
@@ -87,14 +92,16 @@ RESPONSE_SCHEMA = {
 
 
 async def classify_complexity(prompt: str) -> ComplexityResult:
-    client = genai.Client(vertexai=True, project=GCP_PROJECT_ID, location=GCP_REGION)
+    client = genai.Client(vertexai=True, project=GCP_PROJECT_ID, location=CLASSIFIER_LOCATION)
     response = await client.aio.models.generate_content(
         model=CLASSIFIER_MODEL,
         contents=CLASSIFIER_PROMPT_TEMPLATE.format(prompt=prompt),
         config=GenerateContentConfig(
             response_mime_type="application/json",
             response_schema=RESPONSE_SCHEMA,
-            max_output_tokens=80,
+            # Thinking models (gemini-3.x) use output tokens for reasoning,
+            # so we need extra headroom beyond the ~80 tokens of JSON output
+            max_output_tokens=256,
             temperature=0.0,
         ),
     )

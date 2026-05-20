@@ -34,16 +34,16 @@ OTEL_ENV_VARS = {
     "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY",
 }
 
-AGENT_MODEL = "gemini-2.5-flash"
+AGENT_MODEL = os.environ.get("AGENT_MODEL", "gemini-3.5-flash")
 
 # Multi-model router (5-tier: lite → flash → pro → sonnet → opus)
-LITE_MODEL = os.environ.get("LITE_MODEL", "gemini-2.5-flash-lite")
-FLASH_MODEL = os.environ.get("FLASH_MODEL", "gemini-2.5-flash")
-PRO_MODEL = os.environ.get("PRO_MODEL", "gemini-2.5-pro")
+LITE_MODEL = os.environ.get("LITE_MODEL", "gemini-3.1-flash-lite")
+FLASH_MODEL = os.environ.get("FLASH_MODEL", "gemini-3.5-flash")
+PRO_MODEL = os.environ.get("PRO_MODEL", "gemini-3.1-pro-preview")
 SONNET_MODEL = os.environ.get("SONNET_MODEL", "claude-sonnet-4-6")
 OPUS_MODEL = os.environ.get("OPUS_MODEL", "claude-opus-4-6")
 COMPLEXITY_THRESHOLD_HIGH = float(os.environ.get("COMPLEXITY_THRESHOLD_HIGH", "0.65"))
-CLASSIFIER_MODEL = os.environ.get("CLASSIFIER_MODEL", "gemini-2.5-flash-lite")
+CLASSIFIER_MODEL = os.environ.get("CLASSIFIER_MODEL", "gemini-3.1-flash-lite")
 
 # Evaluation
 EVAL_OUTPUT_DIR = os.environ.get("EVAL_OUTPUT_DIR", "eval_outputs")
