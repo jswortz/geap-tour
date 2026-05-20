@@ -5,35 +5,50 @@ from unittest.mock import AsyncMock, patch, MagicMock
 
 import pytest
 
-from src.router.complexity import ComplexityResult, _score_to_level
+from src.router.complexity import ComplexityResult, _score_to_level, score_to_model_tier
 from src.router.cost_tracker import CostTracker, RequestLog, estimate_cost
 
 
 class TestComplexityScoring:
     def test_low_score(self):
         assert _score_to_level(0.0) == "low"
-        assert _score_to_level(0.1) == "low"
-        assert _score_to_level(0.19) == "low"
-
-    def test_medium_low_score(self):
-        assert _score_to_level(0.20) == "medium_low"
-        assert _score_to_level(0.30) == "medium_low"
-        assert _score_to_level(0.39) == "medium_low"
+        assert _score_to_level(0.15) == "low"
+        assert _score_to_level(0.29) == "low"
 
     def test_medium_score(self):
-        assert _score_to_level(0.40) == "medium"
-        assert _score_to_level(0.50) == "medium"
+        assert _score_to_level(0.30) == "medium"
+        assert _score_to_level(0.45) == "medium"
         assert _score_to_level(0.59) == "medium"
 
-    def test_medium_high_score(self):
-        assert _score_to_level(0.60) == "medium_high"
-        assert _score_to_level(0.70) == "medium_high"
-        assert _score_to_level(0.79) == "medium_high"
-
     def test_high_score(self):
+        assert _score_to_level(0.60) == "high"
         assert _score_to_level(0.80) == "high"
-        assert _score_to_level(0.9) == "high"
         assert _score_to_level(1.0) == "high"
+
+    def test_model_tier_lite(self):
+        assert score_to_model_tier(0.0) == "lite"
+        assert score_to_model_tier(0.15) == "lite"
+        assert score_to_model_tier(0.29) == "lite"
+
+    def test_model_tier_flash(self):
+        assert score_to_model_tier(0.30) == "flash"
+        assert score_to_model_tier(0.40) == "flash"
+        assert score_to_model_tier(0.44) == "flash"
+
+    def test_model_tier_sonnet(self):
+        assert score_to_model_tier(0.45) == "sonnet"
+        assert score_to_model_tier(0.50) == "sonnet"
+        assert score_to_model_tier(0.59) == "sonnet"
+
+    def test_model_tier_pro(self):
+        assert score_to_model_tier(0.60) == "pro"
+        assert score_to_model_tier(0.70) == "pro"
+        assert score_to_model_tier(0.79) == "pro"
+
+    def test_model_tier_opus(self):
+        assert score_to_model_tier(0.80) == "opus"
+        assert score_to_model_tier(0.90) == "opus"
+        assert score_to_model_tier(1.0) == "opus"
 
     def test_complexity_result_dataclass(self):
         r = ComplexityResult(level="high", score=0.85, reason="multi-step planning")

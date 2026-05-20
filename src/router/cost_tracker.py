@@ -81,7 +81,7 @@ class CostTracker:
             "| Level | Count | Avg Cost |",
             "|-------|-------|----------|",
         ])
-        for level in ("low", "medium_low", "medium", "medium_high", "high"):
+        for level in ("low", "medium", "high"):
             level_entries = [e for e in self.entries if e.complexity_level == level]
             if level_entries:
                 avg = sum(e.cost_usd for e in level_entries) / len(level_entries)

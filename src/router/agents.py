@@ -11,7 +11,7 @@ from google.genai.types import Content, Part
 
 from .config import LITE_MODEL, FLASH_MODEL, PRO_MODEL, SONNET_MODEL, OPUS_MODEL
 from .armor import input_guardrail_callback
-from .complexity import classify_complexity
+from .complexity import classify_complexity, score_to_model_tier
 
 from src.config import SEARCH_MCP_SERVER, BOOKING_MCP_SERVER, EXPENSE_MCP_SERVER
 from src.registry import get_mcp_tools
@@ -124,9 +124,11 @@ async def complexity_router_callback(callback_context=None, **kwargs):
         return guardrail_result
 
     result = await classify_complexity(user_message)
+    model_tier = score_to_model_tier(result.score)
     callback_context.state["complexity_level"] = result.level
     callback_context.state["complexity_score"] = result.score
     callback_context.state["complexity_reason"] = result.reason
+    callback_context.state["model_tier"] = model_tier
     return None
 
 
@@ -140,20 +142,32 @@ async def save_memories_callback(callback_context: CallbackContext = None, **kwa
 
 
 ROUTER_INSTRUCTION = """\
-You are a routing coordinator. A complexity classifier assessed the user's request:
+You are an intelligent assistant designed to efficiently process and fulfill user requests.
 
+A complexity classifier has assessed the user's request:
 - Level: {complexity_level}
 - Score: {complexity_score}
+- Model tier: {model_tier}
 - Reason: {complexity_reason}
 
-You MUST call the transfer_to_agent function to delegate to the correct specialist:
-- "low" → transfer_to_agent(agent_name="lite_agent")
-- "medium_low" → transfer_to_agent(agent_name="flash_agent")
-- "medium" → transfer_to_agent(agent_name="pro_agent")
-- "medium_high" → transfer_to_agent(agent_name="sonnet_agent")
-- "high" → transfer_to_agent(agent_name="opus_agent")
+Guidelines:
 
-Always call transfer_to_agent. Do not answer the user's question yourself.\
+1. Prioritize Direct Fulfillment:
+   If you have a tool that can directly answer the user's question, use it. \
+After using a tool, provide a clear answer. If you can fully resolve the \
+request yourself, do not call transfer_to_agent.
+
+2. Delegate Based on Model Tier:
+   If the request cannot be fully resolved with your direct tools, delegate \
+by calling transfer_to_agent exactly once based on the model_tier:
+   - "lite" → transfer_to_agent(agent_name="lite_agent")
+   - "flash" → transfer_to_agent(agent_name="flash_agent")
+   - "pro" → transfer_to_agent(agent_name="pro_agent")
+   - "sonnet" → transfer_to_agent(agent_name="sonnet_agent")
+   - "opus" → transfer_to_agent(agent_name="opus_agent")
+
+3. After Delegation:
+   If you delegate, do not answer the question yourself — the specialist will handle it.\
 """
 
 router_agent = LlmAgent(
