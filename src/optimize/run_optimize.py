@@ -70,7 +70,23 @@ def _patch_adk():
         return await _orig(self, inference_result=inference_result, evaluate_config=evaluate_config)
 
     les.LocalEvalService._evaluate_single_inference_result = _patched
-    log.info("ADK patches applied (extra fields + None inference guard)")
+
+    # Patch 3: LocalEvalSampler._extract_eval_data crashes with round(None)
+    # when a metric returns score=None (e.g. safety_v1 NOT_EVALUATED on Claude).
+    from google.adk.optimization import local_eval_sampler as sampler_mod
+
+    _orig_extract = sampler_mod.LocalEvalSampler._extract_eval_data
+
+    def _patched_extract(self, eval_set_id, eval_results):
+        for case_result in eval_results:
+            for inv in getattr(case_result, "eval_metric_result_per_invocation", []):
+                for mr in getattr(inv, "eval_metric_results", []):
+                    if mr.score is None:
+                        mr.score = 0.0
+        return _orig_extract(self, eval_set_id, eval_results)
+
+    sampler_mod.LocalEvalSampler._extract_eval_data = _patched_extract
+    log.info("ADK patches applied (extra fields + None inference + None score guard)")
 
 
 def _load_agent(agent_module_path: str):
