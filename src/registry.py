@@ -13,8 +13,9 @@ from src.config import GCP_PROJECT_ID, AGENT_REGISTRY_LOCATION, MCP_SERVER_URLS
 
 log = logging.getLogger(__name__)
 
-# Default 5s is too short for Cloud Run MCP servers behind IAP/networking
+# Default 5s connection / 300s read is too slow for Cloud Run MCP servers
 MCP_TIMEOUT_SECONDS = 60.0
+MCP_READ_TIMEOUT_SECONDS = 90.0
 
 _registry = None
 
@@ -31,9 +32,12 @@ def get_registry() -> AgentRegistry:
 def get_mcp_tools(server_name: str):
     try:
         toolset = get_registry().get_mcp_toolset(server_name)
-        # Agent Registry uses default 5s timeout — override for Cloud Run
-        if hasattr(toolset, '_connection_params') and hasattr(toolset._connection_params, 'timeout'):
-            toolset._connection_params.timeout = MCP_TIMEOUT_SECONDS
+        # Agent Registry uses default 5s/300s — override for Cloud Run
+        if hasattr(toolset, '_connection_params'):
+            if hasattr(toolset._connection_params, 'timeout'):
+                toolset._connection_params.timeout = MCP_TIMEOUT_SECONDS
+            if hasattr(toolset._connection_params, 'sse_read_timeout'):
+                toolset._connection_params.sse_read_timeout = MCP_READ_TIMEOUT_SECONDS
         return toolset
     except RuntimeError:
         url = MCP_SERVER_URLS.get(server_name)
@@ -41,5 +45,5 @@ def get_mcp_tools(server_name: str):
             raise
         log.info("Agent Registry unavailable for %s — using direct URL %s", server_name, url)
         return McpToolset(connection_params=StreamableHTTPConnectionParams(
-            url=url, timeout=MCP_TIMEOUT_SECONDS
+            url=url, timeout=MCP_TIMEOUT_SECONDS, sse_read_timeout=MCP_READ_TIMEOUT_SECONDS
         ))

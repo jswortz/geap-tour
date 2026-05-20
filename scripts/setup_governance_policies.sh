@@ -36,9 +36,22 @@
 
 set -euo pipefail
 
+# Source .env for project config, gateway paths, and agent engine IDs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+if [ -f "${REPO_ROOT}/.env" ]; then
+    set -a
+    source "${REPO_ROOT}/.env"
+    set +a
+fi
+
 PROJECT_ID="${GCP_PROJECT_ID:-wortz-project-352116}"
 REGION="${GCP_REGION:-us-central1}"
-GATEWAY_NAME="geap-workshop-gateway"
+# Extract gateway names from full resource paths in .env
+# e.g. projects/hybrid-vertex/locations/us-central1/agentGateways/geap-workshop-gateway → geap-workshop-gateway
+GATEWAY_NAME="$(echo "${AGENT_GATEWAY_PATH:-}" | awk -F'/' '{print $NF}')"
+GATEWAY_NAME="${GATEWAY_NAME:-geap-workshop-gateway}"
+GATEWAY_EGRESS_NAME="$(echo "${AGENT_GATEWAY_EGRESS_PATH:-}" | awk -F'/' '{print $NF}')"
 GATEWAY_EGRESS_NAME="${GATEWAY_EGRESS_NAME:-geap-workshop-gateway-egress}"
 
 ENABLE_SGP=false
@@ -127,8 +140,8 @@ echo ""
 # This step is best-effort: if the project lacks private preview enrollment,
 # the LRO will fail with INTERNAL and the script continues.
 
-AGENT_ENGINE_ID="${AGENT_ENGINE_ID:-2479350891879071744}"
-ROUTER_ENGINE_ID="${ROUTER_ENGINE_ID:-6023683798619652096}"
+AGENT_ENGINE_ID="${COORINDATOR_AGENT_ID:-${AGENT_ENGINE_ID:-2479350891879071744}}"
+ROUTER_ENGINE_ID="${ROUTER_ENGINE_ID:-${AGENT_ENGINE_ID:-6023683798619652096}}"
 INGRESS_GW="projects/${PROJECT_ID}/locations/${REGION}/agentGateways/${GATEWAY_NAME}"
 
 attach_gateway() {

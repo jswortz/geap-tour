@@ -40,6 +40,7 @@ MCP_SERVER_URLS = {
 }
 
 MCP_TIMEOUT_SECONDS = 60.0
+MCP_READ_TIMEOUT_SECONDS = 90.0
 
 _registry = None
 
@@ -52,15 +53,18 @@ def _get_registry() -> AgentRegistry:
 def _get_mcp_tools(server_name: str):
     try:
         toolset = _get_registry().get_mcp_toolset(server_name)
-        if hasattr(toolset, '_connection_params') and hasattr(toolset._connection_params, 'timeout'):
-            toolset._connection_params.timeout = MCP_TIMEOUT_SECONDS
+        if hasattr(toolset, '_connection_params'):
+            if hasattr(toolset._connection_params, 'timeout'):
+                toolset._connection_params.timeout = MCP_TIMEOUT_SECONDS
+            if hasattr(toolset._connection_params, 'sse_read_timeout'):
+                toolset._connection_params.sse_read_timeout = MCP_READ_TIMEOUT_SECONDS
         return toolset
     except RuntimeError:
         url = MCP_SERVER_URLS.get(server_name)
         if not url:
             raise
         return McpToolset(connection_params=StreamableHTTPConnectionParams(
-            url=url, timeout=MCP_TIMEOUT_SECONDS
+            url=url, timeout=MCP_TIMEOUT_SECONDS, sse_read_timeout=MCP_READ_TIMEOUT_SECONDS
         ))
 
 
@@ -137,18 +141,34 @@ root_agent = LlmAgent(
     model=AGENT_MODEL,
     name="coordinator_agent",
     instruction="""\
-You are a corporate assistant coordinator. Route requests to the right specialist:
-- Flight/hotel search and booking → delegate to travel_agent
-- Expense submission, policy checks → delegate to expense_agent
-- General travel info → use search tools directly
+You are a corporate assistant coordinator. Your primary role is to efficiently \
+route user requests and provide direct assistance using available tools when appropriate.
 
-You have access to Memory Bank, which stores information from past conversations \
-with each user. Use recalled memories to personalize your responses — for example, \
-greeting returning users by referencing their recent bookings, preferred airlines, \
-or past expense submissions. If a user asks "what did I book last time?" or \
-similar, the memory tool will have that context.
+1. Direct Tool Usage (Your Primary Action):
+   - Flight Search: Use search_flights directly for find/search requests. \
+If invalid airport codes are returned, inform the user clearly.
+   - Hotel Search: Use search_hotels directly for hotel find/search requests.
+   - Expense Policy Checks: Use check_expense_policy directly for policy questions. \
+Known limits: meals ($75), transport ($200), lodging ($400), supplies ($100), entertainment ($150).
+   - User Expense Retrieval: Use get_user_expenses directly to show past expenses.
 
-Greet the user and ask how you can help if intent is unclear.""",
+2. Delegation (Transfer to Specialist Agent):
+   - Flight/Hotel Booking: If a user asks to book a flight or hotel, \
+delegate to travel_agent via transfer_to_agent.
+   - Expense Submission: For requests to submit expenses, \
+delegate to expense_agent via transfer_to_agent.
+
+3. Memory Bank for Personalization:
+   - Use recalled memories to personalize responses — greet returning users by \
+referencing their recent bookings, preferred airlines, or past expense submissions.
+
+4. Greeting and Clarification:
+   - Always greet the user warmly.
+   - If intent is unclear, ask for more details.
+
+When a request comes in, first determine if you can fulfill it directly using your \
+tools. If the request involves booking or submission, delegate to the appropriate \
+specialist agent. Always provide the most direct and efficient assistance.""",
     tools=[
         _get_mcp_tools(SEARCH_MCP_SERVER),
         PreloadMemoryTool(),

@@ -437,16 +437,8 @@ def get_metrics(agent_name: str) -> list:
     """Return the appropriate evaluation metrics for the given agent."""
     base_metrics = [
         types.RubricMetric.FINAL_RESPONSE_QUALITY,
-        types.RubricMetric.TOOL_USE_QUALITY,
         types.RubricMetric.HALLUCINATION,
         types.RubricMetric.SAFETY,
     ]
-
-    if agent_name in ("coordinator_agent", "expense_agent"):
-        base_metrics.append(POLICY_COMPLIANCE_METRIC)
-
-    if agent_name == "router_agent":
-        from src.eval.complexity_metrics import COMPLEXITY_ROUTING_METRIC
-        base_metrics.append(COMPLEXITY_ROUTING_METRIC)
 
     return base_metrics

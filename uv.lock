@@ -775,7 +775,7 @@ dependencies = [
     { name = "a2a-sdk" },
     { name = "fastmcp" },
     { name = "google-adk", extra = ["agent-identity", "eval"] },
-    { name = "google-cloud-aiplatform", extra = ["adk", "agent-engines"] },
+    { name = "google-cloud-aiplatform", extra = ["adk", "agent-engines", "evaluation"] },
     { name = "google-cloud-bigquery" },
     { name = "google-cloud-monitoring" },
     { name = "google-genai" },
@@ -791,12 +791,17 @@ dev = [
     { name = "pytest-asyncio" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "a2a-sdk", specifier = "==0.3.26" },
     { name = "fastmcp", specifier = ">=2.0.0" },
     { name = "google-adk", extras = ["agent-identity", "eval"], specifier = ">=1.33.0" },
-    { name = "google-cloud-aiplatform", extras = ["adk", "agent-engines"], specifier = ">=1.152.0" },
+    { name = "google-cloud-aiplatform", extras = ["adk", "agent-engines", "evaluation"], specifier = ">=1.152.0" },
     { name = "google-cloud-bigquery", specifier = ">=3.40.1" },
     { name = "google-cloud-monitoring", specifier = ">=2.16.0" },
     { name = "google-genai", specifier = ">=1.66.0" },
@@ -808,6 +813,9 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.0.0" },
 ]
 provides-extras = ["dev"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=9.0.3" }]
 
 [[package]]
 name = "gepa"

@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "GEAP Workshop: Multi-agent systems with ADK, MCP, evaluation, and observability on Google Cloud"
 requires-python = ">=3.12"
 dependencies = [
-    "google-cloud-aiplatform[adk,agent-engines]>=1.152.0",
+    "google-cloud-aiplatform[adk,agent-engines,evaluation]>=1.152.0",
     "google-genai>=1.66.0",
     "fastmcp>=2.0.0",
     "pydantic>=2.12.5",
@@ -33,3 +33,8 @@ packages = ["src"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+]
