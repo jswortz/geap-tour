@@ -317,13 +317,19 @@ Without the egress gateway, an agent could call any external endpoint — a comp
 
 #### Creating Both Gateways
 
-Both gateways use the `networkservices.googleapis.com/v1alpha1` API. They are separate resources with different `governedAccessPath` values.
+Both gateways use the `networkservices.googleapis.com/v1beta1` API. They are separate resources with different `governedAccessPath` values.
+
+> **Regional vs Global Gateways:** A single Agent Gateway cannot simultaneously support both Gemini Enterprise and Agent Runtime. You must deploy two mutually exclusive sets of gateways:
+> - **Regional gateway** (+ regional registry) = required for Agent Runtime agents
+> - **Global gateway** (+ global registry) = required for Gemini Enterprise
+>
+> The workshop setup script creates both sets: regional gateways (`geap-workshop-gateway`, `geap-workshop-gateway-egress`) for Agent Runtime, and global gateways (`geap-workshop-ge-gateway`, `geap-workshop-ge-gateway-egress`) for Gemini Enterprise.
 
 **Ingress gateway** — controls inbound access:
 
 ```bash
 curl -X POST \
-  "https://networkservices.googleapis.com/v1alpha1/projects/${PROJECT_ID}/locations/${REGION}/agentGateways?agentGatewayId=geap-workshop-gateway" \
+  "https://networkservices.googleapis.com/v1beta1/projects/${PROJECT_ID}/locations/${REGION}/agentGateways?agentGatewayId=geap-workshop-gateway" \
   -H "Authorization: Bearer $(gcloud auth print-access-token)" \
   -H "Content-Type: application/json" \
   -d '{"protocols": ["MCP"], "googleManaged": {"governedAccessPath": "CLIENT_TO_AGENT"}}'
@@ -333,7 +339,7 @@ curl -X POST \
 
 ```bash
 curl -X POST \
-  "https://networkservices.googleapis.com/v1alpha1/projects/${PROJECT_ID}/locations/${REGION}/agentGateways?agentGatewayId=geap-workshop-gateway-egress" \
+  "https://networkservices.googleapis.com/v1beta1/projects/${PROJECT_ID}/locations/${REGION}/agentGateways?agentGatewayId=geap-workshop-gateway-egress" \
   -H "Authorization: Bearer $(gcloud auth print-access-token)" \
   -H "Content-Type: application/json" \
   -d '{"protocols": ["MCP"], "googleManaged": {"governedAccessPath": "AGENT_TO_ANYWHERE"}}'
@@ -352,8 +358,11 @@ Each gateway gets its own mTLS endpoint and can be managed independently. The `p
 Once created, both gateways are attached to the agent during deployment via `agent_gateway_config`. This tells Agent Runtime to route the agent's inbound and outbound traffic through the respective gateways:
 
 ```python
-remote = agent_engines.create(
-    agent_engine=agent,
+from vertexai._genai.types import IdentityType
+
+client = vertexai.Client(project=PROJECT_ID, location=REGION)
+remote = client.agent_engines.create(
+    agent=agent,
     config={
         "agent_gateway_config": {
             # Inbound: users → agent
@@ -365,10 +374,12 @@ remote = agent_engines.create(
                 "agent_gateway": f"projects/{PROJECT_ID}/locations/{REGION}/agentGateways/geap-workshop-gateway-egress"
             },
         },
-        "identity_type": "AGENT_IDENTITY",
+        "identity_type": IdentityType.AGENT_IDENTITY,
     },
 )
 ```
+
+> **Important:** The high-level `vertexai.agent_engines.create()` wrapper does **not** expose `agent_gateway_config` or `identity_type`. You must use `vertexai.Client().agent_engines.create(agent=..., config={...})` which accepts the full `AgentEngineConfig`.
 
 > **Private Preview note (verified 2026-05-12):** Attaching agents to gateways requires the `agentGatewayConfig` field on ReasoningEngine, which is gated behind a **separate** Private Preview enrollment on the AI Platform API. This is independent from the Network Services API enrollment (which controls gateway creation). Your project may be enrolled in one but not the other.
 >
@@ -417,21 +428,23 @@ remote = agent_engines.create(
 >
 > **Egress gateway prerequisite:** Before attaching an egress gateway, it must have a `networkConfig` with PSC network attachment and DNS peering for `googleapis.com`. Without this, the agent's outbound traffic (Gemini API calls, Cloud Resource Manager, etc.) will fail with `503 failed to connect to all addresses` when routed through PSC.
 >
-> **SDK equivalent** (not yet available in `google-cloud-aiplatform` v1.151.0):
+> **SDK equivalent** (available in `google-cloud-aiplatform` v1.88.0+):
 > ```python
-> remote = agent_engines.create(
->     agent_engine=agent,
+> from vertexai._genai.types import IdentityType
+> client = vertexai.Client(project=PROJECT_ID, location=REGION)
+> remote = client.agent_engines.create(
+>     agent=agent,
 >     config={
 >         "agent_gateway_config": {
 >             "client_to_agent_config": {"agent_gateway": INGRESS_GATEWAY_PATH},
 >             "agent_to_anywhere_config": {"agent_gateway": EGRESS_GATEWAY_PATH},
 >         },
->         "identity_type": "AGENT_IDENTITY",
+>         "identity_type": IdentityType.AGENT_IDENTITY,
 >     },
 > )
 > ```
 >
-> The workshop deploy script (`src/deploy/deploy_agents.py`) handles this gracefully via `_attach_gateway()`, which tries v1beta1 then v1 and logs a note if attachment fails.
+> The workshop deploy script (`src/deploy/deploy_agents.py`) passes `agent_gateway_config` and `identity_type` at deploy time via `vertexai.Client().agent_engines.create(agent=..., config={...})`. Gateway config cannot be PATCHed onto existing agents — it must be set at creation time.
 
 **Key insight**: With egress gateway enabled, every Gemini model call, MCP tool invocation, and external API request flows through the gateway. This means IAM Allow Policies and SGP business rules apply to model traffic — not just tool calls.
 
@@ -1043,7 +1056,7 @@ The traffic generator sends 20 single queries (tagged by complexity) plus 3 mult
 uv run python -m src.traffic.generate_traffic
 
 # Target a specific agent by ID
-uv run python -m src.traffic.generate_traffic 2479350891879071744
+uv run python -m src.traffic.generate_traffic 443583122819252224
 
 # Repeat the single-query set multiple times (memory convos always run once)
 uv run python -m src.traffic.generate_traffic --count 3

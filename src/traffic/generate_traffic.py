@@ -222,7 +222,7 @@ def generate_traffic(
     # Summary
     conv_queries = sum(len(c) for c in CONVERSATIONS)
     print(f"\n{'=' * 60}")
-    print(f"TRAFFIC SUMMARY")
+    print("TRAFFIC SUMMARY")
     print(f"{'=' * 60}")
     print(f"  Single queries: {len(QUERIES) * count}")
     print(f"  Memory conversations: {len(CONVERSATIONS)} ({conv_queries} turns)")

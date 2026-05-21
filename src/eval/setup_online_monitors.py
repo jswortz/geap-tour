@@ -5,7 +5,9 @@ Vertex AI Evals API. Results are visible in the GCP console.
 
 Usage:
     uv run python -m src.eval.setup_online_monitors <agent-engine-id>
-    uv run python -m src.eval.setup_online_monitors 2762936930915057664
+
+For a true scheduled monitor, deploy this as a Cloud Function + Cloud Scheduler
+on a 10-minute cron. See docs/workshop_guide.md Section 2.6 for details.
 """
 
 import json

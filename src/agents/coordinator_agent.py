@@ -1,8 +1,4 @@
-"""Coordinator Agent — routes user requests to travel or expense sub-agents.
-
-Integrates Vertex AI Agent Engine Memory Bank so the agent remembers user
-interactions (past bookings, expense submissions, preferences) across sessions.
-"""
+"""Coordinator Agent — routes user requests to travel or expense sub-agents."""
 
 from google.adk.agents import LlmAgent
 from google.adk.agents.callback_context import CallbackContext
@@ -24,6 +20,7 @@ def _resolve_model(model_str: str):
     if not model_str.startswith("vertex_ai/"):
         model_str = f"vertex_ai/{model_str}"
     return LiteLlm(model=model_str, vertex_location="global")
+
 
 INSTRUCTION = """\
 You are a corporate assistant coordinator. Your primary role is to efficiently \
@@ -64,8 +61,6 @@ async def save_memories_callback(callback_context: CallbackContext):
     except Exception:
         pass
     return None
-
-
 coordinator_agent = LlmAgent(
     model=_resolve_model(AGENT_MODEL),
     name="coordinator_agent",

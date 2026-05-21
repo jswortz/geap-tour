@@ -1,7 +1,6 @@
 """Tests for the 5-tier multi-model prompt router."""
 
 import json
-from unittest.mock import AsyncMock, patch, MagicMock
 
 import pytest
 

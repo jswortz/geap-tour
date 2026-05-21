@@ -25,7 +25,7 @@ on:
 env:
   GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID || 'wortz-project-352116' }}
   GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
-  AGENT_ENGINE_ID: ${{ inputs.agent_id || vars.AGENT_ENGINE_ID || '1316648131831529472' }}
+  AGENT_ENGINE_ID: ${{ inputs.agent_id || vars.AGENT_ENGINE_ID || '3433603839486328832' }}
 
 jobs:
   unit-tests:

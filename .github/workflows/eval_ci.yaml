@@ -45,8 +45,8 @@ jobs:
               staging_bucket='gs://${{ vars.GCP_STAGING_BUCKET || 'wortz-project-352116-geap-staging' }}',
           )
           from src.deploy.deploy_agents import deploy_agent
-          from src.agents.travel_agent import travel_agent
-          name = deploy_agent(travel_agent)
+          from src.agents.coordinator_agent import coordinator_agent
+          name = deploy_agent(coordinator_agent)
           print(name)
           ")
           echo "agent_resource=$RESOURCE" >> "$GITHUB_OUTPUT"

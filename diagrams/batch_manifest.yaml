@@ -47,3 +47,10 @@ diagrams:
     width: 3840
     height: 2160
     format: png
+
+  - name: "08_reference_architecture"
+    input: "inputs/08_reference_architecture.txt"
+    output: "outputs/08_reference_architecture.png"
+    width: 3840
+    height: 2160
+    format: png

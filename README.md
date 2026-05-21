@@ -2,6 +2,12 @@
 
 A hands-on workshop demonstrating the full Gemini Enterprise Agent Platform (GEAP) — from building ADK agents with MCP tools through deployment, governance, evaluation, and optimization.
 
+## Reference Architecture
+
+![GEAP Reference Architecture (detailed)](diagrams/outputs/08_reference_architecture.png)
+
+*Detailed reference architecture showing all GEAP platform components: Shared Service Project (Agent Gateway with ingress/egress, Model Armor input/output screening, Cloud Armor), Build & CI/CD (Cloud Build, Artifact Registry, Workload Identity Federation), three project zones (Development with ADK, Evaluation Framework, GEPA Optimization, Observability; Testing/Staging with staged agents and MCP servers; Production with Agent Engine, SPIFFE Identity, Memory Bank, Multi-Model Router, OTel Tracing), Agent Registry fleet catalog spanning all projects, Vertex AI Models (Gemini Flash/Pro, Claude Opus via LiteLLM), and Gemini Enterprise with A2A protocol for business end users.*
+
 ## What's Inside
 
 | Area | Description |
@@ -111,6 +117,7 @@ In our workshop, agents use SPIFFE-based workload identity (ID-2) with attestati
 | ![Observability Stack](diagrams/outputs/05_observability_stack.png) | OTel traces → Cloud Trace → BigQuery pipeline |
 | ![CI/CD Flow](diagrams/outputs/06_ci_cd_flow.png) | GitHub Actions simulated eval gate on pull requests |
 | ![Model Armor](diagrams/outputs/07_agent_armor.png) | Model Armor input/output screening with guardrail callbacks |
+| ![Reference Architecture](diagrams/outputs/08_reference_architecture.png) | Comprehensive reference architecture — all GEAP components in a single diagram |
 
 ## Project Structure
 

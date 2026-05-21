@@ -4,18 +4,14 @@ Starts MCP servers, verifies agent configuration, tests tool calls, and validate
 Agent Armor guardrails. Run with: uv run pytest tests/test_e2e.py -v
 """
 
-import asyncio
-import time
-import threading
 from unittest.mock import MagicMock
 
-import pytest
 from google.genai.types import Content, Part
 
 from src.mcp_servers.search.mock_db import FLIGHTS, HOTELS
 from src.mcp_servers.booking.mock_db import create_booking, bookings
 from src.mcp_servers.expense.mock_db import submit_expense, check_policy, expenses
-from src.armor.config import input_guardrail_callback, REJECTION_MESSAGE
+from src.armor.config import input_guardrail_callback
 
 
 # --- MCP Server Tool Tests (simulated calls) ---

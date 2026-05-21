@@ -8,7 +8,6 @@ Usage:
     uv run python -m src.eval.simulated_eval <agent-resource-name> 3.0 --agent-name travel_agent
 """
 
-
 def _patch_evals_extra_fields():
     """Patch two SDK bugs in google-cloud-aiplatform==1.152.0 that break the
     simulated eval pipeline (generate_conversation_scenarios → run_inference → evaluate).

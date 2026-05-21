@@ -8,7 +8,7 @@ from google.adk.agents.callback_context import CallbackContext
 from google.adk.models.lite_llm import LiteLlm
 from google.adk.tools.agent_tool import AgentTool
 from google.adk.tools.preload_memory_tool import PreloadMemoryTool
-from google.genai.types import Content, Part
+from google.genai.types import Content
 
 from .config import LITE_MODEL, FLASH_MODEL, PRO_MODEL, SONNET_MODEL, OPUS_MODEL
 from .armor import input_guardrail_callback
@@ -38,6 +38,7 @@ def _resolve_model(model_str: str):
 
 
 def _mcp_tools():
+    """Connect to MCP servers via Agent Registry (routes through gateway for governance)."""
     return [
         get_mcp_tools(SEARCH_MCP_SERVER),
         get_mcp_tools(BOOKING_MCP_SERVER),
@@ -138,7 +139,7 @@ async def complexity_router_callback(callback_context=None, **kwargs):
     return None
 
 
-async def save_memories_callback(callback_context: CallbackContext = None, **kwargs):
+async def save_memories_callback(callback_context: CallbackContext):
     """Persist session events to Memory Bank after each turn."""
     try:
         await callback_context.add_session_to_memory()

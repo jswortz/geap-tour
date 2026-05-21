@@ -30,6 +30,12 @@ def get_registry() -> AgentRegistry:
 
 
 def get_mcp_tools(server_name: str):
+    """Return an MCP toolset, preferring Agent Registry discovery.
+
+    When running behind Agent Gateway, the registry routes MCP traffic
+    through the gateway for governance. Falls back to direct SSE URLs
+    if the registry is unavailable.
+    """
     try:
         toolset = get_registry().get_mcp_toolset(server_name)
         # Agent Registry uses default 5s/300s — override for Cloud Run
@@ -39,7 +45,7 @@ def get_mcp_tools(server_name: str):
             if hasattr(toolset._connection_params, 'sse_read_timeout'):
                 toolset._connection_params.sse_read_timeout = MCP_READ_TIMEOUT_SECONDS
         return toolset
-    except RuntimeError:
+    except (RuntimeError, Exception):
         url = MCP_SERVER_URLS.get(server_name)
         if not url:
             raise
