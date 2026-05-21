@@ -46,7 +46,7 @@ from src.config import (
 )
 
 REQUIREMENTS = [
-    "google-cloud-aiplatform[adk,agent-engines,evaluation]>=1.152.0",
+    "google-cloud-aiplatform[adk,agent-engines,evaluation]>=1.153.1",
     "google-genai>=1.66.0",
     "google-auth>=2.52.0",
     "google-adk[a2a, agent-identity]>=1.33.0",
@@ -60,6 +60,7 @@ REQUIREMENTS = [
 ]
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+ENV_FILE = os.path.join(PROJECT_ROOT, ".env")
 
 
 ENABLE_AGENT_IDENTITY = os.environ.get("ENABLE_AGENT_IDENTITY", "0") in ("1", "true")
@@ -190,17 +191,69 @@ def update_agent(agent, engine_id: str, display_name: str | None = None) -> str:
 
 COORDINATOR_ENGINE_ID = os.environ.get("COORINDATOR_AGENT_ID", "")
 ROUTER_ENGINE_ID_ENV = os.environ.get("ROUTER_ENGINE_ID", os.environ.get("AGENT_ENGINE_ID", ""))
+LITE_ENGINE_ID = os.environ.get("LITE_ENGINE_ID", "")
+FLASH_ENGINE_ID = os.environ.get("FLASH_ENGINE_ID", "")
+PRO_ENGINE_ID = os.environ.get("PRO_ENGINE_ID", "")
+SONNET_ENGINE_ID = os.environ.get("SONNET_ENGINE_ID", "")
+OPUS_ENGINE_ID = os.environ.get("OPUS_ENGINE_ID", "")
 
 AGENT_SETS = {
     "coordinator": {
         "loader": lambda: __import__("src.agents.coordinator_agent", fromlist=["coordinator_agent"]).coordinator_agent,
         "engine_id": COORDINATOR_ENGINE_ID,
+        "env_var": "COORINDATOR_AGENT_ID",
     },
     "router": {
         "loader": lambda: __import__("src.router.agents", fromlist=["router_agent"]).router_agent,
         "engine_id": ROUTER_ENGINE_ID_ENV,
+        "env_var": "ROUTER_ENGINE_ID",
+    },
+    "lite": {
+        "loader": lambda: __import__("src.agents.lite_agent", fromlist=["lite_agent"]).lite_agent,
+        "engine_id": LITE_ENGINE_ID,
+        "env_var": "LITE_ENGINE_ID",
+    },
+    "flash": {
+        "loader": lambda: __import__("src.agents.flash_agent", fromlist=["flash_agent"]).flash_agent,
+        "engine_id": FLASH_ENGINE_ID,
+        "env_var": "FLASH_ENGINE_ID",
+    },
+    "pro": {
+        "loader": lambda: __import__("src.agents.pro_agent", fromlist=["pro_agent"]).pro_agent,
+        "engine_id": PRO_ENGINE_ID,
+        "env_var": "PRO_ENGINE_ID",
+    },
+    "sonnet": {
+        "loader": lambda: __import__("src.agents.sonnet_agent", fromlist=["sonnet_agent"]).sonnet_agent,
+        "engine_id": SONNET_ENGINE_ID,
+        "env_var": "SONNET_ENGINE_ID",
+    },
+    "opus": {
+        "loader": lambda: __import__("src.agents.opus_agent", fromlist=["opus_agent"]).opus_agent,
+        "engine_id": OPUS_ENGINE_ID,
+        "env_var": "OPUS_ENGINE_ID",
     },
 }
+
+
+def _update_env_file(env_var: str, value: str):
+    """Update or append a variable in the .env file."""
+    engine_id = value.split("/")[-1]
+    lines = []
+    found = False
+    if os.path.exists(ENV_FILE):
+        with open(ENV_FILE, "r") as f:
+            lines = f.readlines()
+        for i, line in enumerate(lines):
+            if line.startswith(f"{env_var}="):
+                lines[i] = f"{env_var}={engine_id}\n"
+                found = True
+                break
+    if not found:
+        lines.append(f"{env_var}={engine_id}\n")
+    with open(ENV_FILE, "w") as f:
+        f.writelines(lines)
+    print(f"  .env updated: {env_var}={engine_id}")
 
 
 def run_deploy(agent_set: str = "all", update: bool = False) -> dict[str, str]:
@@ -229,11 +282,13 @@ def run_deploy(agent_set: str = "all", update: bool = False) -> dict[str, str]:
         if update:
             engine_id = entry["engine_id"]
             if not engine_id:
-                print(f"  No engine ID for {name} — set COORINDATOR_AGENT_ID or ROUTER_ENGINE_ID in .env")
+                print(f"  No engine ID for {name} — set {entry['env_var']} in .env")
                 continue
             deployed[agent.name] = update_agent(agent, engine_id)
         else:
-            deployed[agent.name] = deploy_agent(agent)
+            resource_name = deploy_agent(agent)
+            deployed[agent.name] = resource_name
+            _update_env_file(entry["env_var"], resource_name)
 
     return deployed
 
