@@ -1,5 +1,11 @@
 """Search MCP server — exposes flight and hotel search tools over StreamableHTTP."""
 
+try:
+    from otel_setup import setup_opentelemetry
+    setup_opentelemetry("search-mcp")
+except Exception:
+    pass
+
 from fastmcp import FastMCP
 
 try:

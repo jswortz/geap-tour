@@ -1,5 +1,11 @@
 """Booking MCP server — exposes flight and hotel booking tools over StreamableHTTP."""
 
+try:
+    from otel_setup import setup_opentelemetry
+    setup_opentelemetry("booking-mcp")
+except Exception:
+    pass
+
 from fastmcp import FastMCP
 
 try:

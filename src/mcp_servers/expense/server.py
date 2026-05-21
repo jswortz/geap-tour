@@ -1,5 +1,11 @@
 """Expense MCP server — exposes expense submission, policy checks, and history over StreamableHTTP."""
 
+try:
+    from otel_setup import setup_opentelemetry
+    setup_opentelemetry("expense-mcp")
+except Exception:
+    pass
+
 from fastmcp import FastMCP
 
 try:
