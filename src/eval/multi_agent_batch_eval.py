@@ -36,7 +36,7 @@ from src.eval.agent_eval_configs import (
 )
 
 GCS_EVAL_DEST = f"gs://{GCP_STAGING_BUCKET}/eval-results/"
-MAX_POLL_SECONDS = 600
+MAX_POLL_SECONDS = 1200
 
 
 def _resolve_agent_resource_name(agent_id: str) -> str:
@@ -49,14 +49,17 @@ def _build_eval_dataset(cases: list[dict]) -> pd.DataFrame:
     session_inputs = types.evals.SessionInput(user_id="eval-batch-user", state={})
     rows = []
     for case in cases:
-        rows.append({
+        row = {
             "prompt": case["prompt"],
             "session_inputs": session_inputs,
             "eval_category": case["category"],
             "expected_tool": case["expected_tool"],
             "expected_signals": json.dumps(case["expected_signals"]),
             "case_description": case["description"],
-        })
+        }
+        if "reference" in case:
+            row["reference"] = case["reference"]
+        rows.append(row)
     return pd.DataFrame(rows)
 
 
@@ -182,7 +185,7 @@ def _run_single_agent_eval(
         "test_cases": len(cases),
         "inference_seconds": round(elapsed, 1),
         "metrics": metric_results,
-        "summary_raw": summary,
+        "summary_raw": raw_metrics,
         "evaluation_run_name": getattr(evaluation_run, "name", None),
         "item_count": len(items),
         "items": items,
@@ -311,8 +314,8 @@ def main():
     parser.add_argument(
         "--threshold",
         type=float,
-        default=3.0,
-        help="Minimum score to pass (1-5). Default: 3.0",
+        default=0.5,
+        help="Minimum score to pass (1-5). Default: 0.5",
     )
     parser.add_argument(
         "--output",

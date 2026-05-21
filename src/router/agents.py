@@ -3,6 +3,9 @@
 Routes to: Lite → Flash → Pro → Sonnet → Opus based on classifier score.
 """
 
+import litellm
+litellm.suppress_debug_info = True
+
 from google.adk.agents import LlmAgent
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.models.lite_llm import LiteLlm
