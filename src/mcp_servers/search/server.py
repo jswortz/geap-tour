@@ -1,10 +1,12 @@
 """Search MCP server — exposes flight and hotel search tools over StreamableHTTP."""
 
+import logging
+logging.basicConfig(level=logging.INFO)
 try:
     from otel_setup import setup_opentelemetry
     setup_opentelemetry("search-mcp")
-except Exception:
-    pass
+except Exception as e:
+    logging.warning("OTel setup failed: %s", e)
 
 from fastmcp import FastMCP
 

@@ -6,63 +6,162 @@
       "conversation": [
         {
           "user_content": {"parts": [{"text": "Find flights from LAX to Chicago and show me the cheapest option"}], "role": "user"},
-          "final_response": {"parts": [{"text": "I found flights from LAX to ORD (Chicago). The cheapest option is American Airlines FL003 at $380, departing at 07:00. This is the most affordable option available on this route."}], "role": "model"},
+          "final_response": {"parts": [{"text": "Flights from LAX to ORD (Chicago):\n- American Airlines FL003 at $380, departing 07:00\n\nThe cheapest option is FL003 at $380."}], "role": "model"},
           "intermediate_data": {"tool_uses": [{"name": "search_flights", "args": {"origin": "LAX", "destination": "ORD"}}]}
         }
       ],
       "session_input": {"app_name": "flash_agent_opt", "user_id": "eval_user"}
     },
     {
-      "eval_id": "hotel_with_filter",
+      "eval_id": "hotel_with_price_filter",
       "conversation": [
         {
           "user_content": {"parts": [{"text": "Search for hotels in New York under $350 per night"}], "role": "user"},
-          "final_response": {"parts": [{"text": "Hotels in New York under $350/night:\n1. Grand Hyatt - $320/night (4.5 stars)\n2. Budget Inn Downtown - $120/night (3.2 stars)\n\nThe Grand Hyatt offers the best value with a high rating, while Budget Inn is the most affordable option."}], "role": "model"},
+          "final_response": {"parts": [{"text": "Hotels in New York under $350/night:\n1. Grand Hyatt - $320/night (4.5 stars)\n2. Budget Inn Downtown - $120/night (3.2 stars)\n\nThe Grand Hyatt offers the best value with a high rating."}], "role": "model"},
           "intermediate_data": {"tool_uses": [{"name": "search_hotels", "args": {"city": "New York", "max_price": 350}}]}
         }
       ],
       "session_input": {"app_name": "flash_agent_opt", "user_id": "eval_user"}
     },
     {
-      "eval_id": "expense_submission",
+      "eval_id": "expense_submission_with_policy_check",
       "conversation": [
         {
           "user_content": {"parts": [{"text": "Submit a $45 meals expense for lunch meeting, user ID EMP001"}], "role": "user"},
-          "final_response": {"parts": [{"text": "I've checked the meals policy first - $45 is within the $75 limit. Your expense has been submitted:\n- Category: Meals\n- Amount: $45\n- User: EMP001\n- Status: Approved"}], "role": "model"},
+          "final_response": {"parts": [{"text": "I checked the meals policy first — $45 is within the $75 limit.\n\nExpense submitted:\n- Category: Meals\n- Amount: $45\n- User: EMP001\n- Status: Approved"}], "role": "model"},
           "intermediate_data": {"tool_uses": [{"name": "check_expense_policy", "args": {"category": "meals", "amount": 45}}, {"name": "submit_expense", "args": {"user_id": "EMP001", "category": "meals", "amount": 45, "description": "lunch meeting"}}]}
         }
       ],
       "session_input": {"app_name": "flash_agent_opt", "user_id": "eval_user"}
     },
     {
-      "eval_id": "over_limit_expense",
+      "eval_id": "over_limit_expense_flagged",
       "conversation": [
         {
           "user_content": {"parts": [{"text": "Check if a $500 entertainment expense is within policy"}], "role": "user"},
-          "final_response": {"parts": [{"text": "A $500 entertainment expense exceeds the corporate policy limit of $150 for entertainment by $350. This amount requires manager review before it can be submitted."}], "role": "model"},
+          "final_response": {"parts": [{"text": "A $500 entertainment expense exceeds the corporate policy limit of $150 by $350. This requires manager review before submission."}], "role": "model"},
           "intermediate_data": {"tool_uses": [{"name": "check_expense_policy", "args": {"category": "entertainment", "amount": 500}}]}
         }
       ],
       "session_input": {"app_name": "flash_agent_opt", "user_id": "eval_user"}
     },
     {
-      "eval_id": "hotel_booking",
+      "eval_id": "hotel_booking_with_dates",
       "conversation": [
         {
           "user_content": {"parts": [{"text": "Book hotel HT002 for Bob Smith, checkin June 15, checkout June 18"}], "role": "user"},
-          "final_response": {"parts": [{"text": "Hotel HT002 has been booked for Bob Smith:\n- Check-in: June 15\n- Check-out: June 18 (3 nights)\n- Booking confirmed."}], "role": "model"},
+          "final_response": {"parts": [{"text": "Hotel HT002 booked for Bob Smith:\n- Check-in: June 15\n- Check-out: June 18 (3 nights)\n- Booking confirmed."}], "role": "model"},
           "intermediate_data": {"tool_uses": [{"name": "book_hotel", "args": {"hotel_id": "HT002", "guest_name": "Bob Smith", "checkin": "June 15", "checkout": "June 18"}}]}
         }
       ],
       "session_input": {"app_name": "flash_agent_opt", "user_id": "eval_user"}
     },
     {
-      "eval_id": "invalid_airport",
+      "eval_id": "invalid_airport_graceful",
       "conversation": [
         {
           "user_content": {"parts": [{"text": "Find flights from XYZ to ABC"}], "role": "user"},
-          "final_response": {"parts": [{"text": "I searched for flights from XYZ to ABC but no results were found. These may be invalid airport codes. Could you please provide valid IATA airport codes (e.g., SFO, JFK, LAX)?"}], "role": "model"},
+          "final_response": {"parts": [{"text": "No flights found for XYZ to ABC. These may be invalid airport codes. Please provide valid IATA codes (e.g., SFO, JFK, LAX, ORD)."}], "role": "model"},
           "intermediate_data": {"tool_uses": [{"name": "search_flights", "args": {"origin": "XYZ", "destination": "ABC"}}]}
+        }
+      ],
+      "session_input": {"app_name": "flash_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "expense_over_limit_no_submit",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Submit a $500 entertainment expense for team event, user ID EMP002"}], "role": "user"},
+          "final_response": {"parts": [{"text": "I checked the entertainment policy — $500 exceeds the $150 limit by $350.\n\nThis expense cannot be auto-submitted. It requires manager review. Please get manager approval before resubmitting."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "check_expense_policy", "args": {"category": "entertainment", "amount": 500}}]}
+        }
+      ],
+      "session_input": {"app_name": "flash_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "flight_search_with_date",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Find flights from SFO to JFK on June 15"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Flights from SFO to JFK on June 15:\n- United FL001: $450, departing 08:00\n- Delta FL002: $520, departing 10:30\n\nUnited FL001 is $70 cheaper."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_flights", "args": {"origin": "SFO", "destination": "JFK", "date": "2026-06-15"}}]}
+        }
+      ],
+      "session_input": {"app_name": "flash_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "supplies_expense_submission",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Submit a $90 supplies expense for office materials, user ID EMP003"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Policy check: $90 is within the $100 supplies limit.\n\nExpense submitted:\n- Category: Supplies\n- Amount: $90\n- User: EMP003\n- Description: Office materials\n- Status: Approved"}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "check_expense_policy", "args": {"category": "supplies", "amount": 90}}, {"name": "submit_expense", "args": {"user_id": "EMP003", "category": "supplies", "amount": 90, "description": "office materials"}}]}
+        }
+      ],
+      "session_input": {"app_name": "flash_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "expense_history_review",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Show all expenses for EMP002"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Expense history for EMP002:\n- $75 meals (approved)\n- $180 transport (approved)\n- $200 entertainment (pending_review — exceeds $150 limit)\n\nTotal: $455 | 1 item flagged for review."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "get_user_expenses", "args": {"user_id": "EMP002"}}]}
+        }
+      ],
+      "session_input": {"app_name": "flash_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "hotel_search_no_results",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Search hotels in Atlantis under $100"}], "role": "user"},
+          "final_response": {"parts": [{"text": "No hotels found in Atlantis. This location may not be in our database. Try searching for a different city like New York, Miami, or Chicago."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_hotels", "args": {"city": "Atlantis", "max_price": 100}}]}
+        }
+      ],
+      "session_input": {"app_name": "flash_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "lodging_policy_inquiry",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "What's the corporate limit for lodging expenses?"}], "role": "user"},
+          "final_response": {"parts": [{"text": "The corporate lodging policy limit is $400 per night. Hotel expenses above $400/night require manager review before booking."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "check_expense_policy", "args": {"category": "lodging", "amount": 400}}]}
+        }
+      ],
+      "session_input": {"app_name": "flash_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "book_flight_with_confirmation",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Book flight FL003 for Charlie Davis"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Flight FL003 (American Airlines, LAX to ORD, $380) booked and confirmed for Charlie Davis."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "book_flight", "args": {"flight_id": "FL003", "passenger_name": "Charlie Davis"}}]}
+        }
+      ],
+      "session_input": {"app_name": "flash_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "out_of_scope_hr_question",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "How many vacation days do I have left?"}], "role": "user"},
+          "final_response": {"parts": [{"text": "I can only help with travel bookings (flights and hotels) and expense management (policy checks, submissions, and history). For vacation balance, please contact HR."}], "role": "model"},
+          "intermediate_data": {"tool_uses": []}
+        }
+      ],
+      "session_input": {"app_name": "flash_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "transport_expense_submission",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Submit a $120 transportation expense for airport shuttle, user ID EMP002"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Policy check: $120 is within the $200 transport limit.\n\nExpense submitted:\n- Category: Transport\n- Amount: $120\n- User: EMP002\n- Description: Airport shuttle\n- Status: Approved"}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "check_expense_policy", "args": {"category": "transport", "amount": 120}}, {"name": "submit_expense", "args": {"user_id": "EMP002", "category": "transport", "amount": 120, "description": "airport shuttle"}}]}
         }
       ],
       "session_input": {"app_name": "flash_agent_opt", "user_id": "eval_user"}

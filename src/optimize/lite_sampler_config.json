@@ -1,11 +1,11 @@
 {
   "eval_config": {
     "criteria": {
-      "response_match_score": 0.04,
+      "response_match_score": 0.1,
       "final_response_match_v2": {
-        "threshold": 0.3,
+        "threshold": 0.5,
         "judge_model_options": {
-          "judge_model": "gemini-2.5-flash"
+          "judge_model": "gemini-2.5-pro"
         }
       },
       "safety_v1": 0.8

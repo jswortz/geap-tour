@@ -2,7 +2,7 @@
   "eval_set_id": "lite_eval_set",
   "eval_cases": [
     {
-      "eval_id": "simple_flight_search",
+      "eval_id": "flight_search_sfo_jfk",
       "conversation": [
         {
           "user_content": {"parts": [{"text": "Find flights from SFO to JFK"}], "role": "user"},
@@ -13,7 +13,18 @@
       "session_input": {"app_name": "lite_agent_opt", "user_id": "eval_user"}
     },
     {
-      "eval_id": "simple_hotel_search",
+      "eval_id": "flight_search_lax_ord",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Search for flights from LAX to ORD"}], "role": "user"},
+          "final_response": {"parts": [{"text": "American Airlines FL003 from LAX to ORD at $380, departing 07:00."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_flights", "args": {"origin": "LAX", "destination": "ORD"}}]}
+        }
+      ],
+      "session_input": {"app_name": "lite_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "hotel_search_new_york",
       "conversation": [
         {
           "user_content": {"parts": [{"text": "Search for hotels in New York"}], "role": "user"},
@@ -24,7 +35,18 @@
       "session_input": {"app_name": "lite_agent_opt", "user_id": "eval_user"}
     },
     {
-      "eval_id": "simple_policy_check",
+      "eval_id": "hotel_search_miami",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Find me a hotel in Miami"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Fontainebleau Miami at $400/night with a 4.7 rating."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_hotels", "args": {"city": "Miami"}}]}
+        }
+      ],
+      "session_input": {"app_name": "lite_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "policy_check_meals",
       "conversation": [
         {
           "user_content": {"parts": [{"text": "What is the meal expense limit?"}], "role": "user"},
@@ -35,7 +57,7 @@
       "session_input": {"app_name": "lite_agent_opt", "user_id": "eval_user"}
     },
     {
-      "eval_id": "simple_expense_check",
+      "eval_id": "policy_check_transport",
       "conversation": [
         {
           "user_content": {"parts": [{"text": "Is a $50 transport expense within policy?"}], "role": "user"},
@@ -46,7 +68,29 @@
       "session_input": {"app_name": "lite_agent_opt", "user_id": "eval_user"}
     },
     {
-      "eval_id": "simple_booking",
+      "eval_id": "policy_check_lodging",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "What's the lodging policy limit?"}], "role": "user"},
+          "final_response": {"parts": [{"text": "The corporate lodging policy limit is $400 per night. Amounts above this require manager review."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "check_expense_policy", "args": {"category": "lodging", "amount": 400}}]}
+        }
+      ],
+      "session_input": {"app_name": "lite_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "policy_check_over_limit",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Is $100 for meals within policy?"}], "role": "user"},
+          "final_response": {"parts": [{"text": "No, a $100 meal expense exceeds the corporate policy limit of $75 for meals. This requires manager review."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "check_expense_policy", "args": {"category": "meals", "amount": 100}}]}
+        }
+      ],
+      "session_input": {"app_name": "lite_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "book_flight",
       "conversation": [
         {
           "user_content": {"parts": [{"text": "Book flight FL001 for Alice Johnson"}], "role": "user"},
@@ -57,12 +101,67 @@
       "session_input": {"app_name": "lite_agent_opt", "user_id": "eval_user"}
     },
     {
-      "eval_id": "simple_expense_history",
+      "eval_id": "expense_history",
       "conversation": [
         {
           "user_content": {"parts": [{"text": "Show expenses for user EMP001"}], "role": "user"},
           "final_response": {"parts": [{"text": "Expense history for EMP001: $45 meals (approved), $120 transport (approved), $75 supplies (approved)."}], "role": "model"},
           "intermediate_data": {"tool_uses": [{"name": "get_user_expenses", "args": {"user_id": "EMP001"}}]}
+        }
+      ],
+      "session_input": {"app_name": "lite_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "invalid_airport_codes",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Find flights from XYZ to ABC"}], "role": "user"},
+          "final_response": {"parts": [{"text": "No flights found for the route XYZ to ABC. These may be invalid airport codes. Please provide valid IATA codes like SFO, JFK, or LAX."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_flights", "args": {"origin": "XYZ", "destination": "ABC"}}]}
+        }
+      ],
+      "session_input": {"app_name": "lite_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "invalid_expense_category",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Check policy for $500 in the 'unknown' category"}], "role": "user"},
+          "final_response": {"parts": [{"text": "The category 'unknown' is not a valid expense category. Valid categories are: meals, transport, lodging, supplies, entertainment."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "check_expense_policy", "args": {"category": "unknown", "amount": 500}}]}
+        }
+      ],
+      "session_input": {"app_name": "lite_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "submit_expense_within_policy",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Submit a $45 meals expense for lunch, user ID EMP001"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Expense submitted: $45 meals for EMP001. Status: approved (within $75 policy limit)."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "check_expense_policy", "args": {"category": "meals", "amount": 45}}, {"name": "submit_expense", "args": {"user_id": "EMP001", "category": "meals", "amount": 45, "description": "lunch"}}]}
+        }
+      ],
+      "session_input": {"app_name": "lite_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "hotel_search_with_price",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Find hotels in New York under $200"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Hotels in New York under $200/night: Budget Inn Downtown at $120/night (3.2 stars)."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_hotels", "args": {"city": "New York", "max_price": 200}}]}
+        }
+      ],
+      "session_input": {"app_name": "lite_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "out_of_scope_request",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Can you help me write a Python script?"}], "role": "user"},
+          "final_response": {"parts": [{"text": "I'm a corporate travel and expense assistant. I can help with searching flights and hotels, booking travel, checking expense policies, and submitting expenses. For coding assistance, please use a different tool."}], "role": "model"},
+          "intermediate_data": {"tool_uses": []}
         }
       ],
       "session_input": {"app_name": "lite_agent_opt", "user_id": "eval_user"}

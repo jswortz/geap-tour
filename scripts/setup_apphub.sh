@@ -31,6 +31,11 @@ REGION="${GCP_REGION:-us-central1}"
 APP_NAME="${APPHUB_APP_NAME:-geap-workshop}"
 COORDINATOR_ID="${COORINDATOR_AGENT_ID:-8296365537139621888}"
 ROUTER_ID="${ROUTER_ENGINE_ID:-${AGENT_ENGINE_ID:-4709107696450666496}}"
+LITE_ID="${LITE_ENGINE_ID:-}"
+FLASH_ID="${FLASH_ENGINE_ID:-}"
+PRO_ID="${PRO_ENGINE_ID:-}"
+SONNET_ID="${SONNET_ENGINE_ID:-}"
+OPUS_ID="${OPUS_ENGINE_ID:-}"
 
 DRY_RUN=false
 for arg in "$@"; do
@@ -66,6 +71,11 @@ echo "  Region:       $REGION"
 echo "  Application:  $APP_NAME"
 echo "  Coordinator:  $COORDINATOR_ID"
 echo "  Router:       $ROUTER_ID"
+echo "  Lite:         ${LITE_ID:-(not set)}"
+echo "  Flash:        ${FLASH_ID:-(not set)}"
+echo "  Pro:          ${PRO_ID:-(not set)}"
+echo "  Sonnet:       ${SONNET_ID:-(not set)}"
+echo "  Opus:         ${OPUS_ID:-(not set)}"
 echo ""
 
 # --- Step 1: Create App Hub application ---
@@ -114,20 +124,19 @@ find_discovered_workload() {
 
 COORDINATOR_DISCOVERED=$(find_discovered_workload "$COORDINATOR_ID")
 ROUTER_DISCOVERED=$(find_discovered_workload "$ROUTER_ID")
+LITE_DISCOVERED=$([ -n "$LITE_ID" ] && find_discovered_workload "$LITE_ID" || true)
+FLASH_DISCOVERED=$([ -n "$FLASH_ID" ] && find_discovered_workload "$FLASH_ID" || true)
+PRO_DISCOVERED=$([ -n "$PRO_ID" ] && find_discovered_workload "$PRO_ID" || true)
+SONNET_DISCOVERED=$([ -n "$SONNET_ID" ] && find_discovered_workload "$SONNET_ID" || true)
+OPUS_DISCOVERED=$([ -n "$OPUS_ID" ] && find_discovered_workload "$OPUS_ID" || true)
 
-if [ -z "$COORDINATOR_DISCOVERED" ]; then
-    warn "Coordinator agent ($COORDINATOR_ID) not found in discovered workloads"
-    warn "App Hub may need a few minutes to discover newly deployed agents"
-else
-    ok "Found coordinator: $COORDINATOR_DISCOVERED"
-fi
-
-if [ -z "$ROUTER_DISCOVERED" ]; then
-    warn "Router agent ($ROUTER_ID) not found in discovered workloads"
-    warn "App Hub may need a few minutes to discover newly deployed agents"
-else
-    ok "Found router: $ROUTER_DISCOVERED"
-fi
+[ -n "$COORDINATOR_DISCOVERED" ] && ok "Found coordinator: $COORDINATOR_DISCOVERED" || warn "Coordinator not found"
+[ -n "$ROUTER_DISCOVERED" ] && ok "Found router: $ROUTER_DISCOVERED" || warn "Router not found"
+[ -n "$LITE_DISCOVERED" ] && ok "Found lite: $LITE_DISCOVERED" || [ -n "$LITE_ID" ] && warn "Lite not found" || true
+[ -n "$FLASH_DISCOVERED" ] && ok "Found flash: $FLASH_DISCOVERED" || [ -n "$FLASH_ID" ] && warn "Flash not found" || true
+[ -n "$PRO_DISCOVERED" ] && ok "Found pro: $PRO_DISCOVERED" || [ -n "$PRO_ID" ] && warn "Pro not found" || true
+[ -n "$SONNET_DISCOVERED" ] && ok "Found sonnet: $SONNET_DISCOVERED" || [ -n "$SONNET_ID" ] && warn "Sonnet not found" || true
+[ -n "$OPUS_DISCOVERED" ] && ok "Found opus: $OPUS_DISCOVERED" || [ -n "$OPUS_ID" ] && warn "Opus not found" || true
 echo ""
 
 # --- Step 3: Register workloads ---
@@ -165,6 +174,11 @@ register_workload() {
 
 register_workload "coordinator-agent" "Coordinator Agent" "$COORDINATOR_DISCOVERED"
 register_workload "router-agent" "Router Agent" "$ROUTER_DISCOVERED"
+register_workload "lite-agent" "Lite Agent" "${LITE_DISCOVERED:-}"
+register_workload "flash-agent" "Flash Agent" "${FLASH_DISCOVERED:-}"
+register_workload "pro-agent" "Pro Agent" "${PRO_DISCOVERED:-}"
+register_workload "sonnet-agent" "Sonnet Agent" "${SONNET_DISCOVERED:-}"
+register_workload "opus-agent" "Opus Agent" "${OPUS_DISCOVERED:-}"
 echo ""
 
 # --- Step 3b: Register MCP servers as services ---

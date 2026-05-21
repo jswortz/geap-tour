@@ -1,10 +1,12 @@
 """Booking MCP server — exposes flight and hotel booking tools over StreamableHTTP."""
 
+import logging
+logging.basicConfig(level=logging.INFO)
 try:
     from otel_setup import setup_opentelemetry
     setup_opentelemetry("booking-mcp")
-except Exception:
-    pass
+except Exception as e:
+    logging.warning("OTel setup failed: %s", e)
 
 from fastmcp import FastMCP
 
