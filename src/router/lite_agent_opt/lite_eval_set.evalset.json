@@ -1,0 +1,71 @@
+{
+  "eval_set_id": "lite_eval_set",
+  "eval_cases": [
+    {
+      "eval_id": "simple_flight_search",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Find flights from SFO to JFK"}], "role": "user"},
+          "final_response": {"parts": [{"text": "I found flights from SFO to JFK: United FL001 at $450 departing 08:00 and Delta FL002 at $520 departing 10:30."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_flights", "args": {"origin": "SFO", "destination": "JFK"}}]}
+        }
+      ],
+      "session_input": {"app_name": "lite_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "simple_hotel_search",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Search for hotels in New York"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Hotels in New York: Grand Hyatt at $320/night (4.5 stars) and Budget Inn Downtown at $120/night (3.2 stars)."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_hotels", "args": {"city": "New York"}}]}
+        }
+      ],
+      "session_input": {"app_name": "lite_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "simple_policy_check",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "What is the meal expense limit?"}], "role": "user"},
+          "final_response": {"parts": [{"text": "The corporate meal expense limit is $75 per meal. Amounts above this require manager review."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "check_expense_policy", "args": {"category": "meals", "amount": 75}}]}
+        }
+      ],
+      "session_input": {"app_name": "lite_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "simple_expense_check",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Is a $50 transport expense within policy?"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Yes, a $50 transport expense is within the corporate policy limit of $200 for transportation."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "check_expense_policy", "args": {"category": "transport", "amount": 50}}]}
+        }
+      ],
+      "session_input": {"app_name": "lite_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "simple_booking",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Book flight FL001 for Alice Johnson"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Flight FL001 (United, SFO to JFK) has been booked and confirmed for Alice Johnson."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "book_flight", "args": {"flight_id": "FL001", "passenger_name": "Alice Johnson"}}]}
+        }
+      ],
+      "session_input": {"app_name": "lite_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "simple_expense_history",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Show expenses for user EMP001"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Expense history for EMP001: $45 meals (approved), $120 transport (approved), $75 supplies (approved)."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "get_user_expenses", "args": {"user_id": "EMP001"}}]}
+        }
+      ],
+      "session_input": {"app_name": "lite_agent_opt", "user_id": "eval_user"}
+    }
+  ]
+}

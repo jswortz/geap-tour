@@ -1,0 +1,71 @@
+{
+  "eval_set_id": "flash_eval_set",
+  "eval_cases": [
+    {
+      "eval_id": "formatted_flight_search",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Find flights from LAX to Chicago and show me the cheapest option"}], "role": "user"},
+          "final_response": {"parts": [{"text": "I found flights from LAX to ORD (Chicago). The cheapest option is American Airlines FL003 at $380, departing at 07:00. This is the most affordable option available on this route."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_flights", "args": {"origin": "LAX", "destination": "ORD"}}]}
+        }
+      ],
+      "session_input": {"app_name": "flash_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "hotel_with_filter",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Search for hotels in New York under $350 per night"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Hotels in New York under $350/night:\n1. Grand Hyatt - $320/night (4.5 stars)\n2. Budget Inn Downtown - $120/night (3.2 stars)\n\nThe Grand Hyatt offers the best value with a high rating, while Budget Inn is the most affordable option."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_hotels", "args": {"city": "New York", "max_price": 350}}]}
+        }
+      ],
+      "session_input": {"app_name": "flash_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "expense_submission",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Submit a $45 meals expense for lunch meeting, user ID EMP001"}], "role": "user"},
+          "final_response": {"parts": [{"text": "I've checked the meals policy first - $45 is within the $75 limit. Your expense has been submitted:\n- Category: Meals\n- Amount: $45\n- User: EMP001\n- Status: Approved"}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "check_expense_policy", "args": {"category": "meals", "amount": 45}}, {"name": "submit_expense", "args": {"user_id": "EMP001", "category": "meals", "amount": 45, "description": "lunch meeting"}}]}
+        }
+      ],
+      "session_input": {"app_name": "flash_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "over_limit_expense",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Check if a $500 entertainment expense is within policy"}], "role": "user"},
+          "final_response": {"parts": [{"text": "A $500 entertainment expense exceeds the corporate policy limit of $150 for entertainment by $350. This amount requires manager review before it can be submitted."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "check_expense_policy", "args": {"category": "entertainment", "amount": 500}}]}
+        }
+      ],
+      "session_input": {"app_name": "flash_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "hotel_booking",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Book hotel HT002 for Bob Smith, checkin June 15, checkout June 18"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Hotel HT002 has been booked for Bob Smith:\n- Check-in: June 15\n- Check-out: June 18 (3 nights)\n- Booking confirmed."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "book_hotel", "args": {"hotel_id": "HT002", "guest_name": "Bob Smith", "checkin": "June 15", "checkout": "June 18"}}]}
+        }
+      ],
+      "session_input": {"app_name": "flash_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "invalid_airport",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Find flights from XYZ to ABC"}], "role": "user"},
+          "final_response": {"parts": [{"text": "I searched for flights from XYZ to ABC but no results were found. These may be invalid airport codes. Could you please provide valid IATA airport codes (e.g., SFO, JFK, LAX)?"}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_flights", "args": {"origin": "XYZ", "destination": "ABC"}}]}
+        }
+      ],
+      "session_input": {"app_name": "flash_agent_opt", "user_id": "eval_user"}
+    }
+  ]
+}

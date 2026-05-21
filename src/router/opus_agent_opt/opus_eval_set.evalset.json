@@ -1,0 +1,60 @@
+{
+  "eval_set_id": "opus_eval_set",
+  "eval_cases": [
+    {
+      "eval_id": "team_trip_planning",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Plan a 5-day trip to Tokyo for a team of 4: find flights from SFO, hotels, estimate daily meal expenses, and check entertainment policy"}], "role": "user"},
+          "final_response": {"parts": [{"text": "**Tokyo Team Trip Plan (4 people, 5 days):**\n\n**Flights (SFO → Tokyo):**\nSearched available routes. Recommend booking earliest available options for the team of 4.\n\n**Hotels:**\nSearched Tokyo hotels. Options available at various price points — recommend staying within the $400/night lodging policy.\n\n**Daily Meal Budget:**\n- Policy limit: $75/person/day\n- Team daily meals: 4 × $75 = $300/day\n- 5-day total: $1,500\n\n**Entertainment Policy:**\n- Limit: $150 per expense\n- Team events above this require manager pre-approval\n\n**Estimated Total Budget:**\n- Flights: 4 × [flight cost]\n- Hotels: 5 nights × [rate] × 4 rooms\n- Meals: $1,500\n- Entertainment: Budget $150/event with pre-approval for larger events\n\nRecommend submitting a pre-trip expense estimate for manager approval."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_flights", "args": {"origin": "SFO", "destination": "TYO"}}, {"name": "search_hotels", "args": {"city": "Tokyo"}}, {"name": "check_expense_policy", "args": {"category": "meals", "amount": 75}}, {"name": "check_expense_policy", "args": {"category": "entertainment", "amount": 150}}, {"name": "check_expense_policy", "args": {"category": "lodging", "amount": 400}}]}
+        }
+      ],
+      "session_input": {"app_name": "opus_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "budget_constrained_trip",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "I have a $2000 budget for a London trip. Find flights, hotels, check lodging and meal policies, and tell me if I can afford it within corporate limits. Also draft a pre-trip expense estimate."}], "role": "user"},
+          "final_response": {"parts": [{"text": "**London Trip Budget Analysis ($2,000 limit):**\n\n**Flights:**\nSearched SFO to London routes. Available options reviewed.\n\n**Hotels:**\nLondon hotel options searched. Policy limit: $400/night.\n\n**Policy Compliance:**\n- Lodging: $400/night max → 3 nights = $1,200 max\n- Meals: $75/day → 3 days = $225\n- Remaining for transport/misc: $575\n\n**Budget Breakdown:**\n| Category | Estimate | Policy Limit | Status |\n|----------|----------|-------------|--------|\n| Flight | ~$800 | N/A | Within budget |\n| Hotel (3 nights) | ~$960 | $400/night | Within policy |\n| Meals (3 days) | ~$225 | $75/day | Within policy |\n| Transport | ~$100 | $200 | Within policy |\n| **Total** | **~$2,085** | | **Slightly over budget** |\n\n**Recommendation:** Choose a more affordable hotel ($200-250/night range) to stay within the $2,000 budget. Pre-trip expense estimate drafted for manager review."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_flights", "args": {"origin": "SFO", "destination": "LHR"}}, {"name": "search_hotels", "args": {"city": "London"}}, {"name": "check_expense_policy", "args": {"category": "lodging", "amount": 400}}, {"name": "check_expense_policy", "args": {"category": "meals", "amount": 75}}, {"name": "check_expense_policy", "args": {"category": "transport", "amount": 200}}]}
+        }
+      ],
+      "session_input": {"app_name": "opus_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "expense_analysis_recommendation",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Analyze EMP001's expense history for overspending on entertainment, compare it against the policy limit, draft a policy recommendation for new entertainment limits, and submit my $45 lunch receipt"}], "role": "user"},
+          "final_response": {"parts": [{"text": "**Comprehensive Analysis:**\n\n**1. EMP001 Expense History:**\nRetrieved all expenses for EMP001. Entertainment expenses reviewed.\n\n**2. Entertainment Policy Analysis:**\n- Current limit: $150 per expense\n- EMP001 pattern: Multiple expenses near or exceeding the limit\n\n**3. Policy Recommendation:**\nBased on the pattern of entertainment overspending:\n- Consider tiered limits: $100 standard, $200 with pre-approval, $500 with VP approval\n- Implement monthly caps in addition to per-expense limits\n- Require itemized receipts for entertainment above $100\n\n**4. Lunch Receipt Submitted:**\n- $45 meals expense for EMP001\n- Status: Approved (within $75 limit)\n\nAll four tasks completed. The policy recommendation should be reviewed by finance and HR before implementation."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "get_user_expenses", "args": {"user_id": "EMP001"}}, {"name": "check_expense_policy", "args": {"category": "entertainment", "amount": 150}}, {"name": "check_expense_policy", "args": {"category": "meals", "amount": 45}}, {"name": "submit_expense", "args": {"user_id": "EMP001", "category": "meals", "amount": 45, "description": "lunch"}}]}
+        }
+      ],
+      "session_input": {"app_name": "opus_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "multi_city_optimization",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "I need to visit New York and Chicago next month. Find the cheapest flight route, compare hotel costs in each city under the lodging policy, estimate total trip expenses including meals and transport, and book the cheapest flights for Bob Smith"}], "role": "user"},
+          "final_response": {"parts": [{"text": "**Multi-City Trip Plan for Bob Smith:**\n\n**Flight Route Analysis:**\n- SFO → JFK: United FL001 $450 (cheapest)\n- SFO → ORD: American FL003 $380 (cheapest)\n- Recommended route: Chicago first (cheaper), then New York\n\n**Hotel Comparison (within $400/night policy):**\n- New York: Grand Hyatt $320/night, Budget Inn $120/night\n- Chicago: Options searched within policy\n\n**Total Trip Estimate:**\n| Category | NYC (3 nights) | Chicago (2 nights) | Total |\n|----------|---------------|--------------------|---------|\n| Flights | $450 | $380 | $830 |\n| Hotels | $960 (Grand Hyatt) | $640 est. | $1,600 |\n| Meals ($75/day) | $225 | $150 | $375 |\n| Transport ($200 limit) | $100 | $100 | $200 |\n| **Total** | | | **$3,005** |\n\n**Bookings Made:**\n- FL003 (LAX→ORD) booked for Bob Smith ✓\n- FL001 (SFO→JFK) booked for Bob Smith ✓\n\nAll within corporate policy limits."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_flights", "args": {"origin": "SFO", "destination": "JFK"}}, {"name": "search_flights", "args": {"origin": "SFO", "destination": "ORD"}}, {"name": "search_hotels", "args": {"city": "New York"}}, {"name": "search_hotels", "args": {"city": "Chicago"}}, {"name": "check_expense_policy", "args": {"category": "lodging", "amount": 400}}, {"name": "check_expense_policy", "args": {"category": "meals", "amount": 75}}, {"name": "book_flight", "args": {"flight_id": "FL003", "passenger_name": "Bob Smith"}}, {"name": "book_flight", "args": {"flight_id": "FL001", "passenger_name": "Bob Smith"}}]}
+        }
+      ],
+      "session_input": {"app_name": "opus_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "full_booking_pipeline",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Book the cheapest SFO-JFK flight, find a hotel near 350 5th Ave, cross-reference hotel ratings, check our lodging policy limit, and submit a pre-approval expense for the estimated total trip cost"}], "role": "user"},
+          "final_response": {"parts": [{"text": "**Complete Booking Pipeline:**\n\n**1. Flight Booked:**\n- Cheapest option: United FL001, SFO→JFK, $450\n- Status: Confirmed\n\n**2. Hotels Near 350 5th Ave (Midtown Manhattan):**\n- Grand Hyatt: $320/night, 4.5 stars (closest to 350 5th Ave)\n- Budget Inn Downtown: $120/night, 3.2 stars\n\n**3. Rating Cross-Reference:**\n- Grand Hyatt (4.5★) offers superior location and amenities\n- Budget Inn (3.2★) is budget-friendly but lower rated\n\n**4. Lodging Policy:**\n- Limit: $400/night\n- Grand Hyatt ($320): ✓ Within policy\n- Budget Inn ($120): ✓ Within policy\n\n**5. Pre-Approval Expense Submitted:**\n- Flight: $450\n- Hotel (3 nights × $320): $960\n- Meals (3 days × $75): $225\n- Estimated total: $1,635\n- Status: Submitted for manager pre-approval"}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_flights", "args": {"origin": "SFO", "destination": "JFK"}}, {"name": "book_flight", "args": {"flight_id": "FL001", "passenger_name": "user"}}, {"name": "search_hotels", "args": {"city": "New York"}}, {"name": "check_expense_policy", "args": {"category": "lodging", "amount": 320}}, {"name": "check_expense_policy", "args": {"category": "meals", "amount": 75}}, {"name": "submit_expense", "args": {"user_id": "user", "category": "lodging", "amount": 1635, "description": "pre-approval trip estimate SFO-JFK"}}]}
+        }
+      ],
+      "session_input": {"app_name": "opus_agent_opt", "user_id": "eval_user"}
+    }
+  ]
+}

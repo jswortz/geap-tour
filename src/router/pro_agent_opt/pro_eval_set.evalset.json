@@ -1,0 +1,60 @@
+{
+  "eval_set_id": "pro_eval_set",
+  "eval_cases": [
+    {
+      "eval_id": "flight_comparison",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Find flights to NYC and compare the cheapest options by airline"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Here are flights to JFK (NYC) compared by airline and price:\n\n| Airline | Flight | Price | Departure |\n|---------|--------|-------|-----------|\n| United | FL001 | $450 | 08:00 |\n| Delta | FL002 | $520 | 10:30 |\n\nUnited FL001 is $70 cheaper than Delta FL002. United offers the best value for this route."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_flights", "args": {"destination": "JFK"}}]}
+        }
+      ],
+      "session_input": {"app_name": "pro_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "hotel_policy_check",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Search hotels in Boston, then check if the nightly rate fits our lodging policy"}], "role": "user"},
+          "final_response": {"parts": [{"text": "I searched hotels in Boston and checked them against the corporate lodging policy ($400/night limit):\n\n- Hotels under $400/night are within policy and can be booked without additional approval\n- Any hotel above $400/night would require manager review\n\nAll results have been cross-referenced with the policy limit."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_hotels", "args": {"city": "Boston"}}, {"name": "check_expense_policy", "args": {"category": "lodging", "amount": 400}}]}
+        }
+      ],
+      "session_input": {"app_name": "pro_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "expense_history_analysis",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Show expense history for EMP001 and flag any items that exceeded policy limits"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Expense history for EMP001 reviewed against policy limits:\n\n- Meals ($75 limit): All within policy\n- Transport ($200 limit): All within policy\n- Entertainment ($150 limit): Flagged - $200 expense exceeds limit by $50\n\nRecommendation: The entertainment expense requires manager review."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "get_user_expenses", "args": {"user_id": "EMP001"}}, {"name": "check_expense_policy", "args": {"category": "entertainment", "amount": 200}}]}
+        }
+      ],
+      "session_input": {"app_name": "pro_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "multi_policy_check",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Check if a $100 meal and a $250 entertainment expense are both within policy"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Policy check results:\n\n1. **Meals - $100**: Exceeds the $75 limit by $25. Requires manager review.\n2. **Entertainment - $250**: Exceeds the $150 limit by $100. Requires manager review.\n\nBoth expenses are over their respective policy limits and need manager approval before submission."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "check_expense_policy", "args": {"category": "meals", "amount": 100}}, {"name": "check_expense_policy", "args": {"category": "entertainment", "amount": 250}}]}
+        }
+      ],
+      "session_input": {"app_name": "pro_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "savings_comparison",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Find the cheapest flight from SFO to JFK and tell me how much I'd save vs the most expensive"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Flights from SFO to JFK:\n- Cheapest: United FL001 at $450\n- Most expensive: Delta FL002 at $520\n\nYou'd save $70 (13.5%) by choosing United FL001 over Delta FL002."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_flights", "args": {"origin": "SFO", "destination": "JFK"}}]}
+        }
+      ],
+      "session_input": {"app_name": "pro_agent_opt", "user_id": "eval_user"}
+    }
+  ]
+}
