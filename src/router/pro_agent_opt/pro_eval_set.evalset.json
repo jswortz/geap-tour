@@ -13,11 +13,11 @@
       "session_input": {"app_name": "pro_agent_opt", "user_id": "eval_user"}
     },
     {
-      "eval_id": "hotel_policy_check",
+      "eval_id": "hotel_policy_cross_check",
       "conversation": [
         {
           "user_content": {"parts": [{"text": "Search hotels in Boston, then check if the nightly rate fits our lodging policy"}], "role": "user"},
-          "final_response": {"parts": [{"text": "I searched hotels in Boston and checked them against the corporate lodging policy ($400/night limit):\n\n- Hotels under $400/night are within policy and can be booked without additional approval\n- Any hotel above $400/night would require manager review\n\nAll results have been cross-referenced with the policy limit."}], "role": "model"},
+          "final_response": {"parts": [{"text": "Hotels in Boston searched and cross-referenced with the corporate lodging policy ($400/night limit):\n\nAll hotels under $400/night are within policy and can be booked without additional approval. Hotels above $400/night would require manager review."}], "role": "model"},
           "intermediate_data": {"tool_uses": [{"name": "search_hotels", "args": {"city": "Boston"}}, {"name": "check_expense_policy", "args": {"category": "lodging", "amount": 400}}]}
         }
       ],
@@ -28,7 +28,7 @@
       "conversation": [
         {
           "user_content": {"parts": [{"text": "Show expense history for EMP001 and flag any items that exceeded policy limits"}], "role": "user"},
-          "final_response": {"parts": [{"text": "Expense history for EMP001 reviewed against policy limits:\n\n- Meals ($75 limit): All within policy\n- Transport ($200 limit): All within policy\n- Entertainment ($150 limit): Flagged - $200 expense exceeds limit by $50\n\nRecommendation: The entertainment expense requires manager review."}], "role": "model"},
+          "final_response": {"parts": [{"text": "Expense history for EMP001 reviewed against policy limits:\n\n- Meals ($75 limit): All within policy\n- Transport ($200 limit): All within policy\n- Entertainment ($150 limit): Flagged — $200 expense exceeds limit by $50\n\nRecommendation: The entertainment expense requires manager review."}], "role": "model"},
           "intermediate_data": {"tool_uses": [{"name": "get_user_expenses", "args": {"user_id": "EMP001"}}, {"name": "check_expense_policy", "args": {"category": "entertainment", "amount": 200}}]}
         }
       ],
@@ -39,7 +39,7 @@
       "conversation": [
         {
           "user_content": {"parts": [{"text": "Check if a $100 meal and a $250 entertainment expense are both within policy"}], "role": "user"},
-          "final_response": {"parts": [{"text": "Policy check results:\n\n1. **Meals - $100**: Exceeds the $75 limit by $25. Requires manager review.\n2. **Entertainment - $250**: Exceeds the $150 limit by $100. Requires manager review.\n\nBoth expenses are over their respective policy limits and need manager approval before submission."}], "role": "model"},
+          "final_response": {"parts": [{"text": "Policy check results:\n\n1. Meals — $100: Exceeds the $75 limit by $25. Requires manager review.\n2. Entertainment — $250: Exceeds the $150 limit by $100. Requires manager review.\n\nBoth expenses are over their respective policy limits and need manager approval."}], "role": "model"},
           "intermediate_data": {"tool_uses": [{"name": "check_expense_policy", "args": {"category": "meals", "amount": 100}}, {"name": "check_expense_policy", "args": {"category": "entertainment", "amount": 250}}]}
         }
       ],
@@ -52,6 +52,116 @@
           "user_content": {"parts": [{"text": "Find the cheapest flight from SFO to JFK and tell me how much I'd save vs the most expensive"}], "role": "user"},
           "final_response": {"parts": [{"text": "Flights from SFO to JFK:\n- Cheapest: United FL001 at $450\n- Most expensive: Delta FL002 at $520\n\nYou'd save $70 (13.5%) by choosing United FL001 over Delta FL002."}], "role": "model"},
           "intermediate_data": {"tool_uses": [{"name": "search_flights", "args": {"origin": "SFO", "destination": "JFK"}}]}
+        }
+      ],
+      "session_input": {"app_name": "pro_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "hotel_value_analysis",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Compare hotels in New York by price and rating — which is the best value?"}], "role": "user"},
+          "final_response": {"parts": [{"text": "New York Hotel Comparison:\n\n| Hotel | Price/Night | Rating | Value |\n|-------|-----------|--------|-------|\n| Budget Inn | $120 | 3.2/5 | Best budget |\n| Grand Hyatt | $320 | 4.5/5 | Best overall value |\n\nGrand Hyatt offers the best balance of quality and price, both within the $400 lodging policy."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_hotels", "args": {"city": "New York"}}]}
+        }
+      ],
+      "session_input": {"app_name": "pro_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "expense_submit_then_verify",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Submit a $45 lunch expense for EMP001, then show me their updated expense history"}], "role": "user"},
+          "final_response": {"parts": [{"text": "1. Policy check: $45 meals is within the $75 limit.\n2. Expense submitted: $45 meals for EMP001 — approved.\n3. Updated expense history for EMP001 retrieved showing all expenses including the new submission."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "check_expense_policy", "args": {"category": "meals", "amount": 45}}, {"name": "submit_expense", "args": {"user_id": "EMP001", "category": "meals", "amount": 45, "description": "lunch"}}, {"name": "get_user_expenses", "args": {"user_id": "EMP001"}}]}
+        }
+      ],
+      "session_input": {"app_name": "pro_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "flight_hotel_same_city",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Find flights from SFO to JFK and hotels in New York for a business trip"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Business trip to New York:\n\nFlights (SFO → JFK):\n- United FL001: $450, 08:00\n- Delta FL002: $520, 10:30\n\nHotels in New York:\n- Grand Hyatt: $320/night (4.5 stars)\n- Budget Inn: $120/night (3.2 stars)\n\nBoth hotels are within the $400/night lodging policy."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_flights", "args": {"origin": "SFO", "destination": "JFK"}}, {"name": "search_hotels", "args": {"city": "New York"}}]}
+        }
+      ],
+      "session_input": {"app_name": "pro_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "all_policy_categories",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "What are the policy limits for all expense categories?"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Corporate expense policy limits:\n\n| Category | Limit |\n|----------|-------|\n| Meals | $75 |\n| Transport | $200 |\n| Lodging | $400/night |\n| Supplies | $100 |\n| Entertainment | $150 |\n\nAmounts above these limits require manager review."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "check_expense_policy", "args": {"category": "meals", "amount": 75}}, {"name": "check_expense_policy", "args": {"category": "transport", "amount": 200}}, {"name": "check_expense_policy", "args": {"category": "lodging", "amount": 400}}, {"name": "check_expense_policy", "args": {"category": "supplies", "amount": 100}}, {"name": "check_expense_policy", "args": {"category": "entertainment", "amount": 150}}]}
+        }
+      ],
+      "session_input": {"app_name": "pro_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "two_route_comparison",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Compare flights from SFO to JFK vs LAX to ORD — which route is cheaper?"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Route comparison:\n\nSFO → JFK: Cheapest is United FL001 at $450\nLAX → ORD: American FL003 at $380\n\nLAX to ORD is $70 cheaper than SFO to JFK. The LAX→ORD route offers better value."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_flights", "args": {"origin": "SFO", "destination": "JFK"}}, {"name": "search_flights", "args": {"origin": "LAX", "destination": "ORD"}}]}
+        }
+      ],
+      "session_input": {"app_name": "pro_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "hotel_under_policy_filter",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Find hotels in New York that are within our lodging policy limit"}], "role": "user"},
+          "final_response": {"parts": [{"text": "The lodging policy limit is $400/night. Hotels in New York within policy:\n\n- Grand Hyatt: $320/night (4.5 stars) — $80 under limit\n- Budget Inn: $120/night (3.2 stars) — $280 under limit\n\nBoth options are within policy and don't require manager approval."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "check_expense_policy", "args": {"category": "lodging", "amount": 400}}, {"name": "search_hotels", "args": {"city": "New York", "max_price": 400}}]}
+        }
+      ],
+      "session_input": {"app_name": "pro_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "expense_two_users",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Show expense history for both EMP001 and EMP002"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Expense History:\n\nEMP001:\n- $45 meals (approved)\n- $120 transport (approved)\n\nEMP002:\n- $75 meals (approved)\n- $200 entertainment (pending_review — exceeds $150 limit)"}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "get_user_expenses", "args": {"user_id": "EMP001"}}, {"name": "get_user_expenses", "args": {"user_id": "EMP002"}}]}
+        }
+      ],
+      "session_input": {"app_name": "pro_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "booking_then_policy",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Book flight FL001 for Alice Johnson and check if the fare is within transport policy"}], "role": "user"},
+          "final_response": {"parts": [{"text": "1. Flight FL001 booked for Alice Johnson — confirmed.\n2. Policy check: $450 flight exceeds the $200 transport policy limit by $250. This requires manager review for reimbursement."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "book_flight", "args": {"flight_id": "FL001", "passenger_name": "Alice Johnson"}}, {"name": "check_expense_policy", "args": {"category": "transport", "amount": 450}}]}
+        }
+      ],
+      "session_input": {"app_name": "pro_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "out_of_scope",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Can you help me draft a performance review for my team?"}], "role": "user"},
+          "final_response": {"parts": [{"text": "I can only help with corporate travel (flight/hotel search and booking) and expense management (policy checks, submissions, and history). For performance reviews, please contact HR."}], "role": "model"},
+          "intermediate_data": {"tool_uses": []}
+        }
+      ],
+      "session_input": {"app_name": "pro_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "cheapest_hotel_recommendation",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "What's the cheapest hotel in New York and is it within policy?"}], "role": "user"},
+          "final_response": {"parts": [{"text": "The cheapest hotel in New York is Budget Inn Downtown at $120/night (3.2 stars).\n\nPolicy check: $120/night is well within the $400/night lodging policy limit. No manager approval needed."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_hotels", "args": {"city": "New York"}}, {"name": "check_expense_policy", "args": {"category": "lodging", "amount": 120}}]}
         }
       ],
       "session_input": {"app_name": "pro_agent_opt", "user_id": "eval_user"}

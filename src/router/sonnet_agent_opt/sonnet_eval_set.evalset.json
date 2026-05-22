@@ -2,56 +2,166 @@
   "eval_set_id": "sonnet_eval_set",
   "eval_cases": [
     {
-      "eval_id": "cross_domain_expense_travel",
+      "eval_id": "cross_domain_three_tasks",
       "conversation": [
         {
           "user_content": {"parts": [{"text": "Show expense history for EMP001, check the entertainment policy limit, and submit a $45 lunch receipt for EMP001"}], "role": "user"},
-          "final_response": {"parts": [{"text": "Here's a complete summary:\n\n**Expense History (EMP001):**\n- Previous expenses retrieved and reviewed\n\n**Entertainment Policy:**\n- Limit: $150 per expense. Amounts above require manager review.\n\n**Lunch Submission:**\n- $45 meals expense submitted for EMP001\n- Status: Approved (within $75 meals limit)\n\nAll three tasks completed successfully."}], "role": "model"},
+          "final_response": {"parts": [{"text": "All three tasks completed:\n\n1. Expense history for EMP001 retrieved.\n2. Entertainment policy limit: $150 per expense.\n3. Lunch expense: $45 submitted for EMP001 — approved (within $75 meals limit)."}], "role": "model"},
           "intermediate_data": {"tool_uses": [{"name": "get_user_expenses", "args": {"user_id": "EMP001"}}, {"name": "check_expense_policy", "args": {"category": "entertainment", "amount": 150}}, {"name": "check_expense_policy", "args": {"category": "meals", "amount": 45}}, {"name": "submit_expense", "args": {"user_id": "EMP001", "category": "meals", "amount": 45, "description": "lunch"}}]}
         }
       ],
       "session_input": {"app_name": "sonnet_agent_opt", "user_id": "eval_user"}
     },
     {
-      "eval_id": "flight_hotel_policy",
+      "eval_id": "two_route_comparison_with_hotels",
       "conversation": [
         {
-          "user_content": {"parts": [{"text": "Compare flights from SFO to JFK vs LAX to ORD, factoring in per-diem meals and hotel costs in each destination city"}], "role": "user"},
-          "final_response": {"parts": [{"text": "**Route Comparison:**\n\n**SFO → JFK (New York):**\n- Flights: United FL001 $450, Delta FL002 $520\n- Hotels: Grand Hyatt $320/night, Budget Inn $120/night\n- Meals: $75/day policy limit\n\n**LAX → ORD (Chicago):**\n- Flights: American FL003 $380\n- Hotels: Available options in Chicago\n- Meals: $75/day policy limit\n\n**Analysis:** LAX→ORD is cheaper on airfare ($380 vs $450+). Hotel costs vary by city. Total per-diem with meals policy applies equally to both destinations."}], "role": "model"},
-          "intermediate_data": {"tool_uses": [{"name": "search_flights", "args": {"origin": "SFO", "destination": "JFK"}}, {"name": "search_flights", "args": {"origin": "LAX", "destination": "ORD"}}, {"name": "search_hotels", "args": {"city": "New York"}}, {"name": "search_hotels", "args": {"city": "Chicago"}}, {"name": "check_expense_policy", "args": {"category": "meals", "amount": 75}}]}
+          "user_content": {"parts": [{"text": "Compare flights from SFO to JFK vs LAX to ORD, factoring in hotel costs in each destination city"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Route Comparison:\n\nSFO → JFK (New York):\n- Flights: United FL001 $450, Delta FL002 $520\n- Hotels: Grand Hyatt $320/night, Budget Inn $120/night\n\nLAX → ORD (Chicago):\n- Flights: American FL003 $380\n- Hotels: Chicago options searched\n\nLAX→ORD is cheaper on airfare ($380 vs $450+). Total trip cost depends on hotel selection and duration."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_flights", "args": {"origin": "SFO", "destination": "JFK"}}, {"name": "search_flights", "args": {"origin": "LAX", "destination": "ORD"}}, {"name": "search_hotels", "args": {"city": "New York"}}, {"name": "search_hotels", "args": {"city": "Chicago"}}]}
         }
       ],
       "session_input": {"app_name": "sonnet_agent_opt", "user_id": "eval_user"}
     },
     {
-      "eval_id": "booking_policy_expense",
+      "eval_id": "booking_policy_expense_pipeline",
       "conversation": [
         {
           "user_content": {"parts": [{"text": "Book flight FL001 for Alice Johnson, then check if a $320 hotel is within lodging policy, and submit a $75 meals expense for EMP001"}], "role": "user"},
-          "final_response": {"parts": [{"text": "All three tasks completed:\n\n1. **Flight Booking:** FL001 booked and confirmed for Alice Johnson (United, SFO→JFK, $450)\n\n2. **Lodging Policy Check:** $320/night is within the $400 lodging policy limit. No manager approval needed.\n\n3. **Meals Expense:** $75 meals expense submitted for EMP001. Status: Approved (at the $75 limit)."}], "role": "model"},
+          "final_response": {"parts": [{"text": "All three tasks completed:\n\n1. Flight FL001 booked for Alice Johnson — confirmed.\n2. Lodging: $320/night is within the $400 policy limit.\n3. Meals: $75 expense submitted for EMP001 — approved (at the $75 limit)."}], "role": "model"},
           "intermediate_data": {"tool_uses": [{"name": "book_flight", "args": {"flight_id": "FL001", "passenger_name": "Alice Johnson"}}, {"name": "check_expense_policy", "args": {"category": "lodging", "amount": 320}}, {"name": "check_expense_policy", "args": {"category": "meals", "amount": 75}}, {"name": "submit_expense", "args": {"user_id": "EMP001", "category": "meals", "amount": 75, "description": "meals expense"}}]}
         }
       ],
       "session_input": {"app_name": "sonnet_agent_opt", "user_id": "eval_user"}
     },
     {
-      "eval_id": "expense_review_submit",
+      "eval_id": "expense_review_and_submit",
       "conversation": [
         {
           "user_content": {"parts": [{"text": "Review EMP002's expense history, check all policy categories, and submit a $150 supplies expense for office equipment for EMP002"}], "role": "user"},
-          "final_response": {"parts": [{"text": "**EMP002 Expense Review:**\n\nExpense history retrieved and reviewed.\n\n**Policy Limits:**\n- Meals: $75 | Transport: $200 | Lodging: $400 | Supplies: $100 | Entertainment: $150\n\n**Supplies Submission:**\n- $150 supplies expense exceeds the $100 policy limit by $50\n- Status: Pending review — requires manager approval\n\nThe supplies expense has been flagged for review due to exceeding the policy limit."}], "role": "model"},
+          "final_response": {"parts": [{"text": "EMP002 Review:\n\n1. Expense history retrieved.\n2. Policy limits: meals $75, transport $200, lodging $400, supplies $100, entertainment $150.\n3. Supplies submission: $150 exceeds the $100 limit by $50 — pending manager review."}], "role": "model"},
           "intermediate_data": {"tool_uses": [{"name": "get_user_expenses", "args": {"user_id": "EMP002"}}, {"name": "check_expense_policy", "args": {"category": "supplies", "amount": 150}}, {"name": "submit_expense", "args": {"user_id": "EMP002", "category": "supplies", "amount": 150, "description": "office equipment"}}]}
         }
       ],
       "session_input": {"app_name": "sonnet_agent_opt", "user_id": "eval_user"}
     },
     {
-      "eval_id": "hotel_comparison_value",
+      "eval_id": "hotel_comparison_with_value",
       "conversation": [
         {
-          "user_content": {"parts": [{"text": "Compare hotels in New York by price and rating — which is the best value?"}], "role": "user"},
-          "final_response": {"parts": [{"text": "**New York Hotel Comparison:**\n\n| Hotel | Price/Night | Rating | Value Score |\n|-------|-----------|--------|-------------|\n| Budget Inn | $120 | 3.2/5 | Best budget option |\n| Grand Hyatt | $320 | 4.5/5 | Best overall value |\n| Fontainebleau | $400 | 4.7/5 | Premium option |\n\n**Best Value:** Grand Hyatt at $320/night offers the best balance of quality (4.5 stars) and price. It's within the $400 lodging policy limit.\n\n**Budget Pick:** Budget Inn at $120/night if cost is the priority."}], "role": "model"},
-          "intermediate_data": {"tool_uses": [{"name": "search_hotels", "args": {"city": "New York"}}]}
+          "user_content": {"parts": [{"text": "Compare hotels in New York by price and rating — which is the best value under our lodging policy?"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Hotels in New York (within $400/night policy):\n\n| Hotel | Price | Rating | Value |\n|-------|-------|--------|-------|\n| Budget Inn | $120 | 3.2/5 | Budget pick |\n| Grand Hyatt | $320 | 4.5/5 | Best value |\n\nBest value: Grand Hyatt at $320/night — high rating, $80 under policy limit."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_hotels", "args": {"city": "New York"}}, {"name": "check_expense_policy", "args": {"category": "lodging", "amount": 400}}]}
+        }
+      ],
+      "session_input": {"app_name": "sonnet_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "flight_booking_and_expense",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Book the cheapest SFO-JFK flight for Bob Smith and submit the fare as a transport expense for EMP002"}], "role": "user"},
+          "final_response": {"parts": [{"text": "1. Flight search: Cheapest is United FL001 at $450.\n2. Flight FL001 booked for Bob Smith — confirmed.\n3. Transport policy check: $450 exceeds the $200 limit — requires manager review.\n4. Expense submitted: $450 transport for EMP002 — pending review."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_flights", "args": {"origin": "SFO", "destination": "JFK"}}, {"name": "book_flight", "args": {"flight_id": "FL001", "passenger_name": "Bob Smith"}}, {"name": "check_expense_policy", "args": {"category": "transport", "amount": 450}}, {"name": "submit_expense", "args": {"user_id": "EMP002", "category": "transport", "amount": 450, "description": "SFO-JFK flight"}}]}
+        }
+      ],
+      "session_input": {"app_name": "sonnet_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "multi_city_hotel_search",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Search hotels in New York, Miami, and Chicago — compare the cheapest option in each city"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Cheapest hotel per city:\n\n| City | Hotel | Price/Night | Rating |\n|------|-------|-----------|--------|\n| New York | Budget Inn | $120 | 3.2 |\n| Miami | Fontainebleau | $400 | 4.7 |\n| Chicago | (results shown) | varies | varies |\n\nNew York offers the most affordable option at $120/night."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_hotels", "args": {"city": "New York"}}, {"name": "search_hotels", "args": {"city": "Miami"}}, {"name": "search_hotels", "args": {"city": "Chicago"}}]}
+        }
+      ],
+      "session_input": {"app_name": "sonnet_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "two_expenses_different_categories",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Submit a $60 meals expense and a $180 transport expense for EMP001, checking policy for both first"}], "role": "user"},
+          "final_response": {"parts": [{"text": "1. Meals ($60): Within $75 limit — submitted, approved.\n2. Transport ($180): Within $200 limit — submitted, approved.\n\nBoth expenses submitted successfully for EMP001."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "check_expense_policy", "args": {"category": "meals", "amount": 60}}, {"name": "submit_expense", "args": {"user_id": "EMP001", "category": "meals", "amount": 60, "description": "meals"}}, {"name": "check_expense_policy", "args": {"category": "transport", "amount": 180}}, {"name": "submit_expense", "args": {"user_id": "EMP001", "category": "transport", "amount": 180, "description": "transport"}}]}
+        }
+      ],
+      "session_input": {"app_name": "sonnet_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "flight_search_book_hotel",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Find flights from SFO to JFK, then book hotel HT001 for Alice Johnson checking in June 15 and checking out June 18"}], "role": "user"},
+          "final_response": {"parts": [{"text": "1. Flights SFO → JFK: United FL001 $450, Delta FL002 $520.\n2. Hotel HT001 booked for Alice Johnson:\n   - Check-in: June 15\n   - Check-out: June 18 (3 nights)\n   - Confirmed."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_flights", "args": {"origin": "SFO", "destination": "JFK"}}, {"name": "book_hotel", "args": {"hotel_id": "HT001", "guest_name": "Alice Johnson", "checkin": "June 15", "checkout": "June 18"}}]}
+        }
+      ],
+      "session_input": {"app_name": "sonnet_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "expense_audit_two_users",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Pull expense histories for EMP001 and EMP002 and flag any policy violations across both"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Expense Audit:\n\nEMP001: All expenses within policy limits.\n\nEMP002: \n- $200 entertainment exceeds $150 limit — flagged for review.\n\nSummary: 1 policy violation found across both users (EMP002 entertainment)."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "get_user_expenses", "args": {"user_id": "EMP001"}}, {"name": "get_user_expenses", "args": {"user_id": "EMP002"}}, {"name": "check_expense_policy", "args": {"category": "entertainment", "amount": 200}}]}
+        }
+      ],
+      "session_input": {"app_name": "sonnet_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "travel_with_budget_check",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Find the cheapest way to fly from SFO to JFK, check if the hotel Grand Hyatt is within lodging policy, and estimate total daily cost including meals"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Trip Cost Estimate:\n\n- Flight: United FL001, $450 (cheapest)\n- Hotel: Grand Hyatt $320/night — within $400 lodging policy\n- Meals: $75/day policy limit\n\nEstimated daily cost: $395/day (hotel + meals)\nTotal with flight: $450 + ($395 × nights)"}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_flights", "args": {"origin": "SFO", "destination": "JFK"}}, {"name": "search_hotels", "args": {"city": "New York"}}, {"name": "check_expense_policy", "args": {"category": "lodging", "amount": 320}}, {"name": "check_expense_policy", "args": {"category": "meals", "amount": 75}}]}
+        }
+      ],
+      "session_input": {"app_name": "sonnet_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "booking_two_flights",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Book flight FL001 for Alice Johnson and flight FL003 for Bob Smith"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Both flights booked:\n\n1. FL001 (United, SFO→JFK, $450) — confirmed for Alice Johnson\n2. FL003 (American, LAX→ORD, $380) — confirmed for Bob Smith"}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "book_flight", "args": {"flight_id": "FL001", "passenger_name": "Alice Johnson"}}, {"name": "book_flight", "args": {"flight_id": "FL003", "passenger_name": "Bob Smith"}}]}
+        }
+      ],
+      "session_input": {"app_name": "sonnet_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "out_of_scope_with_redirect",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Can you update my PTO balance and also check flights to London?"}], "role": "user"},
+          "final_response": {"parts": [{"text": "I can help with the flight search but not PTO balance:\n\n- PTO balance: Please contact HR for this.\n- Flights to London: I searched available routes from SFO.\n\n(Flight results presented)"}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_flights", "args": {"origin": "SFO", "destination": "LHR"}}]}
+        }
+      ],
+      "session_input": {"app_name": "sonnet_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "full_expense_workflow",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Check the meals policy, submit a $70 dinner expense for EMP003, then show me EMP003's expense history"}], "role": "user"},
+          "final_response": {"parts": [{"text": "Complete workflow:\n\n1. Meals policy: $75 limit per expense.\n2. $70 dinner: Within policy — submitted for EMP003, approved.\n3. EMP003 expense history retrieved showing all expenses."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "check_expense_policy", "args": {"category": "meals", "amount": 70}}, {"name": "submit_expense", "args": {"user_id": "EMP003", "category": "meals", "amount": 70, "description": "dinner"}}, {"name": "get_user_expenses", "args": {"user_id": "EMP003"}}]}
+        }
+      ],
+      "session_input": {"app_name": "sonnet_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "hotel_booking_with_policy",
+      "conversation": [
+        {
+          "user_content": {"parts": [{"text": "Search hotels in Miami, check if the Fontainebleau is within lodging policy, and book it for Charlie Davis June 20-23"}], "role": "user"},
+          "final_response": {"parts": [{"text": "1. Hotels in Miami: Fontainebleau at $400/night (4.7 stars).\n2. Policy check: $400/night is at the lodging policy limit — within policy.\n3. Fontainebleau booked for Charlie Davis, June 20-23 (3 nights) — confirmed."}], "role": "model"},
+          "intermediate_data": {"tool_uses": [{"name": "search_hotels", "args": {"city": "Miami"}}, {"name": "check_expense_policy", "args": {"category": "lodging", "amount": 400}}, {"name": "book_hotel", "args": {"hotel_id": "HT003", "guest_name": "Charlie Davis", "checkin": "June 20", "checkout": "June 23"}}]}
         }
       ],
       "session_input": {"app_name": "sonnet_agent_opt", "user_id": "eval_user"}

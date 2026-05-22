@@ -1,0 +1,25 @@
+GEPA Optimization Pipeline for Multi-Model Agent Tier
+
+The system consists of 5 standalone agents deployed on Vertex AI Agent Engine, each using a different model tier spanning Google Gemini and Anthropic Claude families:
+
+Tier 1 (Lite): gemini-3.1-flash-lite — trivial lookups, $0.30/M output tokens
+Tier 2 (Flash): gemini-3.5-flash — simple tasks, $0.60/M output tokens
+Tier 3 (Pro): gemini-3.1-pro-preview — moderate reasoning, $10/M output tokens
+Tier 4 (Sonnet): claude-sonnet-4-6 — complex analysis, $15/M output tokens
+Tier 5 (Opus): claude-opus-4-6 — expert planning, $75/M output tokens
+
+Each agent connects to 3 MCP tool servers (Search, Booking, Expense) via Agent Registry for flight search, hotel booking, expense submission, and policy checks.
+
+The GEPA (Gemini Evolutionary Prompt Algorithm) optimization pipeline:
+
+Step 1: Create wrapper module exposing each agent as root_agent (GEPA limitation workaround)
+Step 2: Create evalset with 15 complexity-matched test cases per agent
+Step 3: Configure sampler with gemini-2.5-pro judge model and tightened scoring criteria
+Step 4: Run GEPA evolutionary optimization (generates candidate instructions, evaluates against evalset, selects best variant across generations)
+Step 5: Capture optimized instruction and update agent code
+Step 6: Redeploy agent to Agent Engine
+Step 7: Run batch eval (6 metrics: response quality, hallucination, safety, tool use, instruction following, response match) to measure before/after improvement
+
+The evaluation pipeline uses the Vertex AI GenAI Evaluation Service with create_evaluation_run for server-side scoring. Results are stored in GCS and tracked in eval_outputs/ JSON files.
+
+Key finding: GEPA expanded generic 2-sentence instructions into detailed multi-paragraph prompts with tool-specific guidance, edge case handling, policy knowledge, and response formatting rules. The lite agent instruction grew from 3 lines to 25+ lines with explicit capabilities, limitations, and domain-specific information.
