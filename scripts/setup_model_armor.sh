@@ -2,7 +2,7 @@
 # Setup Model Armor templates for Agent Armor — input and output screening
 set -euo pipefail
 
-PROJECT_ID="${GCP_PROJECT_ID:-wortz-project-352116}"
+PROJECT_ID="${GCP_PROJECT_ID:-hybrid-vertex}"
 REGION="${GCP_REGION:-us-central1}"
 PROMPT_TEMPLATE_NAME="geap-workshop-prompt"
 RESPONSE_TEMPLATE_NAME="geap-workshop-response"

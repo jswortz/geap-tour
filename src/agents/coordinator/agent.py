@@ -17,7 +17,7 @@ from google.genai.types import Content, Part
 
 AGENT_MODEL = os.environ.get("AGENT_MODEL", "gemini-2.5-flash")
 
-GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "wortz-project-352116")
+GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "hybrid-vertex")
 GCP_REGION = os.environ.get("GCP_REGION", "us-central1")
 AGENT_ENGINE_ID = os.environ.get("AGENT_ENGINE_ID", "2479350891879071744")
 AGENT_REGISTRY_LOCATION = os.environ.get("AGENT_REGISTRY_LOCATION", "us-central1")

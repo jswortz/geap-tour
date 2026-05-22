@@ -690,13 +690,13 @@ jobs:
 ```bash
 # 1. Create workload identity pool
 gcloud iam workload-identity-pools create "github-pool" \
-  --project=wortz-project-352116 \
+  --project=hybrid-vertex \
   --location="global" \
   --display-name="GitHub Actions Pool"
 
 # 2. Create OIDC provider
 gcloud iam workload-identity-pools providers create-oidc "github-provider" \
-  --project=wortz-project-352116 \
+  --project=hybrid-vertex \
   --location="global" \
   --workload-identity-pool="github-pool" \
   --display-name="GitHub Provider" \
@@ -705,14 +705,14 @@ gcloud iam workload-identity-pools providers create-oidc "github-provider" \
 
 # 3. Allow the SA to be impersonated
 gcloud iam service-accounts add-iam-policy-binding \
-  "geap-ci@wortz-project-352116.iam.gserviceaccount.com" \
-  --project=wortz-project-352116 \
+  "geap-ci@hybrid-vertex.iam.gserviceaccount.com" \
+  --project=hybrid-vertex \
   --role="roles/iam.workloadIdentityUser" \
   --member="principalSet://iam.googleapis.com/projects/679926387543/locations/global/workloadIdentityPools/github-pool/attribute.repository/YOUR_ORG/geap-tour-26"
 
 # 4. Set GitHub repo variables
 #   WIF_PROVIDER: projects/679926387543/locations/global/workloadIdentityPools/github-pool/providers/github-provider
-#   WIF_SERVICE_ACCOUNT: geap-ci@wortz-project-352116.iam.gserviceaccount.com
+#   WIF_SERVICE_ACCOUNT: geap-ci@hybrid-vertex.iam.gserviceaccount.com
 ```
 
 ### Pipeline Flow

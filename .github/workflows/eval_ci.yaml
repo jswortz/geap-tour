@@ -40,9 +40,9 @@ jobs:
           RESOURCE=$(uv run python -c "
           import vertexai
           vertexai.init(
-              project='${{ vars.GCP_PROJECT_ID || 'wortz-project-352116' }}',
+              project='${{ vars.GCP_PROJECT_ID || 'hybrid-vertex' }}',
               location='${{ vars.GCP_REGION || 'us-central1' }}',
-              staging_bucket='gs://${{ vars.GCP_STAGING_BUCKET || 'wortz-project-352116-geap-staging' }}',
+              staging_bucket='gs://${{ vars.GCP_STAGING_BUCKET || 'hybrid-vertex-geap-staging' }}',
           )
           from src.deploy.deploy_agents import deploy_agent
           from src.agents.travel_agent import travel_agent
@@ -63,7 +63,7 @@ jobs:
           uv run python -c "
           import vertexai
           vertexai.init(
-              project='${{ vars.GCP_PROJECT_ID || 'wortz-project-352116' }}',
+              project='${{ vars.GCP_PROJECT_ID || 'hybrid-vertex' }}',
               location='${{ vars.GCP_REGION || 'us-central1' }}',
           )
           from vertexai import agent_engines

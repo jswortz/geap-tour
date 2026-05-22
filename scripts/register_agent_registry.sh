@@ -2,7 +2,7 @@
 # Register agents in Agent Registry for discoverability
 set -euo pipefail
 
-PROJECT_ID="${GCP_PROJECT_ID:-wortz-project-352116}"
+PROJECT_ID="${GCP_PROJECT_ID:-hybrid-vertex}"
 REGION="${GCP_REGION:-us-central1}"
 
 echo "=== Registering Agents in Agent Registry ==="

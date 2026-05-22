@@ -6,7 +6,7 @@ from google.adk.models.lite_llm import LiteLlm
 
 load_dotenv()
 
-GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "wortz-project-352116")
+GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "hybrid-vertex")
 PROJECT_NUMBER = os.environ.get("PROJECT_NUMBER", "")
 GCP_REGION = os.environ.get("GCP_REGION", "us-central1")
 GCP_STAGING_BUCKET = os.environ.get("GCP_STAGING_BUCKET", f"{GCP_PROJECT_ID}-geap-staging")

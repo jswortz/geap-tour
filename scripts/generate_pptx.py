@@ -199,7 +199,7 @@ def add_notes(slide, text):
 
 
 REPO_URL = "https://github.com/jswortz/geap-tour"
-GCP_PROJECT = "wortz-project-352116"
+GCP_PROJECT = "hybrid-vertex"
 
 
 def add_repo_link(slide, code_path=None, y_pos=Inches(6.9)):

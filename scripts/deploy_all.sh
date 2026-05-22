@@ -21,7 +21,7 @@
 # =============================================================================
 set -euo pipefail
 
-PROJECT_ID="${GCP_PROJECT_ID:-wortz-project-352116}"
+PROJECT_ID="${GCP_PROJECT_ID:-hybrid-vertex}"
 REGION="${GCP_REGION:-us-central1}"
 PROJECT_NUM=$(gcloud projects describe "$PROJECT_ID" --format="value(projectNumber)" 2>/dev/null || echo "unknown")
 STAGING_BUCKET="${GCP_STAGING_BUCKET:-${PROJECT_ID}-geap-staging}"

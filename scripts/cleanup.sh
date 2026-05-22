@@ -2,7 +2,7 @@
 # Cleanup — tear down all deployed GEAP workshop resources
 set -euo pipefail
 
-PROJECT_ID="${GCP_PROJECT_ID:-wortz-project-352116}"
+PROJECT_ID="${GCP_PROJECT_ID:-hybrid-vertex}"
 REGION="${GCP_REGION:-us-central1}"
 
 echo "=== GEAP Workshop Cleanup ==="

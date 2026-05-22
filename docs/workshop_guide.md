@@ -201,7 +201,7 @@ Agents deploy to [Vertex AI Agent Engine](https://cloud.google.com/vertex-ai/gen
 #   .env              — MCP URLs, Model Armor templates, GCP config
 
 adk deploy agent_engine \
-    --project wortz-project-352116 \
+    --project hybrid-vertex \
     --region us-central1 \
     --display_name "GEAP Coordinator Agent" \
     src/agents/coordinator

@@ -2,7 +2,7 @@
 # Setup Agent Identity — creates Workload Identity Pool and binds SPIFFE principals
 set -euo pipefail
 
-PROJECT_ID="${GCP_PROJECT_ID:-wortz-project-352116}"
+PROJECT_ID="${GCP_PROJECT_ID:-hybrid-vertex}"
 ORG_ID="${GCP_ORG_ID}"
 REGION="${GCP_REGION:-us-central1}"
 

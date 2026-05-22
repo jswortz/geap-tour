@@ -9,7 +9,7 @@
 # =============================================================================
 set -euo pipefail
 
-PROJECT_ID="${GCP_PROJECT_ID:-wortz-project-352116}"
+PROJECT_ID="${GCP_PROJECT_ID:-hybrid-vertex}"
 REGION="${GCP_REGION:-us-central1}"
 REPORT_DIR="docs/verification"
 SCREENSHOT_DIR="docs/screenshots"

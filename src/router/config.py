@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "wortz-project-352116")
+GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "hybrid-vertex")
 GCP_REGION = os.environ.get("GCP_REGION", "us-central1")
 
 SEARCH_MCP_URL = os.environ.get("SEARCH_MCP_URL", "http://localhost:8001/mcp")

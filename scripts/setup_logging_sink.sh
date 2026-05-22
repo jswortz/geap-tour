@@ -2,7 +2,7 @@
 # Setup BigQuery logging sink for agent traces and eval results
 set -euo pipefail
 
-PROJECT_ID="${GCP_PROJECT_ID:-wortz-project-352116}"
+PROJECT_ID="${GCP_PROJECT_ID:-hybrid-vertex}"
 DATASET_NAME="${BQ_DATASET:-geap_workshop_logs}"
 SINK_NAME="${SINK_NAME:-geap-agent-traces}"
 

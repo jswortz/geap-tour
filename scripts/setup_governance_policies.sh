@@ -45,7 +45,7 @@ if [ -f "${REPO_ROOT}/.env" ]; then
     set +a
 fi
 
-PROJECT_ID="${GCP_PROJECT_ID:-wortz-project-352116}"
+PROJECT_ID="${GCP_PROJECT_ID:-hybrid-vertex}"
 REGION="${GCP_REGION:-us-central1}"
 # Extract gateway names from full resource paths in .env
 # e.g. projects/hybrid-vertex/locations/us-central1/agentGateways/geap-workshop-gateway → geap-workshop-gateway

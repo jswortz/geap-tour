@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
-PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "wortz-project-352116")
+PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "hybrid-vertex")
 REGION = os.environ.get("GCP_REGION", "us-central1")
 SCREENSHOT_DIR = Path("docs/screenshots")
 SCREENSHOT_DIR.mkdir(parents=True, exist_ok=True)
