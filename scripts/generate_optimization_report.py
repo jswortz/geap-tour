@@ -9,6 +9,8 @@ Usage:
 import json
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv()
 
 import matplotlib
 matplotlib.use("Agg")
@@ -375,6 +377,8 @@ def generate_report(before_scores: dict, after_scores: dict = None):
     """Generate the markdown report."""
     lines = []
     lines.append("# GEPA Optimization Analysis — Multi-Model Agent Tier\n")
+    lines.append("## Pipeline Overview\n")
+    lines.append("![GEPA Pipeline Diagram](charts/gepa_pipeline_diagram.png)\n")
     lines.append("## Executive Summary\n")
     lines.append(
         "This report analyzes the impact of GEPA (Gemini Evolutionary Prompt Algorithm) "

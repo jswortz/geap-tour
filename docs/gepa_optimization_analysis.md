@@ -1,5 +1,9 @@
 # GEPA Optimization Analysis — Multi-Model Agent Tier
 
+## Pipeline Overview
+
+![GEPA Pipeline Diagram](charts/gepa_pipeline_diagram.png)
+
 ## Executive Summary
 
 This report analyzes the impact of GEPA (Gemini Evolutionary Prompt Algorithm) optimization on 5 standalone agents spanning a 250x cost range across Google Gemini and Anthropic Claude model families. Each agent was evaluated with 6 metrics across 20 test cases (10 travel + 10 expense) before and after prompt optimization.
@@ -8,11 +12,11 @@ This report analyzes the impact of GEPA (Gemini Evolutionary Prompt Algorithm) o
 
 | Agent | Model | Provider | Output $/M | Tier | Engine ID |
 |-------|-------|----------|-----------|------|-----------|
-| Lite | `gemini-3.1-flash-lite` | Google | $0.30 | Tier 1 — Trivial | `` |
-| Flash | `gemini-3.5-flash` | Google | $0.60 | Tier 2 — Simple | `` |
-| Pro | `gemini-3.1-pro-preview` | Google | $10.00 | Tier 3 — Moderate | `` |
-| Sonnet | `claude-sonnet-4-6` | Anthropic | $15.00 | Tier 4 — Complex | `` |
-| Opus | `claude-opus-4-6` | Anthropic | $75.00 | Tier 5 — Expert | `` |
+| Lite | `gemini-3.1-flash-lite` | Google | $0.30 | Tier 1 — Trivial | `8497292491022663680` |
+| Flash | `gemini-3.5-flash` | Google | $0.60 | Tier 2 — Simple | `3966671265887944704` |
+| Pro | `gemini-3.1-pro-preview` | Google | $10.00 | Tier 3 — Moderate | `5540116385700511744` |
+| Sonnet | `claude-sonnet-4-6` | Anthropic | $15.00 | Tier 4 — Complex | `8467456143491334144` |
+| Opus | `claude-opus-4-6` | Anthropic | $75.00 | Tier 5 — Expert | `207854426893844480` |
 
 ## Baseline Eval Scores
 
