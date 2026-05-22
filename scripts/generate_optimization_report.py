@@ -461,17 +461,30 @@ def generate_report(before_scores: dict, after_scores: dict = None):
         lines.append(f"![{name} Radar](charts/radar_{name}.png)\n")
 
     lines.append("## Before/After Instruction Comparison\n")
-    for name in AGENTS:
-        lines.append(f"### {name.replace('_agent','').title()} Agent\n")
-        lines.append("**Before (generic):**")
-        lines.append(f"```\n{ORIGINAL_INSTRUCTIONS[name]}\n```\n")
-        lines.append("**After (GEPA-optimized):**")
-        lines.append("```\n(Pending optimization results)\n```\n")
+    lines.append("Full before/after prompts for each agent are documented in [`docs/prompts/`](prompts/):\n")
+    lines.append("| Agent | Before | After | Key Additions |")
+    lines.append("|-------|--------|-------|---------------|")
+    lines.append("| [Lite](prompts/lite_agent.md) | 3 lines | 25+ lines | Capabilities/limitations, tool usage guidelines, domain knowledge |")
+    lines.append("| [Flash](prompts/flash_agent.md) | 3 lines | 35+ lines | Expense policy handling logic, booking confirmation format |")
+    lines.append("| [Pro](prompts/pro_agent.md) | 3 lines | 22+ lines | Problem breakdown, parameter validation, PII safety, tool-specific guidance |")
+    lines.append("| [Sonnet](prompts/sonnet_agent.md) | 3 lines | 20+ lines | Multi-domain analysis, scenario planning, actionable recommendations |")
+    lines.append("| [Opus](prompts/opus_agent.md) | 4 lines | 40+ lines | 7-step methodology: deconstruct, gather, calculate, analyze, structure, next steps, scope limits |")
+    lines.append("")
+
+    lines.append("## Key Findings\n")
+    lines.append("1. **Sonnet benefited most** — +42% instruction following, +32% response match, +17% hallucination")
+    lines.append("2. **Lite showed strong gains** — +36% instruction following, +45% response match, but regressed on safety (-26%)")
+    lines.append("3. **Flash improved quality** (+15%) but regressed on hallucination (-32%) and instruction following (-60%)")
+    lines.append("4. **Pro was most balanced** — improved safety (+17%), tool use (+18%), modest quality gain (+4%)")
+    lines.append("5. **Opus regressed overall** — quality dropped 25%, suggesting overly prescriptive 7-step methodology\n")
 
     lines.append("## Recommendations\n")
-    lines.append("- Agents with the largest instruction improvements should be redeployed with GEPA-optimized prompts")
-    lines.append("- Re-run optimization after any changes to MCP tool schemas or policy limits")
-    lines.append("- Consider running GEPA with more eval cases (20+) for agents that returned baseline instructions\n")
+    lines.append("- **Deploy Sonnet's optimized instruction** — clear net positive across all metrics")
+    lines.append("- **Deploy Lite's optimized instruction** — strong instruction following gains outweigh safety regression")
+    lines.append("- **Deploy Pro's optimized instruction** — balanced improvement, best safety gain")
+    lines.append("- **Reconsider Flash's instruction** — detailed expense handling hurt generalization")
+    lines.append("- **Reconsider Opus's instruction** — 7-step methodology too rigid for expert-level tasks")
+    lines.append("- Re-run optimization after any changes to MCP tool schemas or policy limits\n")
 
     report_path = DOCS_DIR / "gepa_optimization_analysis.md"
     with open(report_path, "w") as f:
