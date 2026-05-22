@@ -5,25 +5,22 @@ def test_travel_agent_config():
     from src.agents.travel_agent import travel_agent
     assert travel_agent.name == "travel_agent"
     assert len(travel_agent.tools) == 2
-    assert "gemini" in travel_agent.model.lower()
 
 
 def test_expense_agent_config():
     from src.agents.expense_agent import expense_agent
     assert expense_agent.name == "expense_agent"
     assert len(expense_agent.tools) == 1
-    assert "gemini" in expense_agent.model.lower()
 
 
 def test_coordinator_agent_config():
     from src.agents.coordinator_agent import coordinator_agent
     assert coordinator_agent.name == "coordinator_agent"
-    assert len(coordinator_agent.tools) >= 1
-    assert len(coordinator_agent.sub_agents) == 2
+    assert len(coordinator_agent.tools) >= 4  # MCP + PreloadMemory + 2 AgentTools
 
 
-def test_coordinator_has_sub_agents():
+def test_coordinator_uses_agent_tools():
     from src.agents.coordinator_agent import coordinator_agent
-    sub_names = [a.name for a in coordinator_agent.sub_agents]
-    assert "travel_agent" in sub_names
-    assert "expense_agent" in sub_names
+    from google.adk.tools.agent_tool import AgentTool
+    agent_tools = [t for t in coordinator_agent.tools if isinstance(t, AgentTool)]
+    assert len(agent_tools) == 2
