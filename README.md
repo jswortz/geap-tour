@@ -6,16 +6,65 @@ A hands-on workshop demonstrating the full Gemini Enterprise Agent Platform (GEA
 
 | Area | Description |
 |------|-------------|
-| **ADK Agents** | Three agents (travel, expense, coordinator) built with Google Agent Development Kit |
-| **MCP Servers** | Three FastMCP tool servers deployed to Cloud Run (search, booking, expense) |
+| **ADK Agents** | 7 agents: coordinator, router, + 5 standalone model-tier agents (lite, flash, pro, sonnet, opus) |
+| **MCP Servers** | Three FastMCP tool servers on Cloud Run with OTel instrumentation (search, booking, expense) |
+| **Multi-Model Router** | Complexity-based routing across 5 models spanning Google Gemini and Anthropic Claude |
 | **Deployment** | Agent Runtime deployment with identity, gateway, and OTel tracing |
-| **Evaluation** | One-time, continuous (online evaluators with custom rubrics), and simulated evaluation pipelines |
+| **Evaluation** | Batch eval (6 metrics), simulated multi-turn eval, online evaluators, cross-model experiments |
+| **Optimization** | GEPA (Gemini Evolutionary Prompt Algorithm) for all 5 model-tier agents |
 | **Model Armor** | Model Armor templates for input/output screening + client-side guardrails |
 | **Governance** | Agent identity (SPIFFE), agent gateway (ingress + egress), agent registry, Semantic Governance Policies (SGP) |
-| **Multi-Model Router** | Complexity-based routing across Flash Lite, Flash, and Opus |
-| **Optimization** | Agent optimization via GEPA algorithm |
+| **Topology** | App Hub registration for agent-to-MCP topology visualization |
 | **CI/CD** | GitHub Actions workflow running simulated evals on PRs |
-| **Diagrams** | Architecture diagrams generated with Paper Banana |
+
+## Project Structure
+
+```
+src/
+├── agents/                    # Standalone deployable agents
+│   ├── coordinator_agent.py   # Domain router (travel vs expense)
+│   ├── travel_agent.py        # Flight/hotel search + booking
+│   ├── expense_agent.py       # Expense submission + policy checks
+│   ├── lite_agent.py          # Tier 1: gemini-3.1-flash-lite ($0.30/M)
+│   ├── flash_agent.py         # Tier 2: gemini-3.5-flash ($0.60/M)
+│   ├── pro_agent.py           # Tier 3: gemini-3.1-pro-preview ($10/M)
+│   ├── sonnet_agent.py        # Tier 4: claude-sonnet-4-6 ($15/M)
+│   └── opus_agent.py          # Tier 5: claude-opus-4-6 ($75/M)
+├── router/                    # Multi-model complexity router
+│   ├── agents.py              # Router + AgentTool-wrapped sub-agents
+│   ├── complexity.py          # Prompt complexity classifier
+│   └── *_agent_opt/           # GEPA optimization wrappers
+├── mcp_servers/               # MCP tool servers (Cloud Run)
+│   ├── search/                # Flight + hotel search
+│   ├── booking/               # Flight + hotel booking
+│   ├── expense/               # Expense management
+│   └── otel_setup.py          # Shared OTel instrumentation
+├── eval/                      # Evaluation pipelines
+│   ├── multi_agent_batch_eval.py    # Batch eval (6 metrics)
+│   ├── simulated_eval.py           # Multi-turn simulated eval
+│   ├── cross_model_experiment.py    # All models × all tiers
+│   ├── setup_online_evaluators.py   # Online evaluator management
+│   └── agent_eval_configs.py        # Eval cases + metrics
+├── deploy/                    # Deployment scripts
+│   └── deploy_agents.py       # Deploy/update agents with auto .env write
+├── optimize/                  # GEPA optimization configs
+│   └── run_optimize.py        # Python-native GEPA runner
+├── traffic/                   # Traffic generation
+│   └── generate_traffic.py    # Burst + steady-state traffic
+└── config.py                  # Shared config, resolve_model(), disable_pyopenssl()
+
+scripts/                       # Shell scripts for infrastructure
+├── setup_apphub.sh            # App Hub topology registration
+├── setup_agent_gateway.sh     # Agent Gateway (ingress + egress)
+├── setup_governance_policies.sh  # IAM + SGP governance
+└── deploy_all.sh              # Full end-to-end deployment
+
+docs/                          # Analysis reports
+├── gepa_optimization_analysis.md  # GEPA before/after analysis
+├── cross_model_experiment.md      # Cross-model complexity experiment
+├── prompts/                       # Before/after prompt comparisons
+└── charts/                        # Matplotlib + PaperBanana visualizations
+```
 
 ## Documentation
 
@@ -24,6 +73,8 @@ A hands-on workshop demonstrating the full Gemini Enterprise Agent Platform (GEA
 | [Workshop Guide](docs/workshop_guide.md) | Full 4-session hands-on walkthrough |
 | [Component FAQ](docs/faq.md) | What each component does and why it matters |
 | [Evaluation Guide](docs/eval_operations.md) | Evaluation pipeline operations |
+| [GEPA Analysis](docs/gepa_optimization_analysis.md) | Prompt optimization before/after results |
+| [Cross-Model Experiment](docs/cross_model_experiment.md) | All models × all complexity tiers |
 | [Cost Comparison](docs/multi_model_cost_comparison.md) | Multi-model routing cost analysis |
 | [Slides](docs/slides.pptx) | Workshop deck (34 slides) |
 

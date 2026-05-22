@@ -230,13 +230,21 @@ def run_experiment(
                 avg = sum(vals) / len(vals) if vals else 0
             print(f"    {agent_name:20s} {status:10s} avg={avg:.2f}")
 
-    # Save results
+    # Save results — merge with existing partial results if present
     output_dir = Path(EVAL_OUTPUT_DIR)
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / f"cross_model_{run_id}.json"
-    with open(output_path, "w") as f:
+    merged_path = output_dir / "cross_model_merged.json"
+
+    if merged_path.exists():
+        with open(merged_path) as f:
+            existing = json.load(f)
+        existing.get("runs", {}).update(results["runs"])
+        results["runs"] = existing["runs"]
+        results["tiers"] = sorted(set(existing.get("tiers", []) + tiers))
+
+    with open(merged_path, "w") as f:
         json.dump(results, f, indent=2, default=str)
-    print(f"\nResults saved to: {output_path}")
+    print(f"\nResults saved to: {merged_path}")
 
     return results
 
