@@ -110,103 +110,61 @@ ORIGINAL_INSTRUCTIONS = {
 }
 
 
-BEFORE_SCORES = {
-    "lite_agent": {
-        "final_response_quality_v1": 0.71,
-        "hallucination_v1": 0.97,
-        "safety_v1": 1.00,
-        "tool_use_quality_v1": 0.39,
-        "instruction_following_v1": 0.53,
-        "final_response_match_v2": 0.53,
-    },
-    "flash_agent": {
-        "final_response_quality_v1": 0.85,
-        "hallucination_v1": 0.94,
-        "safety_v1": 0.92,
-        "tool_use_quality_v1": 0.42,
-        "instruction_following_v1": 0.77,
-        "final_response_match_v2": 0.76,
-    },
-    "pro_agent": {
-        "final_response_quality_v1": 0.92,
-        "hallucination_v1": 0.97,
-        "safety_v1": 0.82,
-        "tool_use_quality_v1": 0.39,
-        "instruction_following_v1": 0.79,
-        "final_response_match_v2": 0.63,
-    },
-    "sonnet_agent": {
-        "final_response_quality_v1": 0.85,
-        "hallucination_v1": 0.72,
-        "safety_v1": 0.92,
-        "tool_use_quality_v1": 0.31,
-        "instruction_following_v1": 0.48,
-        "final_response_match_v2": 0.50,
-    },
-    "opus_agent": {
-        "final_response_quality_v1": 1.00,
-        "hallucination_v1": 0.86,
-        "safety_v1": 0.79,
-        "tool_use_quality_v1": 0.46,
-        "instruction_following_v1": 0.69,
-        "final_response_match_v2": 0.75,
-    },
+def _load_scores_from_files(agent_name: str) -> list[dict[str, float]]:
+    """Load all eval score sets for an agent from JSON files, sorted by timestamp."""
+    results = []
+    for f in sorted(EVAL_DIR.glob("batch_results_*.json")):
+        with open(f) as fh:
+            data = json.load(fh)
+        agents = data.get("agents", {})
+        if agent_name not in agents:
+            continue
+        metrics = agents[agent_name].get("metrics", {})
+        scores = {}
+        for key, detail in metrics.items():
+            for m in METRICS:
+                if m in key:
+                    scores[m] = detail.get("score", 0.0)
+        if scores:
+            results.append({"timestamp": data.get("timestamp", ""), "scores": scores})
+    return results
+
+
+# Sonnet baseline was captured manually (eval timed out before saving)
+_SONNET_BASELINE = {
+    "final_response_quality_v1": 0.85,
+    "hallucination_v1": 0.72,
+    "safety_v1": 0.92,
+    "tool_use_quality_v1": 0.31,
+    "instruction_following_v1": 0.48,
+    "final_response_match_v2": 0.50,
 }
 
-MANUAL_SCORES = {}
+# GEPA cutoff: evals before this are "before", after are "after"
+GEPA_CUTOFF = "2026-05-22T00:00:00"
 
-AFTER_SCORES = {
-    "lite_agent": {
-        "final_response_quality_v1": 0.81,
-        "hallucination_v1": 0.85,
-        "safety_v1": 0.74,
-        "tool_use_quality_v1": 0.33,
-        "instruction_following_v1": 0.72,
-        "final_response_match_v2": 0.77,
-    },
-    "flash_agent": {
-        "final_response_quality_v1": 0.98,
-        "hallucination_v1": 0.64,
-        "safety_v1": 0.91,
-        "tool_use_quality_v1": 0.42,
-        "instruction_following_v1": 0.31,
-        "final_response_match_v2": 0.48,
-    },
-    "pro_agent": {
-        "final_response_quality_v1": 0.96,
-        "hallucination_v1": 0.80,
-        "safety_v1": 0.96,
-        "tool_use_quality_v1": 0.46,
-        "instruction_following_v1": 0.61,
-        "final_response_match_v2": 0.64,
-    },
-    "sonnet_agent": {
-        "final_response_quality_v1": 0.95,
-        "hallucination_v1": 0.84,
-        "safety_v1": 0.89,
-        "tool_use_quality_v1": 0.33,
-        "instruction_following_v1": 0.68,
-        "final_response_match_v2": 0.66,
-    },
-    "opus_agent": {
-        "final_response_quality_v1": 0.75,
-        "hallucination_v1": 0.85,
-        "safety_v1": 0.79,
-        "tool_use_quality_v1": 0.41,
-        "instruction_following_v1": 0.64,
-        "final_response_match_v2": 0.66,
-    },
-}
+
+def _split_before_after(agent_name: str) -> tuple[dict, dict]:
+    """Split eval scores into before/after GEPA based on timestamp."""
+    all_scores = _load_scores_from_files(agent_name)
+    before = [s for s in all_scores if s["timestamp"] < GEPA_CUTOFF]
+    after = [s for s in all_scores if s["timestamp"] >= GEPA_CUTOFF]
+
+    before_scores = before[-1]["scores"] if before else {}
+    after_scores = after[-1]["scores"] if after else {}
+
+    if agent_name == "sonnet_agent" and not before_scores:
+        before_scores = _SONNET_BASELINE
+
+    return before_scores, after_scores
 
 
 def load_eval_scores(agent_name: str, phase: str = "before") -> dict[str, float]:
-    """Load eval scores. Returns {metric: score}."""
-    if phase == "before" and agent_name in BEFORE_SCORES:
-        return BEFORE_SCORES[agent_name]
-    if phase == "after" and agent_name in AFTER_SCORES:
-        return AFTER_SCORES[agent_name]
-    if agent_name in MANUAL_SCORES:
-        return MANUAL_SCORES[agent_name]
+    """Load eval scores from JSON files. Returns {metric: score}."""
+    before, after = _split_before_after(agent_name)
+    if phase == "before":
+        return before
+    return after
     scores = {}
     for f in sorted(EVAL_DIR.glob("batch_results_*.json")):
         with open(f) as fh:
