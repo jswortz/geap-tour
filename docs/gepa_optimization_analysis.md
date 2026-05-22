@@ -1,5 +1,9 @@
 # GEPA Optimization Analysis — Multi-Model Agent Tier
 
+## Pipeline Overview
+
+![GEPA Pipeline Diagram](charts/gepa_pipeline_diagram.png)
+
 ## Executive Summary
 
 This report analyzes the impact of GEPA (Gemini Evolutionary Prompt Algorithm) optimization on 5 standalone agents spanning a 250x cost range across Google Gemini and Anthropic Claude model families. Each agent was evaluated with 6 metrics across 20 test cases (10 travel + 10 expense) before and after prompt optimization.
@@ -8,11 +12,11 @@ This report analyzes the impact of GEPA (Gemini Evolutionary Prompt Algorithm) o
 
 | Agent | Model | Provider | Output $/M | Tier | Engine ID |
 |-------|-------|----------|-----------|------|-----------|
-| Lite | `gemini-3.1-flash-lite` | Google | $0.30 | Tier 1 — Trivial | `` |
-| Flash | `gemini-3.5-flash` | Google | $0.60 | Tier 2 — Simple | `` |
-| Pro | `gemini-3.1-pro-preview` | Google | $10.00 | Tier 3 — Moderate | `` |
-| Sonnet | `claude-sonnet-4-6` | Anthropic | $15.00 | Tier 4 — Complex | `` |
-| Opus | `claude-opus-4-6` | Anthropic | $75.00 | Tier 5 — Expert | `` |
+| Lite | `gemini-3.1-flash-lite` | Google | $0.30 | Tier 1 — Trivial | `8497292491022663680` |
+| Flash | `gemini-3.5-flash` | Google | $0.60 | Tier 2 — Simple | `3966671265887944704` |
+| Pro | `gemini-3.1-pro-preview` | Google | $10.00 | Tier 3 — Moderate | `5540116385700511744` |
+| Sonnet | `claude-sonnet-4-6` | Anthropic | $15.00 | Tier 4 — Complex | `8467456143491334144` |
+| Opus | `claude-opus-4-6` | Anthropic | $75.00 | Tier 5 — Expert | `207854426893844480` |
 
 ## Baseline Eval Scores
 
@@ -113,68 +117,30 @@ This report analyzes the impact of GEPA (Gemini Evolutionary Prompt Algorithm) o
 
 ## Before/After Instruction Comparison
 
-### Lite Agent
+Full before/after prompts for each agent are documented in [`docs/prompts/`](prompts/):
 
-**Before (generic):**
-```
-You are a fast corporate assistant for simple queries. Give direct, concise answers. Use tools when needed. Use recalled memories to personalize responses when available.
-```
+| Agent | Before | After | Key Additions |
+|-------|--------|-------|---------------|
+| [Lite](prompts/lite_agent.md) | 3 lines | 25+ lines | Capabilities/limitations, tool usage guidelines, domain knowledge |
+| [Flash](prompts/flash_agent.md) | 3 lines | 35+ lines | Expense policy handling logic, booking confirmation format |
+| [Pro](prompts/pro_agent.md) | 3 lines | 22+ lines | Problem breakdown, parameter validation, PII safety, tool-specific guidance |
+| [Sonnet](prompts/sonnet_agent.md) | 3 lines | 20+ lines | Multi-domain analysis, scenario planning, actionable recommendations |
+| [Opus](prompts/opus_agent.md) | 4 lines | 40+ lines | 7-step methodology: deconstruct, gather, calculate, analyze, structure, next steps, scope limits |
 
-**After (GEPA-optimized):**
-```
-(Pending optimization results)
-```
+## Key Findings
 
-### Flash Agent
-
-**Before (generic):**
-```
-You are a capable corporate assistant for straightforward requests. Use tools as needed and provide clear, formatted answers. Use recalled memories to personalize responses when available.
-```
-
-**After (GEPA-optimized):**
-```
-(Pending optimization results)
-```
-
-### Pro Agent
-
-**Before (generic):**
-```
-You are a thorough corporate assistant for moderately complex requests. Break down the problem, use multiple tools as needed, and provide structured answers. Use recalled memories to personalize responses when available.
-```
-
-**After (GEPA-optimized):**
-```
-(Pending optimization results)
-```
-
-### Sonnet Agent
-
-**Before (generic):**
-```
-You are an advanced corporate assistant for complex requests. Analyze across multiple domains, use several tools, and provide detailed structured output. Use recalled memories to personalize responses when available.
-```
-
-**After (GEPA-optimized):**
-```
-(Pending optimization results)
-```
-
-### Opus Agent
-
-**Before (generic):**
-```
-You are an expert corporate assistant for the most complex, high-stakes requests. Provide thorough analysis with multi-step planning. Cross-reference information across tools and present a comprehensive response. Use recalled memories to personalize responses when available.
-```
-
-**After (GEPA-optimized):**
-```
-(Pending optimization results)
-```
+1. **Sonnet benefited most** from GEPA optimization: +42% instruction following, +32% response match, +17% hallucination, +12% quality
+2. **Lite showed strong gains** in instruction following (+36%) and response match (+45%), but regressed on safety (-26%) and hallucination (-12%)
+3. **Flash improved quality** (+15%) but significantly regressed on hallucination (-32%) and instruction following (-60%) — the detailed tool-specific instructions may have constrained the model's flexibility
+4. **Pro was the most balanced** — improved safety (+17%), tool use (+18%), and quality (+4%) with moderate regression on hallucination (-18%)
+5. **Opus regressed overall** — quality dropped 25%, suggesting the detailed 7-step methodology may be too prescriptive for complex open-ended tasks
 
 ## Recommendations
 
-- Agents with the largest instruction improvements should be redeployed with GEPA-optimized prompts
-- Re-run optimization after any changes to MCP tool schemas or policy limits
-- Consider running GEPA with more eval cases (20+) for agents that returned baseline instructions
+- **Deploy Sonnet's optimized instruction** — clear net positive across all metrics
+- **Deploy Lite's optimized instruction** — strong instruction following gains outweigh safety regression
+- **Deploy Pro's optimized instruction** — balanced improvement, best safety gain
+- **Reconsider Flash's instruction** — the detailed expense handling logic hurt generalization; consider a lighter optimization
+- **Reconsider Opus's instruction** — the 7-step methodology may be too rigid; consider fewer constraints for expert-level tasks
+- Re-run GEPA after any changes to MCP tool schemas or policy limits
+- Consider using more eval cases (20+) and domain-specific metrics for future optimization rounds
