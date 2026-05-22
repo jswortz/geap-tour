@@ -20,16 +20,7 @@ from vertexai import agent_engines
 from src.config import GCP_PROJECT_ID, GCP_REGION, AGENT_ENGINE_ID, ROUTER_ENGINE_ID
 
 
-def _disable_pyopenssl():
-    """Neutralize pyopenssl 26.x's context-reuse guard."""
-    try:
-        import OpenSSL.SSL as _ssl
-        for attr in dir(_ssl.Context):
-            method = getattr(_ssl.Context, attr, None)
-            if callable(method) and hasattr(method, "__wrapped__"):
-                setattr(_ssl.Context, attr, method.__wrapped__)
-    except ImportError:
-        pass
+from src.config import disable_pyopenssl
 
 QUERIES = [
     # Travel — happy path
@@ -154,7 +145,7 @@ def generate_traffic(
         count: Number of times to repeat the full query set.
     """
     vertexai.init(project=GCP_PROJECT_ID, location=GCP_REGION)
-    _disable_pyopenssl()
+    disable_pyopenssl()
 
     if agent_resource_name is None:
         agent_resource_name = (
@@ -241,7 +232,7 @@ def generate_traffic(
     print(f"  Memory conversations: {len(CONVERSATIONS)} ({conv_queries} turns)")
     print(f"  Total queries:  {total_queries}")
     print(f"  Errors:         {errors}")
-    print(f"  Users:          {', '.join(sessions.keys())}")
+    print(f"  Users:          alice, bob, charlie")
     print(f"  By complexity:  {', '.join(f'{k}={v}' for k, v in sorted(complexity_counts.items()))}")
     print(f"\n  Check Cloud Trace for spans.")
     print(f"  Memory Bank events saved for users: alice, bob, charlie")

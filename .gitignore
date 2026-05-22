@@ -34,3 +34,6 @@ docs/verification/*.raw.json
 *~
 eval_outputs/
 eval_results_*.json
+
+# PaperBanana diagram generation outputs
+outputs/

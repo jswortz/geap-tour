@@ -189,7 +189,7 @@ def update_agent(agent, engine_id: str, display_name: str | None = None) -> str:
     return resource_name
 
 
-COORDINATOR_ENGINE_ID = os.environ.get("COORINDATOR_AGENT_ID", "")
+COORDINATOR_ENGINE_ID = os.environ.get("COORDINATOR_AGENT_ID", "")
 ROUTER_ENGINE_ID_ENV = os.environ.get("ROUTER_ENGINE_ID", os.environ.get("AGENT_ENGINE_ID", ""))
 LITE_ENGINE_ID = os.environ.get("LITE_ENGINE_ID", "")
 FLASH_ENGINE_ID = os.environ.get("FLASH_ENGINE_ID", "")
@@ -201,7 +201,7 @@ AGENT_SETS = {
     "coordinator": {
         "loader": lambda: __import__("src.agents.coordinator_agent", fromlist=["coordinator_agent"]).coordinator_agent,
         "engine_id": COORDINATOR_ENGINE_ID,
-        "env_var": "COORINDATOR_AGENT_ID",
+        "env_var": "COORDINATOR_AGENT_ID",
     },
     "router": {
         "loader": lambda: __import__("src.router.agents", fromlist=["router_agent"]).router_agent,

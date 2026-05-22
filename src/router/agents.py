@@ -8,7 +8,6 @@ litellm.suppress_debug_info = True
 
 from google.adk.agents import LlmAgent
 from google.adk.agents.callback_context import CallbackContext
-from google.adk.models.lite_llm import LiteLlm
 from google.adk.tools.agent_tool import AgentTool
 from google.adk.tools.preload_memory_tool import PreloadMemoryTool
 from google.genai.types import Content, Part
@@ -17,32 +16,13 @@ from .config import LITE_MODEL, FLASH_MODEL, PRO_MODEL, SONNET_MODEL, OPUS_MODEL
 from .armor import input_guardrail_callback
 from .complexity import classify_complexity, score_to_model_tier
 
-from src.config import SEARCH_MCP_SERVER, BOOKING_MCP_SERVER, EXPENSE_MCP_SERVER
+from src.config import SEARCH_MCP_SERVER, BOOKING_MCP_SERVER, EXPENSE_MCP_SERVER, resolve_model
 from src.registry import get_mcp_tools
 from src.agents.lite_agent import INSTRUCTION as LITE_INSTRUCTION
 from src.agents.flash_agent import INSTRUCTION as FLASH_INSTRUCTION
 from src.agents.pro_agent import INSTRUCTION as PRO_INSTRUCTION
 from src.agents.sonnet_agent import INSTRUCTION as SONNET_INSTRUCTION
 from src.agents.opus_agent import INSTRUCTION as OPUS_INSTRUCTION
-
-
-def _resolve_model(model_str: str):
-    """Resolve model string to an ADK-compatible model.
-
-    Gemini 2.x models are available in regional endpoints (us-central1)
-    and can be passed as plain strings to ADK.
-
-    Gemini 3.x and Claude models require location=global on Vertex AI,
-    so they are wrapped with LiteLLM which supports per-model location.
-    """
-    # Gemini 2.x models work in regional endpoints — pass through
-    if model_str.startswith(("gemini-2", "models/")):
-        return model_str
-
-    # All other models (Gemini 3.x, Claude) need LiteLLM with global location
-    if not model_str.startswith("vertex_ai/"):
-        model_str = f"vertex_ai/{model_str}"
-    return LiteLlm(model=model_str, vertex_location="global")
 
 
 def _mcp_tools():
@@ -58,7 +38,7 @@ def _sub_agent_tools():
 
 
 lite_agent = LlmAgent(
-    model=_resolve_model(LITE_MODEL),
+    model=resolve_model(LITE_MODEL),
     name="lite_agent",
     description="Handles trivial, single-intent lookups — direct facts, single policy checks.",
     instruction=LITE_INSTRUCTION,
@@ -66,7 +46,7 @@ lite_agent = LlmAgent(
 )
 
 flash_agent = LlmAgent(
-    model=_resolve_model(FLASH_MODEL),
+    model=resolve_model(FLASH_MODEL),
     name="flash_agent",
     description="Handles simple tasks with light reasoning — formatted searches, single submissions.",
     instruction=FLASH_INSTRUCTION,
@@ -74,7 +54,7 @@ flash_agent = LlmAgent(
 )
 
 pro_agent = LlmAgent(
-    model=_resolve_model(PRO_MODEL),
+    model=resolve_model(PRO_MODEL),
     name="pro_agent",
     description="Handles moderate tasks requiring reasoning — comparisons, multi-step lookups, policy analysis.",
     instruction=PRO_INSTRUCTION,
@@ -82,7 +62,7 @@ pro_agent = LlmAgent(
 )
 
 sonnet_agent = LlmAgent(
-    model=_resolve_model(SONNET_MODEL),
+    model=resolve_model(SONNET_MODEL),
     name="sonnet_agent",
     description="Handles complex, multi-intent requests requiring cross-domain analysis.",
     instruction=SONNET_INSTRUCTION,
@@ -90,7 +70,7 @@ sonnet_agent = LlmAgent(
 )
 
 opus_agent = LlmAgent(
-    model=_resolve_model(OPUS_MODEL),
+    model=resolve_model(OPUS_MODEL),
     name="opus_agent",
     description="Handles expert-level requests requiring deep multi-step planning, budget optimization, and strategic synthesis.",
     instruction=OPUS_INSTRUCTION,
@@ -154,7 +134,7 @@ Never answer the user's question yourself. Always use a specialist agent tool.\
 """
 
 router_agent = LlmAgent(
-    model=_resolve_model(LITE_MODEL),
+    model=resolve_model(LITE_MODEL),
     name="router_agent",
     instruction=ROUTER_INSTRUCTION,
     tools=[

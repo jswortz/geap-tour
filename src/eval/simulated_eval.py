@@ -8,24 +8,6 @@ Usage:
     uv run python -m src.eval.simulated_eval --agent-id 4709107696450666496 --agent-name router_agent --scenario-count 10
 """
 
-def _disable_pyopenssl():
-    """Neutralize pyopenssl 26.x's context-reuse guard.
-
-    pyopenssl 26.x wraps Context methods with _require_not_used, which
-    raises ValueError when concurrent requests mutate a reused SSL context.
-    We can't remove pyopenssl (google-auth mTLS needs it), so we unwrap
-    all guarded methods back to their originals via __wrapped__.
-    """
-    try:
-        import OpenSSL.SSL as _ssl
-        for attr in dir(_ssl.Context):
-            method = getattr(_ssl.Context, attr, None)
-            if callable(method) and hasattr(method, "__wrapped__"):
-                setattr(_ssl.Context, attr, method.__wrapped__)
-    except ImportError:
-        pass
-
-
 def _patch_evals_extra_fields():
     """Patch ConversationTurn to accept extra fields from agent engine responses.
 
@@ -90,7 +72,8 @@ def run_simulated_eval(
 
     vertexai.init(project=GCP_PROJECT_ID, location=GCP_REGION)
     client = Client(project=GCP_PROJECT_ID, location=GCP_REGION)
-    _disable_pyopenssl()
+    from src.config import disable_pyopenssl
+    disable_pyopenssl()
 
     eval_metrics = [
         types.RubricMetric.MULTI_TURN_TRAJECTORY_QUALITY,
