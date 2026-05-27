@@ -14,6 +14,7 @@ def _resolve_model(model_str: str):
         model_str = f"vertex_ai/{model_str}"
     return LiteLlm(model=model_str, vertex_location="global")
     
+from src.armor.config import get_armored_generate_config, input_guardrail_callback
 from src.registry import get_mcp_tools
 
 # GEPA-optimized instruction (base score 0.60 → optimized 0.90).
@@ -53,6 +54,8 @@ expense_agent = LlmAgent(
     tools=[
         get_mcp_tools(EXPENSE_MCP_SERVER),
     ],
+    generate_content_config=get_armored_generate_config(),
+    before_agent_callback=input_guardrail_callback,
 )
 
 root_agent = expense_agent

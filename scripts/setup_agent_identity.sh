@@ -46,7 +46,7 @@ echo "[4/4] Binding IAM roles..."
 
 # Agent principal format: principal://agents.global.org-{ORG_ID}.system.id.goog/agent/{AGENT_ID}
 # For workshop, grant broad access to all agents in the pool
-AGENT_PRINCIPAL="principalSet://iam.googleapis.com/projects/${PROJECT_ID}/locations/global/workloadIdentityPools/agent-pool/*"
+AGENT_PRINCIPAL="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/agent-pool/*"
 
 gcloud projects add-iam-policy-binding "$PROJECT_ID" \
     --member="$AGENT_PRINCIPAL" \

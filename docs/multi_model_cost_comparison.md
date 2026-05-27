@@ -1,14 +1,7 @@
-# Multi-Model Cost Comparison
+# Multi-Model Prompt Router — Cost, Latency & Quality Report
 
-## Thesis
-
-> "The future is multi-model — right model for right task and needs at hand."
-> — [gemini-model-router](https://github.com/jswortz/gemini-model-router)
-
-This demo routes prompts by complexity to the most cost-effective model:
-- **Low** (simple lookups) → Gemini 2.0 Flash Lite ($0.075/M input)
-- **Medium** (moderate reasoning) → Gemini 2.5 Flash ($0.15/M input)
-- **High** (deep analysis) → Claude Opus 4-7 via Vertex AI ($15/M input)
+> Generated: 2026-05-27T21:07:11  
+> Rounds: 3 | Cases/round: 22 | Models evaluated: 5 | Judge: `gemini-2.5-pro`
 
 ## Architecture
 
@@ -19,72 +12,138 @@ User Prompt
 [Model Armor] -- safety screening (RAI, PI, jailbreak)
     |
     v
-[Router Agent] (gemini-2.5-flash-lite)
+[Router Agent] (gemini-3.1-flash-lite)
     |  before_agent_callback: classify_complexity()
-    |  Gemini Flash Lite scores prompt 0-1, maps to low/med/high
+    |  Flash Lite scores prompt 0-1, maps to 5-tier
     |
-    |-- low ----> [Lite Agent]  gemini-2.5-flash-lite  $0.075/M in
-    |-- medium -> [Flash Agent] gemini-2.5-flash       $0.15/M in
-    |-- high ---> [Opus Agent]  claude-opus-4-6        $15.00/M in
+    |-- score<0.30   --> [Lite]   `gemini-3.1-flash-lite`
+    |-- score<0.45   --> [Flash]  `gemini-3.5-flash`
+    |-- score<0.60   --> [Sonnet] `claude-sonnet-4-5`
+    |-- score<0.80   --> [Pro]    `gemini-3.1-pro-preview`
+    +-- score>=0.80  --> [Opus]   `claude-opus-4-6`
 ```
 
-**Why not Model Armor for complexity?** Model Armor only provides safety filters
-(RAI, PI detection, jailbreak, malicious URI). It has no prompt complexity scoring.
-We use Gemini Flash Lite as a micro-classifier (~$0.00002/call).
+## Classifier Accuracy
 
-**Why not AI Gateway for routing?** The Agent Gateway operates at the network level
-(CLIENT_TO_AGENT / AGENT_TO_ANYWHERE) with IAM and SGP policies. It cannot select
-models based on prompt content. Routing happens at the ADK orchestration layer.
+**Overall: 100.0%** (95% CI: [100.0%, 100.0%])
 
-## Results
+| Tier | Accuracy | Correct / Total |
+|------|----------|-----------------|
+| low | 100% | 30/30 |
+| medium | 100% | 18/18 |
+| high | 100% | 18/18 |
 
-**Test set:** 10 prompts (2 low, 3 medium, 5 high)
+### Confusion Matrix
 
-**Assumed tokens:** 200 input, 500 output per request
+| Expected \ Actual | Low | Medium | High |
+|-------------------|-----|--------|------|
+| low | 30 | 0 | 0 |
+| medium | 0 | 18 | 0 |
+| high | 0 | 0 | 18 |
 
-| Configuration | Model(s) | Total Cost | vs All-Opus Savings |
-|--------------|----------|-----------|-------------------|
-| All Flash Lite | mixed | $0.001650 | 99.6% |
-| All Flash | mixed | $0.003300 | 99.2% |
-| All Opus | mixed | $0.405000 | baseline |
-| Smart Router | mixed | $0.203907 | 49.7% |
+Avg classifier latency: **3307 ms**  
 
-## Per-Prompt Routing Decisions (Smart Router)
+## Per-Model Latency
 
-| # | Prompt (truncated) | Score | Level | Model |
-|---|-------------------|-------|-------|-------|
-| 1 | Find flights from SFO to JFK... | 0.30 | low | gemini-2.5-flash-lite |
-| 2 | What's the expense policy for meals?... | 0.30 | low | gemini-2.5-flash-lite |
-| 3 | Search hotels in Chicago under $200... | 0.40 | medium | gemini-2.5-flash |
-| 4 | Check if a $50 transport expense is within policy... | 0.40 | medium | gemini-2.5-flash |
-| 5 | Find flights to NYC and compare the cheapest optio... | 0.60 | medium | gemini-2.5-flash |
-| 6 | Search hotels in Boston, then check if the nightly... | 0.70 | high | claude-opus-4-6 |
-| 7 | Plan a 5-day trip to Tokyo for a team of 4: find f... | 0.80 | high | claude-opus-4-6 |
-| 8 | Compare individual vs group flight bookings for ou... | 0.80 | high | claude-opus-4-6 |
-| 9 | Analyze EMP001's expense history: they overspent o... | 0.80 | high | claude-opus-4-6 |
-| 10 | Book the cheapest SFO-JFK flight, find a hotel wit... | 0.90 | high | claude-opus-4-6 |
+Wall-clock time from request to response. Direct API calls — no tools, no MCP, no ADK overhead.
 
-## At Scale (monthly projections)
+| Tier | Model | Mean (ms) | p50 (ms) | p95 (ms) | 95% CI of mean |
+|------|-------|-----------|----------|----------|----------------|
+| lite | `gemini-3.1-flash-lite` | 4352 | 2697 | 16203 | [3017, 6148] |
+| flash | `gemini-3.5-flash` | 4922 | 4722 | 7227 | [4644, 5211] |
+| pro | `gemini-3.1-pro-preview` | 11258 | 11560 | 14361 | [10686, 11827] |
+| sonnet | `claude-sonnet-4-5` | 10578 | 10504 | 11686 | [10414, 10750] |
+| opus | `claude-opus-4-6` | 11786 | 11615 | 13840 | [11492, 12094] |
 
-| Scenario | Requests/mo | All-Opus | Smart Router | Savings |
-|----------|------------|----------|-------------|---------|
-| Light usage | 1,000 | $40.50 | $4.23 | 90% |
-| Medium usage | 10,000 | $405.00 | $62.56 | 85% |
-| Heavy usage | 100,000 | $4,050.00 | $828.15 | 80% |
+## Per-Model Cost
+
+Real token counts from API `usage_metadata`, cost computed from current per-1M-token pricing.
+
+| Tier | Model | Avg In Tokens | Avg Out Tokens | $/call | Total $ |
+|------|-------|--------------:|---------------:|-------:|--------:|
+| lite | `gemini-3.1-flash-lite` | 101 | 277 | $0.000091 | $0.0060 |
+| flash | `gemini-3.5-flash` | 101 | 258 | $0.000170 | $0.0112 |
+| pro | `gemini-3.1-pro-preview` | 102 | 232 | $0.002444 | $0.1564 |
+| sonnet | `claude-sonnet-4-5` | 111 | 385 | $0.006101 | $0.4027 |
+| opus | `claude-opus-4-6` | 112 | 451 | $0.035489 | $2.3423 |
+
+## Per-Model Quality (LLM-as-Judge)
+
+4-dim rubric, each 1-5. Overall = mean of the four. Single comparative judge call per prompt (responses anonymized A-E, order shuffled per call to mitigate bias).
+
+| Tier | Model | Plan | Correct | Reasoning | Tools | **Overall** | 95% CI |
+|------|-------|-----:|--------:|----------:|------:|------------:|--------|
+| lite | `gemini-3.1-flash-lite` | 4.77 | 4.21 | 4.47 | 4.30 | **4.44** | [4.28, 4.59] |
+| flash | `gemini-3.5-flash` | 4.74 | 4.54 | 4.42 | 4.69 | **4.60** | [4.50, 4.69] |
+| pro | `gemini-3.1-pro-preview` | 3.93 | 4.03 | 3.91 | 4.34 | **4.06** | [3.76, 4.33] |
+| sonnet | `claude-sonnet-4-5` | 4.94 | 3.92 | 4.58 | 4.21 | **4.41** | [4.24, 4.57] |
+| opus | `claude-opus-4-6` | 4.91 | 4.29 | 4.82 | 4.50 | **4.63** | [4.49, 4.75] |
+
+## Cost-Quality Frontier
+
+Quality per dollar — higher is better. Sorted by efficiency.
+
+| Rank | Tier | Model | Quality | $/call | Quality / $ |
+|------|------|-------|--------:|-------:|------------:|
+| 1 | lite | `gemini-3.1-flash-lite` | 4.44 | $0.000091 | 48,974 |
+| 2 | flash | `gemini-3.5-flash` | 4.60 | $0.000170 | 27,064 |
+| 3 | pro | `gemini-3.1-pro-preview` | 4.06 | $0.002444 | 1,659 |
+| 4 | sonnet | `claude-sonnet-4-5` | 4.41 | $0.006101 | 723 |
+| 5 | opus | `claude-opus-4-6` | 4.63 | $0.035489 | 130 |
+
+## Smart Router Synthesis
+
+What you actually get in production: for each prompt, pick the response from the model the classifier routed to. Compared against the two extremes (all-Lite = cheapest, all-Opus = most expensive).
+
+| Strategy | Avg Latency (ms) | Avg Quality | Total $ | vs all-Opus |
+|---|---|---|---|---|
+| **Smart Router** | 8144 | 4.38 | $0.7327 | +68.7% |
+| All-Lite | 4352 | 4.44 | $0.0060 | +99.7% |
+| All-Opus | 11786 | 4.63 | $2.3423 | baseline |
+
+## Statistical Significance
+
+- **Cost savings (smart router vs all-Opus):** mean 68.7%, 95% CI [68.6%, 69.0%].
+- **Quality (smart router vs all-Opus, paired t-test):** t=-2.76, p=0.0058, n=51 — Smart router quality differs significantly from Opus (review direction below).
+  - Mean quality delta (smart - opus): -0.319 — Opus scored higher.
+
+## Pricing Reference (per 1M tokens)
+
+| Model | Input $ | Output $ |
+|-------|--------:|---------:|
+| `gemini-3.1-flash-lite` | $0.075 | $0.30 |
+| `gemini-3.5-flash` | $0.150 | $0.60 |
+| `gemini-3.1-pro-preview` | $1.250 | $10.00 |
+| `claude-sonnet-4-5` | $3.000 | $15.00 |
+| `claude-opus-4-6` | $15.000 | $75.00 |
+
+## Scaling Projections
+
+Monthly cost projection assuming the per-prompt mix observed in this benchmark.
+
+| Daily Volume | All-Opus / day | Smart Router / day | Monthly Savings |
+|-------------|---------------:|-------------------:|----------------:|
+| 100 | $3.55 | $1.11 | $73 |
+| 1,000 | $35.49 | $11.10 | $732 |
+| 10,000 | $354.89 | $111.02 | $7,316 |
+| 100,000 | $3548.93 | $1110.20 | $73,162 |
+
+## Methodology
+
+- **Test set:** 22 prompts spanning low / medium / high complexity tiers.
+- **Rounds:** 3. Each (prompt, model) cell is run 3 time(s); metrics are aggregated across all runs.
+- **Inference:** direct API calls (`google.genai` for Gemini, LiteLLM `acompletion` for Claude). No ADK orchestration, no MCP tools, no Cloud Run round-trip — to isolate model behavior.
+- **System instruction:** asks models to describe the plan they'd execute (tool names, args, synthesis steps) since tools are not provided. Quality is rated on reasoning, not tool execution.
+- **Quality judge:** single comparative call per prompt over all anonymized responses (A-E, shuffled). Mitigates ordering bias. Judge is `gemini-2.5-pro` (not Opus, to avoid self-grading bias).
+- **Concurrency:** within each prompt, the 5 models are called in parallel via `asyncio.gather`. Across prompts, runs are sequential to avoid quota spikes.
 
 ## Limitations
 
-- Model Armor's `ModelArmorConfig` only works with Gemini models; the Opus agent uses client-side guardrails only
-- Claude Opus 4-7 availability may vary by region (us-east5, global endpoint)
-- Classifier adds ~100-200ms latency per request
-- Cost comparison uses list pricing; enterprise discounts change ratios
-- Token counts are estimated averages, not measured from actual API responses
+- **No tool execution.** Quality reflects reasoning and tool *selection*, not real tool outcomes. End-to-end task success requires the full ADK + MCP stack and would add Cloud Run latency.
+- **LLM-as-judge bias.** Even with anonymization and a non-Opus judge, the rubric is subjective. Treat quality scores as comparative, not absolute.
+- **List pricing.** Cost uses public per-1M-token rates; enterprise discounts change ratios.
+- **Latency variance.** Cold starts and queueing effects can vary by run; we report mean / p50 / p95.
+- **Token estimates for thinking models.** Gemini 3.x thinking tokens are billed at output rate and already included in `candidates_token_count`.
 
-## Connection to gemini-model-router
-
-The [gemini-model-router](https://github.com/jswortz/gemini-model-router) demonstrated
-35% cost savings with a 4-backend router (Gemma4, Gemini, Claude, Vertex API) using
-embedding-based classification. This demo validates the same thesis using GCP-native
-infrastructure (ADK + Model Armor + Gateway) with an LLM-as-classifier approach.
-The key insight is identical: **you pay for what you need** — most prompts don't
-require frontier-model reasoning.
+---
+*Report generated by `src/eval/router_report.py`*

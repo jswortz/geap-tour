@@ -72,7 +72,9 @@
       "conversation": [{
         "user_content": {"parts": [{"text": "Submit a $50 meal expense for lunch"}], "role": "user"},
         "final_response": {"parts": [{"text": "I only handle travel bookings — flight and hotel searches and reservations. For expense submissions, please ask the expense assistant."}], "role": "model"},
-        "intermediate_data": {}
+        "intermediate_data": {
+          "tool_uses": []
+        }
       }],
       "session_input": {"app_name": "travel_agent_opt", "user_id": "eval_user"}
     },

@@ -1,0 +1,6 @@
+name: geap-workshop-ge-gateway-egress
+type: AGENT_TO_ANYWHERE
+network: default
+subnetwork: default
+# TLS settings (placeholder, adjust as needed)
+# You may need to specify certificate resources here

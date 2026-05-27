@@ -75,7 +75,9 @@
       "conversation": [{
         "user_content": {"parts": [{"text": "Book me a flight to New York"}], "role": "user"},
         "final_response": {"parts": [{"text": "I only handle expense submissions and policy checks. For flight bookings, please ask the travel assistant."}], "role": "model"},
-        "intermediate_data": {}
+        "intermediate_data": {
+          "tool_uses": []
+        }
       }],
       "session_input": {"app_name": "expense_agent_opt", "user_id": "eval_user"}
     },
@@ -109,7 +111,9 @@
       "conversation": [{
         "user_content": {"parts": [{"text": "Submit a $60 expense for lunch"}], "role": "user"},
         "final_response": {"parts": [{"text": "I need your employee ID to submit the expense. Could you provide your user ID?"}], "role": "model"},
-        "intermediate_data": {}
+        "intermediate_data": {
+          "tool_uses": []
+        }
       }],
       "session_input": {"app_name": "expense_agent_opt", "user_id": "eval_user"}
     }

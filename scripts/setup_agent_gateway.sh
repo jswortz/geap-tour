@@ -139,7 +139,7 @@ create_gateway "Regional egress" "$REGION" "$GATEWAY_EGRESS_NAME" "{
 # ── Global gateways (Gemini Enterprise) ──
 
 echo "[4/7] Creating global ingress gateway for Gemini Enterprise..."
-create_gateway "GE ingress" "global" "$GE_GATEWAY_NAME" '{
+create_gateway "GE ingress" "$REGION" "$GE_GATEWAY_NAME" '{
     "protocols": ["MCP"],
     "googleManaged": {
         "governedAccessPath": "CLIENT_TO_AGENT"
@@ -147,7 +147,7 @@ create_gateway "GE ingress" "global" "$GE_GATEWAY_NAME" '{
 }'
 
 echo "[5/7] Creating global egress gateway for Gemini Enterprise (+ global registry)..."
-create_gateway "GE egress" "global" "$GE_GATEWAY_EGRESS_NAME" "{
+create_gateway "GE egress" "$REGION" "$GE_GATEWAY_EGRESS_NAME" "{
     \"protocols\": [\"MCP\"],
     \"googleManaged\": {
         \"governedAccessPath\": \"AGENT_TO_ANYWHERE\"
@@ -177,8 +177,8 @@ gcloud projects add-iam-policy-binding "$PROJECT_ID" \
 
 GATEWAY_PATH="projects/${PROJECT_ID}/locations/${REGION}/agentGateways/${GATEWAY_NAME}"
 GATEWAY_EGRESS_PATH="projects/${PROJECT_ID}/locations/${REGION}/agentGateways/${GATEWAY_EGRESS_NAME}"
-GE_GATEWAY_PATH="projects/${PROJECT_ID}/locations/global/agentGateways/${GE_GATEWAY_NAME}"
-GE_GATEWAY_EGRESS_PATH="projects/${PROJECT_ID}/locations/global/agentGateways/${GE_GATEWAY_EGRESS_NAME}"
+GE_GATEWAY_PATH="projects/${PROJECT_ID}/locations/${REGION}/agentGateways/${GE_GATEWAY_NAME}"
+GE_GATEWAY_EGRESS_PATH="projects/${PROJECT_ID}/locations/${REGION}/agentGateways/${GE_GATEWAY_EGRESS_NAME}"
 
 echo ""
 echo "=== Agent Gateway setup complete ==="

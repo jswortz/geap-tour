@@ -13,6 +13,7 @@ def _resolve_model(model_str: str):
     if not model_str.startswith("vertex_ai/"):
         model_str = f"vertex_ai/{model_str}"
     return LiteLlm(model=model_str, vertex_location="global")
+from src.armor.config import get_armored_generate_config, input_guardrail_callback
 from src.registry import get_mcp_tools
 
 # GEPA-optimized instruction (base score 0.70 → optimized 1.00).
@@ -61,6 +62,8 @@ travel_agent = LlmAgent(
         get_mcp_tools(SEARCH_MCP_SERVER),
         get_mcp_tools(BOOKING_MCP_SERVER),
     ],
+    generate_content_config=get_armored_generate_config(),
+    before_agent_callback=input_guardrail_callback,
 )
 
 root_agent = travel_agent

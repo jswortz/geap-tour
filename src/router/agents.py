@@ -173,12 +173,8 @@ router_agent = LlmAgent(
     instruction=ROUTER_INSTRUCTION,
     tools=[
         PreloadMemoryTool(),
-        AgentTool(agent=lite_agent),
-        AgentTool(agent=flash_agent),
-        AgentTool(agent=pro_agent),
-        AgentTool(agent=sonnet_agent),
-        AgentTool(agent=opus_agent),
     ],
+    sub_agents=[lite_agent, flash_agent, pro_agent, sonnet_agent, opus_agent],
     before_agent_callback=complexity_router_callback,
     after_agent_callback=save_memories_callback,
 )
