@@ -1,115 +1,121 @@
 {
-  "eval_set_id": "expense_agent_eval_set",
+  "eval_set_id": "expense_eval_set",
   "eval_cases": [
     {
-      "eval_id": "policy_check_meals_within",
+      "eval_id": "policy_check_within",
       "conversation": [{
         "user_content": {"parts": [{"text": "Check if a $50 meal expense is within policy"}], "role": "user"},
-        "final_response": {"parts": [{"text": "A $50 meal expense is within the corporate policy. The meal expense limit is $75."}], "role": "model"},
+        "final_response": {"parts": [{"text": "The $50 meal expense is within the policy limit of $75."}], "role": "model"},
         "intermediate_data": {
           "tool_uses": [{"name": "check_expense_policy", "args": {"category": "meals", "amount": 50}}]
         }
       }],
-      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+      "session_input": {"app_name": "expense_agent_opt", "user_id": "eval_user"}
     },
     {
-      "eval_id": "policy_check_entertainment_over",
+      "eval_id": "policy_check_over_limit",
       "conversation": [{
         "user_content": {"parts": [{"text": "Check policy for a $500 entertainment expense"}], "role": "user"},
-        "final_response": {"parts": [{"text": "A $500 entertainment expense exceeds the corporate policy limit of $150 for entertainment."}], "role": "model"},
+        "final_response": {"parts": [{"text": "The $500 entertainment expense exceeds the $150 policy limit. It will require manager review."}], "role": "model"},
         "intermediate_data": {
           "tool_uses": [{"name": "check_expense_policy", "args": {"category": "entertainment", "amount": 500}}]
         }
       }],
-      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+      "session_input": {"app_name": "expense_agent_opt", "user_id": "eval_user"}
     },
     {
-      "eval_id": "policy_check_transport_within",
-      "conversation": [{
-        "user_content": {"parts": [{"text": "Is a $150 transport expense within policy?"}], "role": "user"},
-        "final_response": {"parts": [{"text": "A $150 transport expense is within the corporate policy. The transport expense limit is $200."}], "role": "model"},
-        "intermediate_data": {
-          "tool_uses": [{"name": "check_expense_policy", "args": {"category": "transport", "amount": 150}}]
-        }
-      }],
-      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
-    },
-    {
-      "eval_id": "policy_check_lodging_over",
-      "conversation": [{
-        "user_content": {"parts": [{"text": "Check if a $500 lodging expense is within policy"}], "role": "user"},
-        "final_response": {"parts": [{"text": "A $500 lodging expense exceeds the corporate policy limit of $400 for lodging."}], "role": "model"},
-        "intermediate_data": {
-          "tool_uses": [{"name": "check_expense_policy", "args": {"category": "lodging", "amount": 500}}]
-        }
-      }],
-      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
-    },
-    {
-      "eval_id": "policy_check_unknown_category",
-      "conversation": [{
-        "user_content": {"parts": [{"text": "Check policy for $1000 in the unknown category"}], "role": "user"},
-        "final_response": {"parts": [{"text": "The category 'unknown' is not a recognized expense category. Valid categories include: meals, transport, lodging, supplies, and entertainment."}], "role": "model"},
-        "intermediate_data": {
-          "tool_uses": [{"name": "check_expense_policy", "args": {"category": "unknown", "amount": 1000}}]
-        }
-      }],
-      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
-    },
-    {
-      "eval_id": "submit_expense_meals",
+      "eval_id": "submit_within_policy",
       "conversation": [{
         "user_content": {"parts": [{"text": "Submit a $45 meals expense for lunch meeting, user ID EMP001"}], "role": "user"},
-        "final_response": {"parts": [{"text": "Expense submitted: $45 meals for EMP001. Status: approved (within $75 meal policy limit)."}], "role": "model"},
+        "final_response": {"parts": [{"text": "Your $45 meals expense for lunch meeting has been submitted and approved. It's within the $75 meal policy limit."}], "role": "model"},
         "intermediate_data": {
           "tool_uses": [{"name": "submit_expense", "args": {"user_id": "EMP001", "category": "meals", "amount": 45, "description": "lunch meeting"}}]
         }
       }],
-      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+      "session_input": {"app_name": "expense_agent_opt", "user_id": "eval_user"}
     },
     {
-      "eval_id": "submit_expense_over_limit",
+      "eval_id": "submit_over_limit",
       "conversation": [{
         "user_content": {"parts": [{"text": "Submit a $500 entertainment expense for team event, user ID EMP002"}], "role": "user"},
-        "final_response": {"parts": [{"text": "Expense submitted: $500 entertainment for EMP002. Status: flagged for review (exceeds $150 entertainment policy limit)."}], "role": "model"},
+        "final_response": {"parts": [{"text": "The $500 entertainment expense exceeds the $150 policy limit. It has been submitted but flagged for manager review."}], "role": "model"},
         "intermediate_data": {
           "tool_uses": [{"name": "submit_expense", "args": {"user_id": "EMP002", "category": "entertainment", "amount": 500, "description": "team event"}}]
         }
       }],
-      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+      "session_input": {"app_name": "expense_agent_opt", "user_id": "eval_user"}
     },
     {
-      "eval_id": "get_expenses_emp001",
+      "eval_id": "expense_history",
       "conversation": [{
         "user_content": {"parts": [{"text": "Show all expenses for user EMP001"}], "role": "user"},
-        "final_response": {"parts": [{"text": "Here are the expenses for user EMP001: 1) $45 meals - lunch meeting (approved), 2) $180 transport - airport transfer (approved)."}], "role": "model"},
+        "final_response": {"parts": [{"text": "Here are the expenses for user EMP001."}], "role": "model"},
         "intermediate_data": {
           "tool_uses": [{"name": "get_user_expenses", "args": {"user_id": "EMP001"}}]
         }
       }],
-      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+      "session_input": {"app_name": "expense_agent_opt", "user_id": "eval_user"}
     },
     {
-      "eval_id": "submit_expense_supplies",
+      "eval_id": "check_before_submit",
       "conversation": [{
-        "user_content": {"parts": [{"text": "Submit a $75 supplies expense for office materials, user ID EMP003"}], "role": "user"},
-        "final_response": {"parts": [{"text": "Expense submitted: $75 supplies for EMP003. Status: approved (within $100 supplies policy limit)."}], "role": "model"},
+        "user_content": {"parts": [{"text": "I want to submit a $180 transport expense for an airport shuttle, user EMP001. Is that within policy?"}], "role": "user"},
+        "final_response": {"parts": [{"text": "The $180 transport expense is within the $200 policy limit. I've submitted it for user EMP001 — approved."}], "role": "model"},
         "intermediate_data": {
-          "tool_uses": [{"name": "submit_expense", "args": {"user_id": "EMP003", "category": "supplies", "amount": 75, "description": "office materials"}}]
+          "tool_uses": [
+            {"name": "check_expense_policy", "args": {"category": "transport", "amount": 180}},
+            {"name": "submit_expense", "args": {"user_id": "EMP001", "category": "transport", "amount": 180, "description": "airport shuttle"}}
+          ]
         }
       }],
-      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+      "session_input": {"app_name": "expense_agent_opt", "user_id": "eval_user"}
     },
     {
-      "eval_id": "get_expenses_emp002",
+      "eval_id": "out_of_scope_travel",
       "conversation": [{
-        "user_content": {"parts": [{"text": "Show expense history for EMP002"}], "role": "user"},
-        "final_response": {"parts": [{"text": "Here are the expenses for user EMP002: 1) $500 entertainment - team event (flagged for review)."}], "role": "model"},
+        "user_content": {"parts": [{"text": "Book me a flight to New York"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I only handle expense submissions and policy checks. For flight bookings, please ask the travel assistant."}], "role": "model"},
         "intermediate_data": {
-          "tool_uses": [{"name": "get_user_expenses", "args": {"user_id": "EMP002"}}]
+          "tool_uses": []
         }
       }],
-      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+      "session_input": {"app_name": "expense_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "unknown_category",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Check policy for a $100 expense in the 'gifts' category"}], "role": "user"},
+        "final_response": {"parts": [{"text": "The 'gifts' category is not a recognized expense category. Valid categories are: meals ($75), transport ($200), lodging ($400), supplies ($100), and entertainment ($150)."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "check_expense_policy", "args": {"category": "gifts", "amount": 100}}]
+        }
+      }],
+      "session_input": {"app_name": "expense_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "multiple_policy_checks",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "What are the policy limits for meals and entertainment?"}], "role": "user"},
+        "final_response": {"parts": [{"text": "The policy limits are: meals $75 per expense and entertainment $150 per expense."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [
+            {"name": "check_expense_policy", "args": {"category": "meals"}},
+            {"name": "check_expense_policy", "args": {"category": "entertainment"}}
+          ]
+        }
+      }],
+      "session_input": {"app_name": "expense_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "submit_missing_info",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Submit a $60 expense for lunch"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I need your employee ID to submit the expense. Could you provide your user ID?"}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": []
+        }
+      }],
+      "session_input": {"app_name": "expense_agent_opt", "user_id": "eval_user"}
     }
   ]
 }

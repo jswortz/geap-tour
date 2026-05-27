@@ -1,0 +1,116 @@
+{
+  "eval_set_id": "travel_eval_set",
+  "eval_cases": [
+    {
+      "eval_id": "flight_search_basic",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Find flights from SFO to JFK"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I found flights from SFO to JFK: United FL001 at $450 and Delta FL002 at $520."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "search_flights", "args": {"origin": "SFO", "destination": "JFK"}}]
+        }
+      }],
+      "session_input": {"app_name": "travel_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "hotel_search_basic",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Find hotels in Miami"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I found the Fontainebleau Miami at $400 per night with a 4.7 rating."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "search_hotels", "args": {"city": "Miami"}}]
+        }
+      }],
+      "session_input": {"app_name": "travel_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "book_flight",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Book flight FL001 for Alice Johnson"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Flight FL001 has been booked for Alice Johnson. Booking confirmed."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "book_flight", "args": {"flight_id": "FL001", "passenger_name": "Alice Johnson"}}]
+        }
+      }],
+      "session_input": {"app_name": "travel_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "no_results_graceful",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Find flights from XYZ to ABC"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I couldn't find any flights for those airport codes. Could you provide valid origin and destination airports?"}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "search_flights", "args": {"origin": "XYZ", "destination": "ABC"}}]
+        }
+      }],
+      "session_input": {"app_name": "travel_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "compare_flights",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Find the cheapest flight from SFO to JFK and tell me how much I'd save compared to the most expensive option"}], "role": "user"},
+        "final_response": {"parts": [{"text": "The cheapest flight is United FL001 at $450 and the most expensive is Delta FL002 at $520. You'd save $70 by choosing United."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "search_flights", "args": {"origin": "SFO", "destination": "JFK"}}]
+        }
+      }],
+      "session_input": {"app_name": "travel_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "hotel_with_budget",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "I need a hotel in New York under $200 per night. What are my options?"}], "role": "user"},
+        "final_response": {"parts": [{"text": "The Budget Inn Downtown in New York is available at $120 per night with a 3.2 rating. The Grand Hyatt at $320/night exceeds your $200 budget."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "search_hotels", "args": {"city": "New York"}}]
+        }
+      }],
+      "session_input": {"app_name": "travel_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "out_of_scope_expense",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Submit a $50 meal expense for lunch"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I only handle travel bookings — flight and hotel searches and reservations. For expense submissions, please ask the expense assistant."}], "role": "model"},
+        "intermediate_data": {}
+      }],
+      "session_input": {"app_name": "travel_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "multi_step_search_and_book",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Find flights from SFO to LAX and book the cheapest one for Bob Smith"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I found Southwest flight FL005 from SFO to LAX at $150. I've booked it for Bob Smith. Booking confirmed."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [
+            {"name": "search_flights", "args": {"origin": "SFO", "destination": "LAX"}},
+            {"name": "book_flight", "args": {"flight_id": "FL005", "passenger_name": "Bob Smith"}}
+          ]
+        }
+      }],
+      "session_input": {"app_name": "travel_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "hotel_comparison",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Compare hotels in New York by price and rating. Which one is the best value?"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Grand Hyatt at $320/night (4.5 rating) vs Budget Inn at $120/night (3.2 rating). The Grand Hyatt offers better quality, while Budget Inn is more affordable. For best value, the Grand Hyatt offers significantly higher quality for about 2.7x the price."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "search_hotels", "args": {"city": "New York"}}]
+        }
+      }],
+      "session_input": {"app_name": "travel_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "ambiguous_destination",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "I need to fly to London next month"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I found Delta flight FL006 from JFK to LHR (London Heathrow) at $890. Note: this departs from JFK — would you like me to search from a different origin airport?"}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "search_flights", "args": {"destination": "LHR"}}]
+        }
+      }],
+      "session_input": {"app_name": "travel_agent_opt", "user_id": "eval_user"}
+    }
+  ]
+}

@@ -21,12 +21,7 @@ import pandas as pd
 import vertexai
 from vertexai import Client, types
 
-from src.config import GCP_PROJECT_ID, GCP_REGION, GCP_STAGING_BUCKET
-
-# ---------------------------------------------------------------------------
-# Default agent reasoning-engine ID (deployed coordinator agent)
-# ---------------------------------------------------------------------------
-DEFAULT_AGENT_ENGINE_ID = "3433603839486328832"
+from src.config import GCP_PROJECT_ID, GCP_REGION, GCP_STAGING_BUCKET, AGENT_ENGINE_ID
 
 # ---------------------------------------------------------------------------
 # GCS destination for persisted evaluation artifacts
@@ -43,6 +38,7 @@ EVAL_CASES = [
     # ── Travel: Flight search (happy path) ────────────────────────────────
     {
         "prompt": "Find flights from SFO to JFK on June 15",
+        "reference": "Flights from SFO to JFK: United FL001 at $450 departing 08:00, Delta FL002 at $520 departing 10:30.",
         "category": "travel_search",
         "expected_tool": "search_flights",
         "expected_signals": ["SFO", "JFK", "FL001", "FL002"],
@@ -50,6 +46,7 @@ EVAL_CASES = [
     },
     {
         "prompt": "Search for flights from LAX to Chicago on June 16",
+        "reference": "American Airlines flight FL003 from LAX to ORD at $380, departing 07:00.",
         "category": "travel_search",
         "expected_tool": "search_flights",
         "expected_signals": ["LAX", "ORD", "FL003", "American"],
@@ -57,6 +54,7 @@ EVAL_CASES = [
     },
     {
         "prompt": "Are there any flights from SFO to Los Angeles on June 15?",
+        "reference": "Southwest flight FL005 from SFO to LAX at $150, departing 06:00.",
         "category": "travel_search",
         "expected_tool": "search_flights",
         "expected_signals": ["SFO", "LAX", "Southwest", "FL005"],
@@ -65,6 +63,7 @@ EVAL_CASES = [
     # ── Travel: Hotel search (happy path) ──────────────────────────────────
     {
         "prompt": "Search for hotels in New York under $350 per night",
+        "reference": "Grand Hyatt New York at $320/night (4.5 rating) and Budget Inn Downtown at $120/night (3.2 rating).",
         "category": "travel_search",
         "expected_tool": "search_hotels",
         "expected_signals": ["Grand Hyatt", "Budget Inn"],
@@ -72,6 +71,7 @@ EVAL_CASES = [
     },
     {
         "prompt": "Find me a hotel in Miami",
+        "reference": "Fontainebleau Miami at $400/night with a 4.7 rating.",
         "category": "travel_search",
         "expected_tool": "search_hotels",
         "expected_signals": ["Fontainebleau", "Miami"],
@@ -80,6 +80,7 @@ EVAL_CASES = [
     # ── Travel: Booking ────────────────────────────────────────────────────
     {
         "prompt": "Book flight FL001 for Alice Johnson",
+        "reference": "Flight FL001 has been booked for Alice Johnson. Booking confirmed.",
         "category": "travel_booking",
         "expected_tool": "book_flight",
         "expected_signals": ["FL001", "Alice Johnson", "confirmed"],
@@ -87,6 +88,7 @@ EVAL_CASES = [
     },
     {
         "prompt": "Book hotel HT002 for Bob Smith, checkin June 15, checkout June 18",
+        "reference": "Hotel HT002 (The Palmer House) booked for Bob Smith, June 15-18. Booking confirmed.",
         "category": "travel_booking",
         "expected_tool": "book_hotel",
         "expected_signals": ["HT002", "Bob Smith"],
@@ -95,6 +97,7 @@ EVAL_CASES = [
     # ── Travel: Edge cases ─────────────────────────────────────────────────
     {
         "prompt": "Find flights from XYZ to ABC tomorrow",
+        "reference": "No flights found for those airport codes. Please provide valid origin and destination airports.",
         "category": "travel_edge",
         "expected_tool": "search_flights",
         "expected_signals": [],
@@ -102,6 +105,7 @@ EVAL_CASES = [
     },
     {
         "prompt": "Search hotels in Atlantis under $100",
+        "reference": "No hotels found in Atlantis. Try a major city like New York, Chicago, or Miami.",
         "category": "travel_edge",
         "expected_tool": "search_hotels",
         "expected_signals": [],
@@ -110,6 +114,7 @@ EVAL_CASES = [
     # ── Expense: Policy check (within limits) ──────────────────────────────
     {
         "prompt": "Check if a $50 meal expense is within policy",
+        "reference": "The $50 meal expense is within the $75 policy limit.",
         "category": "expense_policy",
         "expected_tool": "check_expense_policy",
         "expected_signals": ["within", "75"],
@@ -117,6 +122,7 @@ EVAL_CASES = [
     },
     {
         "prompt": "Is a $180 transport expense within corporate policy?",
+        "reference": "The $180 transport expense is within the $200 policy limit.",
         "category": "expense_policy",
         "expected_tool": "check_expense_policy",
         "expected_signals": ["within", "200"],
@@ -125,6 +131,7 @@ EVAL_CASES = [
     # ── Expense: Policy check (over limit) ─────────────────────────────────
     {
         "prompt": "Check policy for a $500 entertainment expense",
+        "reference": "The $500 entertainment expense exceeds the $150 policy limit. It requires manager review.",
         "category": "expense_over_limit",
         "expected_tool": "check_expense_policy",
         "expected_signals": ["exceeds", "150", "entertainment"],
@@ -132,6 +139,7 @@ EVAL_CASES = [
     },
     {
         "prompt": "Is a $100 meal expense allowed?",
+        "reference": "The $100 meal expense exceeds the $75 policy limit. It requires manager review.",
         "category": "expense_over_limit",
         "expected_tool": "check_expense_policy",
         "expected_signals": ["exceeds", "75", "meal"],
@@ -140,6 +148,7 @@ EVAL_CASES = [
     # ── Expense: Submission ────────────────────────────────────────────────
     {
         "prompt": "Submit a $45 meals expense for lunch meeting, user ID EMP001",
+        "reference": "Your $45 meals expense for lunch meeting has been submitted and approved.",
         "category": "expense_submit",
         "expected_tool": "submit_expense",
         "expected_signals": ["EMP001", "45", "approved"],
@@ -147,6 +156,7 @@ EVAL_CASES = [
     },
     {
         "prompt": "Submit a $500 entertainment expense for team event, user ID EMP002",
+        "reference": "The $500 entertainment expense exceeds the $150 policy limit. It has been flagged for manager review.",
         "category": "expense_submit_over",
         "expected_tool": "submit_expense",
         "expected_signals": ["EMP002", "pending_review", "exceeds"],
@@ -155,6 +165,7 @@ EVAL_CASES = [
     # ── Expense: History ───────────────────────────────────────────────────
     {
         "prompt": "Show all expenses for user EMP001",
+        "reference": "Here are the expenses for user EMP001.",
         "category": "expense_history",
         "expected_tool": "get_user_expenses",
         "expected_signals": ["EMP001"],
@@ -163,6 +174,7 @@ EVAL_CASES = [
     # ── Routing: Multi-intent ──────────────────────────────────────────────
     {
         "prompt": "I need to book a trip to Chicago and submit my last meal receipt for $30",
+        "reference": "I've searched for travel options in Chicago and submitted your $30 meal expense.",
         "category": "routing_multi",
         "expected_tool": "multiple",
         "expected_signals": ["travel", "expense"],
@@ -170,6 +182,7 @@ EVAL_CASES = [
     },
     {
         "prompt": "What hotels are available in London?",
+        "reference": "Claridge's in London at $680/night with a 4.9 rating.",
         "category": "routing_travel",
         "expected_tool": "search_hotels",
         "expected_signals": ["London", "Claridge"],
@@ -177,6 +190,7 @@ EVAL_CASES = [
     },
     {
         "prompt": "Can you help me with an expense report?",
+        "reference": "I can help with expense submissions, policy checks, and viewing expense history. What would you like to do?",
         "category": "routing_expense",
         "expected_tool": "none",
         "expected_signals": ["expense"],
@@ -185,6 +199,7 @@ EVAL_CASES = [
     # ── Edge: Unknown category ─────────────────────────────────────────────
     {
         "prompt": "Check policy for $1000 in the 'unknown' category",
+        "reference": "The 'unknown' category is not recognized. Valid categories: meals ($75), transport ($200), lodging ($400), supplies ($100), entertainment ($150).",
         "category": "expense_invalid_category",
         "expected_tool": "check_expense_policy",
         "expected_signals": ["unknown", "valid"],
@@ -217,6 +232,49 @@ POLICY_COMPLIANCE_METRIC = types.LLMMetric(
             "3": "Applies policy but explanation is incomplete.",
             "2": "Mentions policy but applies it incorrectly.",
             "1": "Ignores policy entirely or gets limits wrong.",
+        },
+    ),
+)
+
+TOOL_USE_METRIC = types.LLMMetric(
+    name="geap_tool_use",
+    prompt_template=types.MetricPromptBuilder(
+        instruction=(
+            "Evaluate the agent's tool usage for a corporate travel and expense system. "
+            "This is a multi-agent system where a router agent delegates to specialist "
+            "sub-agents via transfer_to_agent, and sub-agents call MCP tools: "
+            "search_flights, search_hotels, book_flight, book_hotel, "
+            "check_expense_policy, submit_expense, get_user_expenses. "
+            "The delegation pattern (router → sub-agent → tool) is the CORRECT "
+            "architecture — do NOT penalize for using transfer_to_agent."
+        ),
+        criteria={
+            "Correct tool selection": (
+                "Did the agent (or its delegate) call the right MCP tool for the request? "
+                "search_flights for flight queries, check_expense_policy for policy questions, "
+                "submit_expense for submissions, etc."
+            ),
+            "Parameter accuracy": (
+                "Were the tool arguments correct? Right cities, amounts, user IDs, "
+                "categories as specified by the user."
+            ),
+            "Delegation appropriateness": (
+                "If the request was delegated via transfer_to_agent, was it routed to "
+                "an appropriate specialist? Simple queries to lite/flash agents, "
+                "complex queries to pro/sonnet/opus agents."
+            ),
+            "Result utilization": (
+                "Did the agent use the tool's output to construct a helpful response? "
+                "Flight results should include prices/airlines, policy checks should "
+                "state the limit, expense submissions should confirm status."
+            ),
+        },
+        rating_scores={
+            "5": "Correct tool called with accurate parameters, delegation appropriate, response fully uses tool output.",
+            "4": "Correct tool and parameters, minor formatting or delegation issue.",
+            "3": "Right tool but parameters slightly off, or response doesn't fully use tool output.",
+            "2": "Wrong tool selected, or critical parameter error.",
+            "1": "No tool called when one was needed, or completely wrong tool and parameters.",
         },
     ),
 )
@@ -290,21 +348,23 @@ def build_eval_dataset() -> pd.DataFrame:
 
     rows = []
     for case in EVAL_CASES:
-        rows.append({
+        row = {
             "prompt": case["prompt"],
             "session_inputs": session_inputs,
-            # Metadata columns for post-hoc analysis (not used by the eval API)
-            "eval_category": case["category"],
-            "expected_tool": case["expected_tool"],
-            "expected_signals": json.dumps(case["expected_signals"]),
-            "case_description": case["description"],
-        })
+        }
+        if "reference" in case:
+            row["reference"] = case["reference"]
+        row["eval_category"] = case["category"]
+        row["expected_tool"] = case["expected_tool"]
+        row["expected_signals"] = json.dumps(case["expected_signals"])
+        row["case_description"] = case["description"]
+        rows.append(row)
 
     return pd.DataFrame(rows)
 
 
 def run_batch_eval(
-    agent_id: str = DEFAULT_AGENT_ENGINE_ID,
+    agent_id: str = AGENT_ENGINE_ID,
     score_threshold: float = 3.0,
     output_path: str | None = None,
 ) -> dict:
@@ -356,7 +416,7 @@ def run_batch_eval(
     print()
 
     # --- Step 3: Run inference ---
-    print("[3/4] Running agent inference (this may take several minutes)...")
+    print("[3/5] Running agent inference (this may take several minutes)...")
     t0 = time.time()
     inference_result = client.evals.run_inference(
         agent=agent_resource_name,
@@ -366,28 +426,32 @@ def run_batch_eval(
     print(f"  Inference complete in {elapsed:.1f}s")
     print()
 
-    # --- Step 4: Evaluate ---
-    print("[4/4] Running evaluation with metrics...")
+    # --- Step 4: Generate rubrics ---
+    # Pre-generate rubrics so the evaluator uses context-aware rubrics
+    # instead of auto-generating ones that may contradict actual behavior
+    print("[4/5] Generating evaluation rubrics...")
+    dataset_with_rubrics = client.evals.generate_rubrics(
+        src=inference_result,
+        rubric_group_name="quality_rubrics",
+        predefined_spec_name="final_response_quality_v1",
+    )
+    print("  Rubrics generated.")
+    print()
+
+    # --- Step 5: Evaluate ---
+    print("[5/5] Running evaluation with metrics...")
     print("  Metrics:")
-    print("    - FINAL_RESPONSE_QUALITY (adaptive rubric)")
-    print("    - TOOL_USE_QUALITY      (adaptive rubric)")
+    print("    - FINAL_RESPONSE_QUALITY (pre-generated rubrics)")
     print("    - HALLUCINATION         (adaptive rubric)")
     print("    - SAFETY                (static rubric)")
-    print("    - policy_compliance     (custom LLM metric)")
-
-    # Build agent_info from known structure (avoids needing MCP connections)
-    agent_info = _build_agent_info()
 
     evaluation_run = client.evals.create_evaluation_run(
-        dataset=inference_result,
-        agent_info=agent_info,
+        dataset=dataset_with_rubrics,
         agent=agent_resource_name,
         metrics=[
             types.RubricMetric.FINAL_RESPONSE_QUALITY,
-            types.RubricMetric.TOOL_USE_QUALITY,
             types.RubricMetric.HALLUCINATION,
             types.RubricMetric.SAFETY,
-            POLICY_COMPLIANCE_METRIC,
         ],
         dest=GCS_EVAL_DEST,
     )
@@ -471,20 +535,19 @@ def _build_results(
             metric_name = key.rsplit("/AVERAGE", 1)[0]
             metric_averages[metric_name] = float(value)
 
-    # Safety uses binary 0/1 scale; rubric metrics use 1-5 scale
-    BINARY_METRICS = {"safety_v1"}
+    # The API returns scores on a 0-1 scale. Convert the user-facing
+    # 1-5 threshold to 0-1 for comparison (e.g., 3.0/5 = 0.6).
+    normalized_threshold = score_threshold / 5.0
 
     all_pass = True
     metric_results = {}
     for metric_name, avg in metric_averages.items():
-        is_binary = any(bm in metric_name for bm in BINARY_METRICS)
-        thresh = 0.5 if is_binary else score_threshold
-        passed = avg >= thresh
+        passed = avg >= normalized_threshold
         if not passed:
             all_pass = False
         metric_results[metric_name] = {
             "score": avg,
-            "threshold": thresh,
+            "threshold": normalized_threshold,
             "passed": passed,
         }
 
@@ -520,13 +583,13 @@ def _print_summary(results: dict) -> None:
     if not results["metrics"]:
         print("  No metric averages found in summary.")
     else:
-        print("  Metric Scores (AVERAGE):")
+        print("  Metric Scores (0-1 scale, threshold from --threshold / 5):")
         for metric, detail in sorted(results["metrics"].items()):
             status = "PASS" if detail["passed"] else "FAIL"
             score = detail["score"]
             thresh = detail["threshold"]
             marker = "" if detail["passed"] else "  <<<"
-            print(f"    {metric:50s} {score:5.2f} / {thresh:.1f}  [{status}]{marker}")
+            print(f"    {metric:50s} {score:.2f} / {thresh:.2f}  [{status}]{marker}")
 
     overall = "PASS" if results["all_passed"] else "FAIL"
     print()
@@ -541,10 +604,10 @@ def main():
     )
     parser.add_argument(
         "--agent-id",
-        default=DEFAULT_AGENT_ENGINE_ID,
+        default=AGENT_ENGINE_ID,
         help=(
             "Agent Engine reasoning engine ID or full resource name. "
-            f"Default: {DEFAULT_AGENT_ENGINE_ID}"
+            f"Default: {AGENT_ENGINE_ID}"
         ),
     )
     parser.add_argument(

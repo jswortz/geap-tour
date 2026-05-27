@@ -12,6 +12,7 @@ dist/
 .uv/
 *.pdf
 .playwright-mcp/
+.pytest_cache/
 
 # Secrets and credentials
 *.pem
@@ -31,3 +32,5 @@ docs/verification/*.raw.json
 *.swp
 *.swo
 *~
+eval_outputs/
+eval_results_*.json

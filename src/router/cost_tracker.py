@@ -5,10 +5,18 @@ import time
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 
+# Pricing per 1M tokens. Thinking models (gemini-3.x) charge output
+# rates for thinking tokens too — callers should include thinking
+# tokens in output_tokens when computing cost.
 COST_RATES = {
-    "gemini-2.0-flash-lite": {"input": 0.075, "output": 0.30},
+    "gemini-2.5-flash-lite": {"input": 0.075, "output": 0.30},
     "gemini-2.5-flash": {"input": 0.15, "output": 0.60},
-    "vertex_ai/claude-opus-4-7": {"input": 15.00, "output": 75.00},
+    "gemini-2.5-pro": {"input": 1.25, "output": 10.00},
+    "gemini-3.1-flash-lite": {"input": 0.075, "output": 0.30},
+    "gemini-3.5-flash": {"input": 0.15, "output": 0.60},
+    "gemini-3.1-pro-preview": {"input": 1.25, "output": 10.00},
+    "claude-sonnet-4-5": {"input": 3.00, "output": 15.00},
+    "claude-opus-4-6": {"input": 15.00, "output": 75.00},
     "classifier": {"input": 0.075, "output": 0.30},
 }
 

@@ -1,115 +1,118 @@
 {
-  "eval_set_id": "travel_agent_eval_set",
+  "eval_set_id": "travel_eval_set",
   "eval_cases": [
     {
-      "eval_id": "flight_search_sfo_jfk",
+      "eval_id": "flight_search_basic",
       "conversation": [{
-        "user_content": {"parts": [{"text": "Find flights from SFO to JFK on June 15"}], "role": "user"},
-        "final_response": {"parts": [{"text": "I found several flight options from SFO to JFK on June 15. Flight FL001 with United Airlines departs at 8:00 AM for $350, and FL002 with Delta departs at 2:00 PM for $420."}], "role": "model"},
+        "user_content": {"parts": [{"text": "Find flights from SFO to JFK"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I found flights from SFO to JFK: United FL001 at $450 and Delta FL002 at $520."}], "role": "model"},
         "intermediate_data": {
-          "tool_uses": [{"name": "search_flights", "args": {"origin": "SFO", "destination": "JFK", "date": "2026-06-15"}}]
+          "tool_uses": [{"name": "search_flights", "args": {"origin": "SFO", "destination": "JFK"}}]
         }
       }],
-      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+      "session_input": {"app_name": "travel_agent_opt", "user_id": "eval_user"}
     },
     {
-      "eval_id": "flight_search_lax_ord",
+      "eval_id": "hotel_search_basic",
       "conversation": [{
-        "user_content": {"parts": [{"text": "Search for flights from LAX to Chicago on June 16"}], "role": "user"},
-        "final_response": {"parts": [{"text": "Here are flights from LAX to Chicago (ORD) on June 16. Flight FL003 with American Airlines departs at 10:00 AM for $280."}], "role": "model"},
-        "intermediate_data": {
-          "tool_uses": [{"name": "search_flights", "args": {"origin": "LAX", "destination": "ORD", "date": "2026-06-16"}}]
-        }
-      }],
-      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
-    },
-    {
-      "eval_id": "flight_search_invalid_codes",
-      "conversation": [{
-        "user_content": {"parts": [{"text": "Find flights from XYZ to ABC on June 20"}], "role": "user"},
-        "final_response": {"parts": [{"text": "I wasn't able to find any flights for those airport codes. XYZ and ABC don't appear to be valid airport codes. Could you provide valid IATA airport codes like SFO, LAX, JFK, or ORD?"}], "role": "model"},
-        "intermediate_data": {
-          "tool_uses": [{"name": "search_flights", "args": {"origin": "XYZ", "destination": "ABC", "date": "2026-06-20"}}]
-        }
-      }],
-      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
-    },
-    {
-      "eval_id": "hotel_search_nyc",
-      "conversation": [{
-        "user_content": {"parts": [{"text": "Search for hotels in New York under $350 per night"}], "role": "user"},
-        "final_response": {"parts": [{"text": "I found hotels in New York under $350: Grand Hyatt at $299/night and Budget Inn at $149/night."}], "role": "model"},
-        "intermediate_data": {
-          "tool_uses": [{"name": "search_hotels", "args": {"city": "New York", "max_price": 350}}]
-        }
-      }],
-      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
-    },
-    {
-      "eval_id": "hotel_search_miami",
-      "conversation": [{
-        "user_content": {"parts": [{"text": "Find me a hotel in Miami"}], "role": "user"},
-        "final_response": {"parts": [{"text": "I found hotels in Miami including the Fontainebleau and Miami Beach Resort."}], "role": "model"},
+        "user_content": {"parts": [{"text": "Find hotels in Miami"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I found the Fontainebleau Miami at $400 per night with a 4.7 rating."}], "role": "model"},
         "intermediate_data": {
           "tool_uses": [{"name": "search_hotels", "args": {"city": "Miami"}}]
         }
       }],
-      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
-    },
-    {
-      "eval_id": "hotel_search_atlantis",
-      "conversation": [{
-        "user_content": {"parts": [{"text": "Search for hotels in Atlantis"}], "role": "user"},
-        "final_response": {"parts": [{"text": "I wasn't able to find any hotels in Atlantis. That doesn't appear to be a recognized city. Could you provide a valid city name?"}], "role": "model"},
-        "intermediate_data": {
-          "tool_uses": [{"name": "search_hotels", "args": {"city": "Atlantis"}}]
-        }
-      }],
-      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+      "session_input": {"app_name": "travel_agent_opt", "user_id": "eval_user"}
     },
     {
       "eval_id": "book_flight",
       "conversation": [{
         "user_content": {"parts": [{"text": "Book flight FL001 for Alice Johnson"}], "role": "user"},
-        "final_response": {"parts": [{"text": "Flight FL001 has been booked for Alice Johnson. Your booking is confirmed."}], "role": "model"},
+        "final_response": {"parts": [{"text": "Flight FL001 has been booked for Alice Johnson. Booking confirmed."}], "role": "model"},
         "intermediate_data": {
           "tool_uses": [{"name": "book_flight", "args": {"flight_id": "FL001", "passenger_name": "Alice Johnson"}}]
         }
       }],
-      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+      "session_input": {"app_name": "travel_agent_opt", "user_id": "eval_user"}
     },
     {
-      "eval_id": "book_hotel",
+      "eval_id": "no_results_graceful",
       "conversation": [{
-        "user_content": {"parts": [{"text": "Book hotel HT001 for Bob Smith, checkin June 15, checkout June 18"}], "role": "user"},
-        "final_response": {"parts": [{"text": "Hotel HT001 has been booked for Bob Smith. Check-in: June 15, Check-out: June 18 (3 nights)."}], "role": "model"},
+        "user_content": {"parts": [{"text": "Find flights from XYZ to ABC"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I couldn't find any flights for those airport codes. Could you provide valid origin and destination airports?"}], "role": "model"},
         "intermediate_data": {
-          "tool_uses": [{"name": "book_hotel", "args": {"hotel_id": "HT001", "guest_name": "Bob Smith", "checkin": "2026-06-15", "checkout": "2026-06-18"}}]
+          "tool_uses": [{"name": "search_flights", "args": {"origin": "XYZ", "destination": "ABC"}}]
         }
       }],
-      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+      "session_input": {"app_name": "travel_agent_opt", "user_id": "eval_user"}
     },
     {
-      "eval_id": "flight_search_boston",
+      "eval_id": "compare_flights",
       "conversation": [{
-        "user_content": {"parts": [{"text": "What flights are available from SFO to Boston on June 20?"}], "role": "user"},
-        "final_response": {"parts": [{"text": "Here are flights from SFO to Boston (BOS) on June 20. Flight FL005 with JetBlue departs at 7:30 AM for $310."}], "role": "model"},
+        "user_content": {"parts": [{"text": "Find the cheapest flight from SFO to JFK and tell me how much I'd save compared to the most expensive option"}], "role": "user"},
+        "final_response": {"parts": [{"text": "The cheapest flight is United FL001 at $450 and the most expensive is Delta FL002 at $520. You'd save $70 by choosing United."}], "role": "model"},
         "intermediate_data": {
-          "tool_uses": [{"name": "search_flights", "args": {"origin": "SFO", "destination": "BOS", "date": "2026-06-20"}}]
+          "tool_uses": [{"name": "search_flights", "args": {"origin": "SFO", "destination": "JFK"}}]
         }
       }],
-      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+      "session_input": {"app_name": "travel_agent_opt", "user_id": "eval_user"}
     },
     {
-      "eval_id": "hotel_search_boston_budget",
+      "eval_id": "hotel_with_budget",
       "conversation": [{
-        "user_content": {"parts": [{"text": "Find hotels in Boston under $200 per night"}], "role": "user"},
-        "final_response": {"parts": [{"text": "I found hotels in Boston under $200: Holiday Inn at $179/night and Boston Budget Lodge at $129/night."}], "role": "model"},
+        "user_content": {"parts": [{"text": "I need a hotel in New York under $200 per night. What are my options?"}], "role": "user"},
+        "final_response": {"parts": [{"text": "The Budget Inn Downtown in New York is available at $120 per night with a 3.2 rating. The Grand Hyatt at $320/night exceeds your $200 budget."}], "role": "model"},
         "intermediate_data": {
-          "tool_uses": [{"name": "search_hotels", "args": {"city": "Boston", "max_price": 200}}]
+          "tool_uses": [{"name": "search_hotels", "args": {"city": "New York"}}]
         }
       }],
-      "session_input": {"app_name": "geap_workshop", "user_id": "eval_user"}
+      "session_input": {"app_name": "travel_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "out_of_scope_expense",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Submit a $50 meal expense for lunch"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I only handle travel bookings — flight and hotel searches and reservations. For expense submissions, please ask the expense assistant."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": []
+        }
+      }],
+      "session_input": {"app_name": "travel_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "multi_step_search_and_book",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Find flights from SFO to LAX and book the cheapest one for Bob Smith"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I found Southwest flight FL005 from SFO to LAX at $150. I've booked it for Bob Smith. Booking confirmed."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [
+            {"name": "search_flights", "args": {"origin": "SFO", "destination": "LAX"}},
+            {"name": "book_flight", "args": {"flight_id": "FL005", "passenger_name": "Bob Smith"}}
+          ]
+        }
+      }],
+      "session_input": {"app_name": "travel_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "hotel_comparison",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "Compare hotels in New York by price and rating. Which one is the best value?"}], "role": "user"},
+        "final_response": {"parts": [{"text": "Grand Hyatt at $320/night (4.5 rating) vs Budget Inn at $120/night (3.2 rating). The Grand Hyatt offers better quality, while Budget Inn is more affordable. For best value, the Grand Hyatt offers significantly higher quality for about 2.7x the price."}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "search_hotels", "args": {"city": "New York"}}]
+        }
+      }],
+      "session_input": {"app_name": "travel_agent_opt", "user_id": "eval_user"}
+    },
+    {
+      "eval_id": "ambiguous_destination",
+      "conversation": [{
+        "user_content": {"parts": [{"text": "I need to fly to London next month"}], "role": "user"},
+        "final_response": {"parts": [{"text": "I found Delta flight FL006 from JFK to LHR (London Heathrow) at $890. Note: this departs from JFK — would you like me to search from a different origin airport?"}], "role": "model"},
+        "intermediate_data": {
+          "tool_uses": [{"name": "search_flights", "args": {"destination": "LHR"}}]
+        }
+      }],
+      "session_input": {"app_name": "travel_agent_opt", "user_id": "eval_user"}
     }
   ]
 }

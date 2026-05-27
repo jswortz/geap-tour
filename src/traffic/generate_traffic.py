@@ -1,6 +1,18 @@
-"""Generate test traffic to populate OTel traces for evaluation and monitoring."""
+"""Generate test traffic to populate OTel traces for evaluation and monitoring.
+
+Supports both burst mode (send N rounds immediately) and steady-state mode
+(send queries at a fixed interval for a duration, simulating production traffic).
+
+# 1 hour, 5 queries every 30s (~600 total queries)
+uv run python -m src.traffic.generate_traffic 4709107696450666496 --steady --duration 15 --interval 30 --qps 5
+
+# Coordinator agent, 15 min, light traffic
+uv run python -m src.traffic.generate_traffic 8296365537139621888 --steady --duration 15 --interval 120 --qps 2
+"""
 
 import argparse
+import random
+import time
 
 import vertexai
 from vertexai import agent_engines
@@ -27,27 +39,65 @@ QUERIES = [
     ("I need to book a trip to Chicago and submit my last meal receipt", "alice", "medium"),
     ("What hotels are available in Miami?", "bob", "low"),
     ("Can you help me with an expense report?", "charlie", "low"),
-    # Router-specific: medium complexity
+    # Medium complexity — comparison and multi-step
     ("Find flights to NYC and compare the cheapest options by airline", "alice", "medium"),
-    ("Search hotels in Boston, then check if the nightly rate fits our lodging policy", "bob", "medium"),
-    ("Show my expense history and flag any items that exceeded policy limits", "charlie", "medium"),
-    # Router-specific: high complexity
+    ("Search hotels in New York, then check if the nightly rate fits our lodging policy", "bob", "medium"),
+    ("Show expense history for EMP001 and flag any items that exceeded policy limits", "charlie", "medium"),
+    ("Find the cheapest flight from SFO to JFK and tell me how much I'd save vs the most expensive", "alice", "medium"),
+    ("Compare hotels in New York by price and rating — which is the best value?", "bob", "medium"),
+    ("Check if a $100 meal and a $250 entertainment expense are both within policy", "charlie", "medium"),
+    # Medium-high complexity — 3+ intents, cross-domain
     (
-        "Plan a 5-day trip to Tokyo for a team of 4: find flights, hotels near Shibuya, "
-        "estimate daily meal expenses, and check entertainment policy",
+        "Show expense history for EMP001, check the entertainment policy limit, "
+        "and submit a $45 lunch receipt for EMP001",
         "alice",
         "high",
     ),
     (
-        "Compare individual vs group flight bookings for Denver, factoring in "
-        "cancellation policies, per-diem meals, and hotel location trade-offs",
+        "Compare flights from SFO to JFK vs LAX to ORD, factoring in per-diem "
+        "meals and hotel costs in each destination city",
+        "bob",
+        "high",
+    ),
+    (
+        "Book flight FL001 for Alice Johnson, then check if a $320 hotel "
+        "is within lodging policy, and submit a $75 meals expense for EMP001",
+        "charlie",
+        "high",
+    ),
+    (
+        "Review EMP002's expense history, check all policy categories, "
+        "and submit a $150 supplies expense for office equipment for EMP002",
+        "alice",
+        "high",
+    ),
+    # High complexity — multi-step planning, budget optimization, synthesis
+    (
+        "Plan a 5-day trip to Tokyo for a team of 4: find flights from SFO, "
+        "hotels, estimate daily meal expenses, and check entertainment policy",
+        "alice",
+        "high",
+    ),
+    (
+        "I have a $2000 budget for a London trip. Find flights, hotels, check "
+        "lodging and meal policies, and tell me if I can afford it within "
+        "corporate limits. Also draft a pre-trip expense estimate.",
         "bob",
         "high",
     ),
     (
         "Analyze EMP001's expense history for overspending on entertainment, "
-        "draft a policy recommendation, and submit my $45 lunch receipt",
+        "compare it against the policy limit, draft a policy recommendation "
+        "for new entertainment limits, and submit my $45 lunch receipt",
         "charlie",
+        "high",
+    ),
+    (
+        "I need to visit New York and Chicago next month. Find the cheapest "
+        "flight route, compare hotel costs in each city under the lodging policy, "
+        "estimate total trip expenses including meals and transport, and book "
+        "the cheapest flights for Bob Smith",
+        "bob",
         "high",
     ),
 ]
@@ -100,9 +150,8 @@ def generate_traffic(
         )
 
     agent = agent_engines.get(agent_resource_name)
-    sessions: dict[str, str] = {}
     total_queries = len(QUERIES) * count
-    complexity_counts = {"low": 0, "medium": 0, "high": 0}
+    complexity_counts: dict[str, int] = {}
     errors = 0
     query_num = 0
 
@@ -116,16 +165,13 @@ def generate_traffic(
         for query, user_id, complexity in QUERIES:
             query_num += 1
             print(f"[{query_num}/{total_queries}] ({complexity}) {query[:70]}")
-            complexity_counts[complexity] += 1
+            complexity_counts[complexity] = complexity_counts.get(complexity, 0) + 1
 
             try:
-                if user_id not in sessions:
-                    session = agent.create_session(user_id=user_id)
-                    sessions[user_id] = session["id"]
-
+                session = agent.create_session(user_id=user_id)
                 response = agent.stream_query(
                     user_id=user_id,
-                    session_id=sessions[user_id],
+                    session_id=session["id"],
                     message=query,
                 )
                 full_response = ""
@@ -183,9 +229,9 @@ def generate_traffic(
     print(f"  Total queries:  {total_queries}")
     print(f"  Errors:         {errors}")
     print(f"  Users:          {', '.join(sessions.keys())}")
-    print(f"  By complexity:  low={complexity_counts['low']}  medium={complexity_counts['medium']}  high={complexity_counts['high']}")
-    print("\n  Check Cloud Trace for spans.")
-    print("  Memory Bank events saved for users: alice, bob, charlie")
+    print(f"  By complexity:  {', '.join(f'{k}={v}' for k, v in sorted(complexity_counts.items()))}")
+    print(f"\n  Check Cloud Trace for spans.")
+    print(f"  Memory Bank events saved for users: alice, bob, charlie")
 
 
 def generate_router_traffic(
@@ -207,9 +253,8 @@ def generate_router_traffic(
         )
 
     agent = agent_engines.get(router_resource_name)
-    sessions: dict[str, str] = {}
     total_queries = len(QUERIES) * count
-    complexity_counts = {"low": 0, "medium": 0, "high": 0}
+    complexity_counts: dict[str, int] = {}
     errors = 0
     query_num = 0
 
@@ -226,16 +271,13 @@ def generate_router_traffic(
         for query, user_id, complexity in QUERIES:
             query_num += 1
             print(f"[{query_num}/{total_queries}] ({complexity}) {query[:70]}")
-            complexity_counts[complexity] += 1
+            complexity_counts[complexity] = complexity_counts.get(complexity, 0) + 1
 
             try:
-                if user_id not in sessions:
-                    session = agent.create_session(user_id=user_id)
-                    sessions[user_id] = session["id"]
-
+                session = agent.create_session(user_id=user_id)
                 response = agent.stream_query(
                     user_id=user_id,
-                    session_id=sessions[user_id],
+                    session_id=session["id"],
                     message=query,
                 )
                 full_response = ""
@@ -251,7 +293,94 @@ def generate_router_traffic(
 
     print(f"\n  Router queries:  {total_queries}")
     print(f"  Errors:          {errors}")
-    print(f"  By complexity:   low={complexity_counts['low']}  medium={complexity_counts['medium']}  high={complexity_counts['high']}")
+    print(f"  By complexity:   {', '.join(f'{k}={v}' for k, v in sorted(complexity_counts.items()))}")
+
+
+def _send_single_query(agent, query: str, user_id: str, complexity: str) -> bool:
+    """Send a single query to an agent in a new session. Returns True on success."""
+    try:
+        session = agent.create_session(user_id=user_id)
+        response = agent.stream_query(
+            user_id=user_id,
+            session_id=session["id"],
+            message=query,
+        )
+        for chunk in response:
+            pass
+        return True
+    except Exception as e:
+        print(f"  x Error: {e}")
+        return False
+
+
+def generate_steady_traffic(
+    agent_resource_name: str | None = None,
+    duration_minutes: int = 30,
+    interval_seconds: int = 60,
+    queries_per_interval: int = 3,
+):
+    """Send queries at a steady rate over an extended period.
+
+    Simulates production traffic by picking random queries from the full
+    query set and sending them at regular intervals. Useful for populating
+    OTel traces and exercising online evaluators over time.
+
+    Args:
+        agent_resource_name: Full resource name or agent engine ID.
+        duration_minutes: How long to generate traffic (default: 30 min).
+        interval_seconds: Seconds between each batch (default: 60s).
+        queries_per_interval: Number of queries per interval (default: 3).
+    """
+    vertexai.init(project=GCP_PROJECT_ID, location=GCP_REGION)
+
+    if agent_resource_name is None:
+        agent_resource_name = (
+            f"projects/{GCP_PROJECT_ID}/locations/{GCP_REGION}"
+            f"/reasoningEngines/{AGENT_ENGINE_ID}"
+        )
+
+    agent = agent_engines.get(agent_resource_name)
+    total_queries = 0
+    total_errors = 0
+    end_time = time.time() + (duration_minutes * 60)
+    total_intervals = (duration_minutes * 60) // interval_seconds
+
+    print(f"{'=' * 60}")
+    print(f"STEADY-STATE TRAFFIC GENERATION")
+    print(f"{'=' * 60}")
+    print(f"  Agent:     {agent_resource_name}")
+    print(f"  Duration:  {duration_minutes} minutes")
+    print(f"  Interval:  every {interval_seconds}s")
+    print(f"  Queries:   {queries_per_interval} per interval")
+    print(f"  Estimated: ~{total_intervals * queries_per_interval} total queries")
+    print(f"  Start:     {time.strftime('%H:%M:%S')}")
+    print(f"  End:       {time.strftime('%H:%M:%S', time.localtime(end_time))}")
+    print()
+
+    interval_num = 0
+    while time.time() < end_time:
+        interval_num += 1
+        batch = random.sample(QUERIES, min(queries_per_interval, len(QUERIES)))
+        remaining = int((end_time - time.time()) / 60)
+
+        print(f"[Interval {interval_num}/{total_intervals}] {time.strftime('%H:%M:%S')} — {remaining}min remaining")
+
+        for query, user_id, complexity in batch:
+            total_queries += 1
+            print(f"  ({complexity}) {query[:60]}")
+            if not _send_single_query(agent, query, user_id, complexity):
+                total_errors += 1
+
+        if time.time() < end_time:
+            time.sleep(interval_seconds)
+
+    print(f"\n{'=' * 60}")
+    print(f"STEADY-STATE TRAFFIC COMPLETE")
+    print(f"{'=' * 60}")
+    print(f"  Total queries: {total_queries}")
+    print(f"  Errors:        {total_errors}")
+    print(f"  Duration:      {duration_minutes} minutes")
+    print(f"  Avg rate:      {total_queries / max(duration_minutes, 1):.1f} queries/min")
 
 
 if __name__ == "__main__":
@@ -260,8 +389,20 @@ if __name__ == "__main__":
     parser.add_argument("--count", type=int, default=1, help="Repeat query set N times (default: 1)")
     parser.add_argument("--router", action="store_true", help="Also send traffic to the multi-model router")
     parser.add_argument("--router-only", action="store_true", help="Only send traffic to the multi-model router")
+    parser.add_argument("--steady", action="store_true", help="Run in steady-state mode (continuous traffic over time)")
+    parser.add_argument("--duration", type=int, default=30, help="Steady-state duration in minutes (default: 30)")
+    parser.add_argument("--interval", type=int, default=60, help="Seconds between batches in steady-state mode (default: 60)")
+    parser.add_argument("--qps", type=int, default=3, help="Queries per interval in steady-state mode (default: 3)")
     args = parser.parse_args()
-    if args.router_only:
+
+    if args.steady:
+        generate_steady_traffic(
+            agent_resource_name=args.agent,
+            duration_minutes=args.duration,
+            interval_seconds=args.interval,
+            queries_per_interval=args.qps,
+        )
+    elif args.router_only:
         generate_router_traffic(count=args.count)
     else:
         generate_traffic(args.agent, count=args.count)

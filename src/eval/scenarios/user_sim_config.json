@@ -2,5 +2,5 @@
   "count": 10,
   "generation_instruction": "Generate diverse multi-turn scenarios covering flight search, hotel booking, expense submission within and over policy limits, multi-intent routing across travel and expenses, and complex travel planning with budget analysis.",
   "environment_context": "Corporate travel and expense management system. Expense policy limits: meals ($75), transport ($200), lodging ($400), supplies ($100), entertainment ($150). Available MCP tools: search_flights, search_hotels, book_flight, book_hotel, check_expense_policy, submit_expense, get_user_expenses.",
-  "model_name": "gemini-flash-latest"
+  "model_name": "gemini-2.5-flash"
 }

@@ -157,10 +157,14 @@ async def run_complexity_accuracy_eval(cases: list[dict]) -> dict:
 # ---------------------------------------------------------------------------
 # Cost efficiency scorer
 # ---------------------------------------------------------------------------
+from src.config import LITE_MODEL, FLASH_MODEL, PRO_MODEL, SONNET_MODEL, OPUS_MODEL
+
 MODEL_MAP = {
-    "low": "gemini-2.0-flash-lite",
-    "medium": "gemini-2.5-flash",
-    "high": "vertex_ai/claude-opus-4-7",
+    "low": LITE_MODEL,
+    "medium_low": FLASH_MODEL,
+    "medium": PRO_MODEL,
+    "medium_high": SONNET_MODEL,
+    "high": OPUS_MODEL,
 }
 
 AVG_INPUT_TOKENS = 200
@@ -175,11 +179,11 @@ async def run_cost_efficiency_eval(cases: list[dict]) -> dict:
 
     for case in cases:
         result = await classify_complexity(case["prompt"])
-        model = MODEL_MAP.get(result.level, "gemini-2.5-flash")
+        model = MODEL_MAP.get(result.level, FLASH_MODEL)
         case_cost = estimate_cost(model, AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
         classifier_cost = estimate_cost("classifier", len(case["prompt"].split()) * 2, 20)
         total_case_cost = case_cost + classifier_cost
-        opus_cost = estimate_cost("vertex_ai/claude-opus-4-7", AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
+        opus_cost = estimate_cost(OPUS_MODEL, AVG_INPUT_TOKENS, AVG_OUTPUT_TOKENS)
 
         routed_cost += total_case_cost
         all_opus_cost += opus_cost

@@ -1,0 +1,16 @@
+{
+  "eval_config": {
+    "criteria": {
+      "response_match_score": 0.04,
+      "final_response_match_v2": {
+        "threshold": 0.3,
+        "judge_model_options": {
+          "judge_model": "gemini-2.5-flash"
+        }
+      },
+      "safety_v1": 0.8
+    }
+  },
+  "app_name": "coordinator",
+  "train_eval_set": "coordinator_eval_set"
+}

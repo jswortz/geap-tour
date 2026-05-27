@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "wortz-project-352116")
+PROJECT_NUMBER = os.environ.get("PROJECT_NUMBER", "")
 GCP_REGION = os.environ.get("GCP_REGION", "us-central1")
 GCP_STAGING_BUCKET = os.environ.get("GCP_STAGING_BUCKET", f"{GCP_PROJECT_ID}-geap-staging")
 AGENT_GATEWAY_PATH = os.environ.get("AGENT_GATEWAY_PATH", "")
@@ -16,19 +17,17 @@ BOOKING_MCP_URL = os.environ.get("BOOKING_MCP_URL", "http://localhost:8002/mcp")
 EXPENSE_MCP_URL = os.environ.get("EXPENSE_MCP_URL", "http://localhost:8003/mcp")
 
 # Agent Registry — MCP server resource names (global location)
-AGENT_REGISTRY_LOCATION = os.environ.get("AGENT_REGISTRY_LOCATION", "global")
-SEARCH_MCP_SERVER = os.environ.get(
-    "SEARCH_MCP_SERVER",
-    f"projects/{GCP_PROJECT_ID}/locations/global/mcpServers/agentregistry-00000000-0000-0000-0c51-2a7dc998220b",
-)
-BOOKING_MCP_SERVER = os.environ.get(
-    "BOOKING_MCP_SERVER",
-    f"projects/{GCP_PROJECT_ID}/locations/global/mcpServers/agentregistry-00000000-0000-0000-a5e6-d1cf2bb18c63",
-)
-EXPENSE_MCP_SERVER = os.environ.get(
-    "EXPENSE_MCP_SERVER",
-    f"projects/{GCP_PROJECT_ID}/locations/global/mcpServers/agentregistry-00000000-0000-0000-02e2-cd6d7450ab52",
-)
+AGENT_REGISTRY_LOCATION = os.environ.get("AGENT_REGISTRY_LOCATION", "us-central1")
+SEARCH_MCP_SERVER = os.environ["SEARCH_MCP_SERVER"]
+BOOKING_MCP_SERVER = os.environ["BOOKING_MCP_SERVER"]
+EXPENSE_MCP_SERVER = os.environ["EXPENSE_MCP_SERVER"]
+
+# Fallback: map Agent Registry server names → Cloud Run URLs
+MCP_SERVER_URLS = {
+    SEARCH_MCP_SERVER: SEARCH_MCP_URL,
+    BOOKING_MCP_SERVER: BOOKING_MCP_URL,
+    EXPENSE_MCP_SERVER: EXPENSE_MCP_URL,
+}
 
 MCP_SERVER_URLS = {
     SEARCH_MCP_SERVER: SEARCH_MCP_URL,
@@ -44,14 +43,16 @@ OTEL_ENV_VARS = {
     "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY",
 }
 
-AGENT_MODEL = "gemini-2.0-flash"
+AGENT_MODEL = os.environ.get("AGENT_MODEL", "gemini-3.5-flash")
 
-# Multi-model router
-LITE_MODEL = os.environ.get("LITE_MODEL", "gemini-2.0-flash-lite")
-FLASH_MODEL = os.environ.get("FLASH_MODEL", "gemini-2.5-flash")
-OPUS_MODEL = os.environ.get("OPUS_MODEL", "vertex_ai/claude-opus-4-7")
+# Multi-model router (5-tier: lite → flash → pro → sonnet → opus)
+LITE_MODEL = os.environ.get("LITE_MODEL", "gemini-3.1-flash-lite")
+FLASH_MODEL = os.environ.get("FLASH_MODEL", "gemini-3.5-flash")
+PRO_MODEL = os.environ.get("PRO_MODEL", "gemini-3.1-pro-preview")
+SONNET_MODEL = os.environ.get("SONNET_MODEL", "claude-sonnet-4-5")
+OPUS_MODEL = os.environ.get("OPUS_MODEL", "claude-opus-4-6")
 COMPLEXITY_THRESHOLD_HIGH = float(os.environ.get("COMPLEXITY_THRESHOLD_HIGH", "0.65"))
-CLASSIFIER_MODEL = os.environ.get("CLASSIFIER_MODEL", "gemini-2.0-flash-lite")
+CLASSIFIER_MODEL = os.environ.get("CLASSIFIER_MODEL", "gemini-3.1-flash-lite")
 
 # Evaluation
 EVAL_OUTPUT_DIR = os.environ.get("EVAL_OUTPUT_DIR", "eval_outputs")

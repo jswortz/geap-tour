@@ -1,20 +1,22 @@
-"""Deploy ADK agents to Vertex AI Agent Runtime with identity, gateway, and telemetry.
+"""Deploy or update ADK agents to Vertex AI Agent Runtime with identity, gateway, and telemetry.
 
-Agent Gateway requires REGIONAL gateways for Agent Runtime agents (with a regional
-Agent Registry) and GLOBAL gateways for Gemini Enterprise (with a global registry).
-A single gateway cannot support both — they are mutually exclusive.
+Usage:
+  # Deploy new agents
+  uv run python -m src.deploy.deploy_agents router
+  uv run python -m src.deploy.deploy_agents coordinator
+  uv run python -m src.deploy.deploy_agents all
 
-Gateway config (agent_gateway_config + identity_type) must be set at deploy time via
-client.agent_engines.create(config=...). Key requirements:
-  - identity_type must use vertexai._genai.types.IdentityType.AGENT_IDENTITY (the enum),
-    NOT the string "AGENT_IDENTITY" — the string silently deploys without identity.
-  - Egress-only gateway works; ingress-only (client_to_agent_config) fails with code 13.
-  - Egress routes ALL outbound traffic through the gateway (MCP-only protocol), which
-    breaks gRPC calls (create_session, model inference). MCP tool calls work fine.
+  # Update existing agents (uses engine IDs from .env)
+  uv run python -m src.deploy.deploy_agents router --update
+  uv run python -m src.deploy.deploy_agents coordinator --update
+  uv run python -m src.deploy.deploy_agents all --update
+
+Controlled by .env:
+  - ENABLE_AGENT_IDENTITY=1 → sets SPIFFE identity
+  - ENABLE_AGENT_GATEWAY=1 → attaches gateway
 """
 
 import os
-
 import vertexai
 from vertexai._genai import types
 
@@ -34,51 +36,69 @@ from src.config import (
     AGENT_GATEWAY_EGRESS_PATH,
     AGENT_ENGINE_ID,
     OPUS_MODEL,
+    SONNET_MODEL,
+    PRO_MODEL,
     LITE_MODEL,
     FLASH_MODEL,
     COMPLEXITY_THRESHOLD_HIGH,
 )
 
 REQUIREMENTS = [
-    "google-cloud-aiplatform[adk,agent-engines]>=1.152.0",
+    "google-cloud-aiplatform[adk,agent-engines,evaluation]>=1.152.0",
     "google-genai>=1.66.0",
     "google-auth>=2.52.0",
     "google-adk[a2a,agent-identity]>=1.33.0",
-    "a2a-sdk>=0.3.26",
-    "google-cloud-iamconnectorcredentials>=0.1.0",
     "fastmcp>=2.0.0",
     "python-dotenv>=1.0.0",
-    "litellm>=1.0.0",
-    "pydantic>=2.11.1,<3",
+    "litellm>=1.83.14",
+    "a2a-sdk==0.3.26",
+    "pydantic>=2.12.5",
     "cloudpickle>=3.0,<4.0",
+    "google-cloud-iamconnectorcredentials>=0.1.0",
 ]
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
+ENABLE_AGENT_IDENTITY = os.environ.get("ENABLE_AGENT_IDENTITY", "0") in ("1", "true")
+ENABLE_AGENT_GATEWAY = os.environ.get("ENABLE_AGENT_GATEWAY", "0") in ("1", "true")
+
 
 def _build_gateway_config() -> dict | None:
-    """Build agent_gateway_config for egress-only gateway attachment.
+    """Build the agent_gateway_config dict for agent_engines.create().
 
-    Only egress (agent_to_anywhere_config) is supported. Ingress
-    (client_to_agent_config) fails with code 13 at deploy time.
+    Requires ENABLE_AGENT_GATEWAY=1 in .env.
+    Supports both client-to-agent (ingress) and agent-to-anywhere (egress) configurations.
     """
-    if not AGENT_GATEWAY_EGRESS_PATH:
+    if not ENABLE_AGENT_GATEWAY:
         return None
-    return {
-        "agent_to_anywhere_config": {"agent_gateway": AGENT_GATEWAY_EGRESS_PATH},
-    }
+    config = {}
+    if AGENT_GATEWAY_EGRESS_PATH:
+        config["agent_to_anywhere_config"] = {
+            "agent_gateway": AGENT_GATEWAY_EGRESS_PATH
+        }
+    if AGENT_GATEWAY_PATH:
+        config["client_to_agent_config"] = {
+            "agent_gateway": AGENT_GATEWAY_PATH
+        }
+    return config if config else None
 
 
-def deploy_agent(agent, display_name: str | None = None, attach_gateway: bool = True) -> str:
-    """Deploy a single agent to Agent Runtime with gateway and identity.
+def _memory_service_builder():
+    """Build a VertexAiMemoryBankService for use with AdkApp.
 
-    Uses vertexai.Client().agent_engines.create(config=...) with the v1beta1 API.
-    identity_type MUST be the IdentityType enum, not a string.
+    When deployed to Agent Runtime, the runtime automatically uses its own
+    Memory Bank. This builder is used for local development and testing.
     """
-    os.chdir(PROJECT_ROOT)
+    from google.adk.memory import VertexAiMemoryBankService
+    return VertexAiMemoryBankService(
+        project=GCP_PROJECT_ID,
+        location=GCP_REGION,
+        agent_engine_id=AGENT_ENGINE_ID,
+    )
 
-    print(f"\n--- Deploying {agent.name} ---")
 
+def _build_config(agent, display_name: str | None = None) -> dict:
+    """Build the deployment config dict used for both create and update."""
     env_vars = {
         **OTEL_ENV_VARS,
         "GCP_PROJECT_ID": GCP_PROJECT_ID,
@@ -88,6 +108,8 @@ def deploy_agent(agent, display_name: str | None = None, attach_gateway: bool = 
         "EXPENSE_MCP_URL": EXPENSE_MCP_URL,
         "AGENT_ENGINE_ID": AGENT_ENGINE_ID,
         "OPUS_MODEL": OPUS_MODEL,
+        "SONNET_MODEL": SONNET_MODEL,
+        "PRO_MODEL": PRO_MODEL,
         "LITE_MODEL": LITE_MODEL,
         "FLASH_MODEL": FLASH_MODEL,
         "COMPLEXITY_THRESHOLD_HIGH": str(COMPLEXITY_THRESHOLD_HIGH),
@@ -106,51 +128,83 @@ def deploy_agent(agent, display_name: str | None = None, attach_gateway: bool = 
         "display_name": display_name or agent.name,
         "env_vars": env_vars,
         "extra_packages": ["src"],
-        "identity_type": types.IdentityType.AGENT_IDENTITY,
     }
 
-    gateway_config = _build_gateway_config() if attach_gateway else None
+    if ENABLE_AGENT_IDENTITY:
+        config["identity_type"] = types.IdentityType.AGENT_IDENTITY
+        print("  Identity: AGENT_IDENTITY (SPIFFE-based)")
+    else:
+        print("  Identity: default (set ENABLE_AGENT_IDENTITY=1 to enable)")
+
+    gateway_config = _build_gateway_config()
     if gateway_config:
         config["agent_gateway_config"] = gateway_config
+        print(f"  Gateway: egress={AGENT_GATEWAY_EGRESS_PATH}, ingress={AGENT_GATEWAY_PATH}")
+    else:
+        if not ENABLE_AGENT_GATEWAY:
+            print("  Gateway: disabled (set ENABLE_AGENT_GATEWAY=1 to enable)")
+        else:
+            print("  Gateway: not configured (set AGENT_GATEWAY_EGRESS_PATH / AGENT_GATEWAY_PATH)")
 
-    client = vertexai.Client(
+    return config
+
+
+def _get_client():
+    return vertexai.Client(
         project=GCP_PROJECT_ID,
         location=GCP_REGION,
         http_options=dict(api_version="v1beta1"),
     )
-    remote = client.agent_engines.create(agent=agent, config=config)
 
-    resource_name = remote.api_resource.name
-    print(f"  {agent.name} deployed: {resource_name}")
 
-    if gateway_config:
-        print(f"  Gateway: egress={AGENT_GATEWAY_EGRESS_PATH}")
-        print("  Identity: AGENT_IDENTITY (SPIFFE-based)")
-    else:
-        print("  Gateway: not configured")
-        print("  Identity: AGENT_IDENTITY (SPIFFE-based)")
+def deploy_agent(agent, display_name: str | None = None) -> str:
+    """Create a new agent on Agent Runtime."""
+    os.chdir(PROJECT_ROOT)
+    print(f"\n--- Creating {agent.name} ---")
+    config = _build_config(agent, display_name)
 
+    remote = _get_client().agent_engines.create(agent=agent, config=config)
+    resource_name = getattr(remote, 'resource_name', None) or remote.api_resource.name
+    print(f"  Created: {resource_name}")
     return resource_name
 
+
+def update_agent(agent, engine_id: str, display_name: str | None = None) -> str:
+    """Update an existing agent on Agent Runtime."""
+    os.chdir(PROJECT_ROOT)
+    # Accept bare ID or full resource name
+    if not engine_id.startswith("projects/"):
+        engine_id = f"projects/{GCP_PROJECT_ID}/locations/{GCP_REGION}/reasoningEngines/{engine_id}"
+    print(f"\n--- Updating {agent.name} ({engine_id.split('/')[-1]}) ---")
+    config = _build_config(agent, display_name)
+
+    remote = _get_client().agent_engines.update(
+        name=engine_id,
+        agent=agent,
+        config=config,
+    )
+    resource_name = getattr(remote, 'resource_name', None) or remote.api_resource.name
+    print(f"  Updated: {resource_name}")
+    return resource_name
+
+
+COORDINATOR_ENGINE_ID = os.environ.get("COORINDATOR_AGENT_ID", "")
+ROUTER_ENGINE_ID_ENV = os.environ.get("ROUTER_ENGINE_ID", os.environ.get("AGENT_ENGINE_ID", ""))
 
 AGENT_SETS = {
     "coordinator": {
         "loader": lambda: __import__("src.agents.coordinator_agent", fromlist=["coordinator_agent"]).coordinator_agent,
-        "attach_gateway": True,
+        "engine_id": COORDINATOR_ENGINE_ID,
     },
     "router": {
         "loader": lambda: __import__("src.router.agents", fromlist=["router_agent"]).router_agent,
-        "attach_gateway": True,
+        "engine_id": ROUTER_ENGINE_ID_ENV,
     },
 }
 
 
-def deploy_all_agents(agent_set: str = "all") -> dict[str, str]:
-    """Deploy agents and return a map of name -> resource name.
-
-    Args:
-        agent_set: "coordinator", "router", or "all" (default).
-    """
+def run_deploy(agent_set: str = "all", update: bool = False) -> dict[str, str]:
+    """Deploy or update agents and return a map of name → resource name."""
     vertexai.init(project=GCP_PROJECT_ID, location=GCP_REGION, staging_bucket=f"gs://{GCP_STAGING_BUCKET}")
 
     if agent_set == "all":
@@ -165,15 +219,27 @@ def deploy_all_agents(agent_set: str = "all") -> dict[str, str]:
             print(f"  Unknown agent set: {name}. Available: {list(AGENT_SETS)}")
             continue
         agent = entry["loader"]()
-        deployed[agent.name] = deploy_agent(agent, attach_gateway=entry["attach_gateway"])
+
+        if update:
+            engine_id = entry["engine_id"]
+            if not engine_id:
+                print(f"  No engine ID for {name} — set COORINDATOR_AGENT_ID or ROUTER_ENGINE_ID in .env")
+                continue
+            deployed[agent.name] = update_agent(agent, engine_id)
+        else:
+            deployed[agent.name] = deploy_agent(agent)
 
     return deployed
 
 
 if __name__ == "__main__":
-    import sys
-    agent_set = sys.argv[1] if len(sys.argv) > 1 else "all"
-    deployed = deploy_all_agents(agent_set=agent_set)
-    print("\n=== Deployed Agent Resource Names ===")
+    import argparse
+    parser = argparse.ArgumentParser(description="Deploy or update ADK agents on Agent Engine")
+    parser.add_argument("agent_set", nargs="?", default="all", help="coordinator, router, or all (default: all)")
+    parser.add_argument("--update", action="store_true", help="Update existing agents instead of creating new ones")
+    args = parser.parse_args()
+
+    deployed = run_deploy(agent_set=args.agent_set, update=args.update)
+    print("\n=== Agent Resource Names ===")
     for name, resource in deployed.items():
         print(f"  {name}: {resource}")

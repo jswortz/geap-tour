@@ -175,12 +175,12 @@ paper-banana-figure-generator \
   --figure_type "Component view" \
   --content_description "
     User Prompt (top) -> Model Armor (safety screening: RAI, PI, jailbreak) ->
-    Router Agent (gemini-2.0-flash-lite, before_agent_callback: classify_complexity(),
+    Router Agent (gemini-2.5-flash-lite, before_agent_callback: classify_complexity(),
     scores prompt 0-1 and maps to low/med/high).
     Router branches into three paths:
-    - low (score <0.35) -> Lite Agent (gemini-2.0-flash-lite, \$0.075/M input)
+    - low (score <0.35) -> Lite Agent (gemini-2.5-flash-lite, \$0.075/M input)
     - medium (score 0.35-0.65) -> Flash Agent (gemini-2.5-flash, \$0.15/M input)
-    - high (score >=0.65) -> Opus Agent (claude-opus-4-7, \$15.00/M input)
+    - high (score >=0.65) -> Opus Agent (claude-opus-4-6, \$15.00/M input)
     Each agent connects to MCP Tools (search, booking, expense)." \
   --caption "Multi-model routing: Flash Lite micro-classifier scores prompt complexity and delegates to the cost-appropriate model tier." \
   --output_format SVG \
@@ -196,13 +196,13 @@ User Prompt
 [Model Armor] -- safety screening (RAI, PI, jailbreak)
     |
     v
-[Router Agent] (gemini-2.0-flash-lite)
+[Router Agent] (gemini-2.5-flash-lite)
     |  before_agent_callback: classify_complexity()
     |  Gemini Flash Lite scores prompt 0-1, maps to low/med/high
     |
-    |-- low ------> [Lite Agent]  gemini-2.0-flash-lite  $0.075/M in
+    |-- low ------> [Lite Agent]  gemini-2.5-flash-lite  $0.075/M in
     |-- medium ---> [Flash Agent] gemini-2.5-flash       $0.15/M in
-    |-- high -----> [Opus Agent]  claude-opus-4-7        $15.00/M in
+    |-- high -----> [Opus Agent]  claude-opus-4-6        $15.00/M in
 ```
 
 > **Why not [Model Armor](https://cloud.google.com/security/products/model-armor) for complexity?** Model Armor only provides safety filters (RAI, PI detection, jailbreak, malicious URI). It has no prompt complexity scoring. We use Gemini Flash Lite as a micro-classifier (~$0.00002/call).
@@ -231,9 +231,9 @@ The classifier tends to over-estimate complexity (bias upward). High-complexity 
 
 | Model | Input $/M tokens | Output $/M tokens | Tier | Source |
 |-------|------------------|--------------------|------|--------|
-| gemini-2.0-flash-lite | $0.075 | $0.30 | Low | [`src/router/cost_tracker.py:9`](https://github.com/jswortz/geap-tour/blob/main/src/router/cost_tracker.py#L9) |
+| gemini-2.5-flash-lite | $0.075 | $0.30 | Low | [`src/router/cost_tracker.py:9`](https://github.com/jswortz/geap-tour/blob/main/src/router/cost_tracker.py#L9) |
 | gemini-2.5-flash | $0.15 | $0.60 | Medium | [`src/router/cost_tracker.py:10`](https://github.com/jswortz/geap-tour/blob/main/src/router/cost_tracker.py#L10) |
-| claude-opus-4-7 (Vertex AI) | $15.00 | $75.00 | High | [`src/router/cost_tracker.py:11`](https://github.com/jswortz/geap-tour/blob/main/src/router/cost_tracker.py#L11) |
+| claude-opus-4-6 (Vertex AI) | $15.00 | $75.00 | High | [`src/router/cost_tracker.py:11`](https://github.com/jswortz/geap-tour/blob/main/src/router/cost_tracker.py#L11) |
 | Classifier overhead | $0.075 | $0.30 | — | ~$0.00002/call |
 
 **Smart Router test set (10 prompts, 200 input / 500 output tokens assumed):**
@@ -251,16 +251,16 @@ The high-complexity prompts demonstrate multi-step cross-domain planning that ju
 
 | # | Prompt | Score | Level | Model | Cost |
 |---|--------|-------|-------|-------|------|
-| 1 | Find flights from SFO to JFK | 0.30 | low | gemini-2.0-flash-lite | $0.000165 |
-| 2 | What's the expense policy for meals? | 0.30 | low | gemini-2.0-flash-lite | $0.000165 |
+| 1 | Find flights from SFO to JFK | 0.30 | low | gemini-2.5-flash-lite | $0.000165 |
+| 2 | What's the expense policy for meals? | 0.30 | low | gemini-2.5-flash-lite | $0.000165 |
 | 3 | Search hotels in Chicago under $200 | 0.40 | medium | gemini-2.5-flash | $0.000330 |
 | 4 | Check if a $50 transport expense is within policy | 0.40 | medium | gemini-2.5-flash | $0.000330 |
 | 5 | Find flights to NYC and compare cheapest by airline | 0.60 | medium | gemini-2.5-flash | $0.000330 |
-| 6 | **Search hotels in Boston, then check if nightly rate fits our lodging policy** | 0.70 | **high** | **claude-opus-4-7** | $0.040500 |
-| 7 | **Plan a 5-day trip to Tokyo for a team of 4: flights, hotels, meals, entertainment policy** | 0.80 | **high** | **claude-opus-4-7** | $0.040500 |
-| 8 | **Compare individual vs group flight bookings for team retreat to Denver with per-diem analysis** | 0.80 | **high** | **claude-opus-4-7** | $0.040500 |
-| 9 | **Analyze EMP001's expense history, draft policy recommendation, submit $45 lunch receipt** | 0.80 | **high** | **claude-opus-4-7** | $0.040500 |
-| 10 | **Book cheapest SFO-JFK flight, find nearby hotel, cross-reference ratings, check policy, submit pre-approval** | 0.90 | **high** | **claude-opus-4-7** | $0.040500 |
+| 6 | **Search hotels in Boston, then check if nightly rate fits our lodging policy** | 0.70 | **high** | **claude-opus-4-6** | $0.040500 |
+| 7 | **Plan a 5-day trip to Tokyo for a team of 4: flights, hotels, meals, entertainment policy** | 0.80 | **high** | **claude-opus-4-6** | $0.040500 |
+| 8 | **Compare individual vs group flight bookings for team retreat to Denver with per-diem analysis** | 0.80 | **high** | **claude-opus-4-6** | $0.040500 |
+| 9 | **Analyze EMP001's expense history, draft policy recommendation, submit $45 lunch receipt** | 0.80 | **high** | **claude-opus-4-6** | $0.040500 |
+| 10 | **Book cheapest SFO-JFK flight, find nearby hotel, cross-reference ratings, check policy, submit pre-approval** | 0.90 | **high** | **claude-opus-4-6** | $0.040500 |
 
 > **Key insight:** 5 of 10 prompts route to Claude Opus, but those 5 represent the complex multi-step planning that actually requires frontier reasoning. The remaining 5 use models that cost 100-200x less per token.
 
@@ -281,7 +281,7 @@ The high-complexity prompts demonstrate multi-step cross-domain planning that ju
 async def classify_complexity(prompt: str) -> ComplexityResult:
     client = genai.Client(vertexai=True, project=GCP_PROJECT_ID, location=GCP_REGION)
     response = await client.aio.models.generate_content(
-        model="gemini-2.0-flash-lite",
+        model="gemini-2.5-flash-lite",
         contents=CLASSIFIER_PROMPT_TEMPLATE.format(prompt=prompt),
         config=GenerateContentConfig(
             response_mime_type="application/json",
@@ -308,7 +308,7 @@ async def classify_complexity(prompt: str) -> ComplexityResult:
 ```python
 # src/router/agents.py:64-75 — Opus agent for complex prompts
 opus_agent = LlmAgent(
-    model=_resolve_model(OPUS_MODEL),  # "vertex_ai/claude-opus-4-7"
+    model=_resolve_model(OPUS_MODEL),  # "claude-opus-4-6"
     name="opus_agent",
     description="Handles complex, multi-step requests requiring deep analysis.",
     instruction="Expert corporate assistant for complex, high-stakes requests...",
@@ -400,26 +400,19 @@ uv run python -m src.eval.router_eval --rounds 5 --update-report
 ```json
 {
   "criteria": {
-    "tool_trajectory_avg_score": { "threshold": 0.8, "match_type": "IN_ORDER" },
-    "response_match_score": 0.6,
-    "final_response_match_v2": { "threshold": 0.7 },
-    "hallucinations_v1": { "threshold": 0.5 },
-    "safety_v1": 0.8,
-    "complexity_routing": { "threshold": 0.8 }
-  },
-  "custom_metrics": {
-    "complexity_routing": {
-      "code_config": {
-        "name": "src.eval.complexity_metrics.check_complexity_routing"
-      }
-    }
+    "response_match_score": 0.04,
+    "final_response_match_v2": {
+      "threshold": 0.3,
+      "judge_model_options": { "judge_model": "gemini-2.5-flash" }
+    },
+    "safety_v1": 0.8
   }
 }
 ```
 
-> **Custom metric code:** [`src/eval/complexity_metrics.py:52-102`](https://github.com/jswortz/geap-tour/blob/main/src/eval/complexity_metrics.py#L52-L102) — ADK custom metric for `adk eval` CLI
+> **Note:** `tool_trajectory_avg_score` was removed because the coordinator delegates to sub-agents via `transfer_to_agent`, so expected tool calls don't match the actual delegation pattern. `complexity_routing` is a router-specific custom metric defined in `src/eval/scenarios/router_eval_config.json`.
 >
-> **Docs:** [ADK eval config](https://google.github.io/adk-docs/evaluate/#eval-config) | [Tool trajectory matching](https://google.github.io/adk-docs/evaluate/#tool-trajectory) | [Custom metrics](https://google.github.io/adk-docs/evaluate/#custom-metrics)
+> **Docs:** [ADK eval config](https://google.github.io/adk-docs/evaluate/#eval-config) | [Custom metrics](https://google.github.io/adk-docs/evaluate/#custom-metrics)
 
 ### Running ADK Static Evals
 

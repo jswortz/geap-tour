@@ -5,14 +5,16 @@ def test_travel_agent_config():
     from src.agents.travel_agent import travel_agent
     assert travel_agent.name == "travel_agent"
     assert len(travel_agent.tools) == 2
-    assert "gemini" in travel_agent.model.lower()
+    model_str = travel_agent.model.model if hasattr(travel_agent.model, "model") else travel_agent.model
+    assert "gemini" in model_str.lower()
 
 
 def test_expense_agent_config():
     from src.agents.expense_agent import expense_agent
     assert expense_agent.name == "expense_agent"
     assert len(expense_agent.tools) == 1
-    assert "gemini" in expense_agent.model.lower()
+    model_str = expense_agent.model.model if hasattr(expense_agent.model, "model") else expense_agent.model
+    assert "gemini" in model_str.lower()
 
 
 def test_coordinator_agent_config():
