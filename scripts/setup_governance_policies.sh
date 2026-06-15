@@ -87,6 +87,22 @@ PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format="value(projectN
 RE_SA="service-${PROJECT_NUMBER}@gcp-sa-aiplatform-re.iam.gserviceaccount.com"
 ACCESS_TOKEN=$(gcloud auth print-access-token 2>/dev/null)
 
+# Construct trust domain / agent principal dynamically
+ORG_ID=$(gcloud projects get-ancestors "$PROJECT_ID" --format="value(id)" 2>/dev/null | tail -n 1)
+EFFECTIVE_IDENTITY=$(curl -s -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+  "https://${REGION}-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_ID}/locations/${REGION}/reasoningEngines" \
+  | python3 -c "import sys,json; r=json.load(sys.stdin); engines=r.get('reasoningEngines',[]); print(next((e.get('spec',{}).get('effectiveIdentity','') for e in engines if 'coordinator' in e.get('displayName','').lower()), '') if engines else '')" 2>/dev/null)
+
+if [[ -n "$EFFECTIVE_IDENTITY" ]]; then
+    AGENT_PRINCIPAL="principal://${EFFECTIVE_IDENTITY}"
+elif [[ -n "$ORG_ID" && "$ORG_ID" =~ ^[0-9]+$ ]]; then
+    AGENT_PRINCIPAL="principalSet://agents.global.org-${ORG_ID}.system.id.goog/attribute.platformContainer/aiplatform/projects/${PROJECT_NUMBER}"
+else
+    # Fallback to project-wide format if orgless/unknown
+    AGENT_PRINCIPAL="principalSet://agents.global.project-${PROJECT_NUMBER}.system.id.goog/attribute.platformContainer/aiplatform/projects/${PROJECT_NUMBER}"
+fi
+echo "Using Agent Principal: ${AGENT_PRINCIPAL}"
+
 SGP_FAILURES=0
 create_sgp_policy() {
     local label="$1"; shift
@@ -209,21 +225,19 @@ step "Layer 1: IAM Allow Policies"
 # Policy 1: Coordinator → Search MCP (read-only)
 cat > /tmp/iam-policy-coordinator-search.json <<POLICY
 {
-  "policy": {
-    "bindings": [
-      {
-        "role": "roles/iap.egressor",
-        "members": [
-          "principal://${RE_SA}"
-        ],
-        "condition": {
-          "title": "Coordinator read-only search access",
-          "description": "GEAP Coordinator can only perform read-only operations on Search MCP",
-          "expression": "api.getAttribute('iap.googleapis.com/mcp.tool.isReadOnly', false) == true"
-        }
+  "bindings": [
+    {
+      "role": "roles/iap.egressor",
+      "members": [
+        "${AGENT_PRINCIPAL}"
+      ],
+      "condition": {
+        "title": "Coordinator read-only search access",
+        "description": "GEAP Coordinator can only perform read-only operations on Search MCP",
+        "expression": "api.getAttribute('iap.googleapis.com/mcp.tool.isReadOnly', false) == true"
       }
-    ]
-  }
+    }
+  ]
 }
 POLICY
 ok "IAM policy created: Coordinator → Search MCP (read-only)"
@@ -231,21 +245,19 @@ ok "IAM policy created: Coordinator → Search MCP (read-only)"
 # Policy 2: Travel Agent → Booking MCP (non-destructive)
 cat > /tmp/iam-policy-travel-booking.json <<POLICY
 {
-  "policy": {
-    "bindings": [
-      {
-        "role": "roles/iap.egressor",
-        "members": [
-          "principal://${RE_SA}"
-        ],
-        "condition": {
-          "title": "Travel agent booking access - no destructive ops",
-          "description": "Travel agent can use Booking MCP tools but cannot perform destructive operations",
-          "expression": "api.getAttribute('iap.googleapis.com/mcp.tool.isDestructive', false) == false"
-        }
+  "bindings": [
+    {
+      "role": "roles/iap.egressor",
+      "members": [
+        "${AGENT_PRINCIPAL}"
+      ],
+      "condition": {
+        "title": "Travel agent booking access - no destructive ops",
+        "description": "Travel agent can use Booking MCP tools but cannot perform destructive operations",
+        "expression": "api.getAttribute('iap.googleapis.com/mcp.tool.isDestructive', false) == false"
       }
-    ]
-  }
+    }
+  ]
 }
 POLICY
 ok "IAM policy created: Travel Agent → Booking MCP (non-destructive)"
@@ -253,27 +265,51 @@ ok "IAM policy created: Travel Agent → Booking MCP (non-destructive)"
 # Policy 3: Expense Agent → Expense MCP (specific tools only)
 cat > /tmp/iam-policy-expense-tools.json <<POLICY
 {
-  "policy": {
-    "bindings": [
-      {
-        "role": "roles/iap.egressor",
-        "members": [
-          "principal://${RE_SA}"
-        ],
-        "condition": {
-          "title": "Expense agent tool-level access",
-          "description": "Expense agent can only use submit_expense, check_policy, and get_expenses tools",
-          "expression": "api.getAttribute('iap.googleapis.com/mcp.toolName', '') in ['submit_expense', 'check_expense_policy', 'get_expenses'] && api.getAttribute('iap.googleapis.com/request.auth.type', '') == 'MCP'"
-        }
+  "bindings": [
+    {
+      "role": "roles/iap.egressor",
+      "members": [
+        "${AGENT_PRINCIPAL}"
+      ],
+      "condition": {
+        "title": "Expense agent tool-level access",
+        "description": "Expense agent can only use submit_expense, check_policy, and get_expenses tools",
+        "expression": "api.getAttribute('iap.googleapis.com/mcp.toolName', '') in ['submit_expense', 'check_expense_policy', 'get_expenses'] && api.getAttribute('iap.googleapis.com/request.auth.type', '') == 'MCP'"
       }
-    ]
-  }
+    }
+  ]
 }
 POLICY
 ok "IAM policy created: Expense Agent → Expense MCP (specific tools only)"
 
 info "Policy files written to /tmp/iam-policy-*.json"
-info "Apply with: gcloud beta iap web set-iam-policy <file.json> --project=${PROJECT_ID} --mcpServer=<server> --region=${REGION}"
+
+# Resolve MCP Server Resource IDs and apply policies
+SEARCH_SERVER=$(gcloud alpha agent-registry mcp-servers list --location="${REGION}" --project="${PROJECT_ID}" --format="value(name)" --filter="displayName:search-mcp" 2>/dev/null | head -n 1)
+BOOKING_SERVER=$(gcloud alpha agent-registry mcp-servers list --location="${REGION}" --project="${PROJECT_ID}" --format="value(name)" --filter="displayName:booking-mcp" 2>/dev/null | head -n 1)
+EXPENSE_SERVER=$(gcloud alpha agent-registry mcp-servers list --location="${REGION}" --project="${PROJECT_ID}" --format="value(name)" --filter="displayName:expense-mcp" 2>/dev/null | head -n 1)
+
+if [[ -n "$SEARCH_SERVER" ]]; then
+    SEARCH_ID=$(basename "$SEARCH_SERVER")
+    info "Applying IAM policy for Search MCP (${SEARCH_ID})..."
+    run_cmd gcloud beta iap web set-iam-policy /tmp/iam-policy-coordinator-search.json \
+        --project="${PROJECT_ID}" --region="${REGION}" --resource-type=agent-registry --mcp-server="${SEARCH_ID}" --quiet
+fi
+
+if [[ -n "$BOOKING_SERVER" ]]; then
+    BOOKING_ID=$(basename "$BOOKING_SERVER")
+    info "Applying IAM policy for Booking MCP (${BOOKING_ID})..."
+    run_cmd gcloud beta iap web set-iam-policy /tmp/iam-policy-travel-booking.json \
+        --project="${PROJECT_ID}" --region="${REGION}" --resource-type=agent-registry --mcp-server="${BOOKING_ID}" --quiet
+fi
+
+if [[ -n "$EXPENSE_SERVER" ]]; then
+    EXPENSE_ID=$(basename "$EXPENSE_SERVER")
+    info "Applying IAM policy for Expense MCP (${EXPENSE_ID})..."
+    run_cmd gcloud beta iap web set-iam-policy /tmp/iam-policy-expense-tools.json \
+        --project="${PROJECT_ID}" --region="${REGION}" --resource-type=agent-registry --mcp-server="${EXPENSE_ID}" --quiet
+fi
+
 echo ""
 
 # ─────────────────────────────────────────────────────────────

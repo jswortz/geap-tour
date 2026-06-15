@@ -222,6 +222,9 @@ name = deploy_agent(coordinator_agent)
 print(name)
 " 2>&1 | tail -1)
 ok "coordinator_agent deployed: $AGENT_RESOURCE"
+NEW_AGENT_ID=$(basename "$AGENT_RESOURCE")
+echo "AGENT_ENGINE_ID=${NEW_AGENT_ID}" >> .env
+export AGENT_ENGINE_ID="${NEW_AGENT_ID}"
 
 # Extract engine ID and add to .env
 AGENT_ENGINE_ID=$(echo "$AGENT_RESOURCE" | grep -oP '\d+$')

@@ -98,13 +98,33 @@ def setup_all_alerts(notification_channel: str | None = None) -> list:
     return results
 
 
+def _get_notification_channel() -> str | None:
+    """Find the first active email notification channel in the project."""
+    client = monitoring_v3.NotificationChannelServiceClient()
+    project_name = f"projects/{GCP_PROJECT_ID}"
+    try:
+        channels = client.list_notification_channels(name=project_name)
+        for c in channels:
+            if c.type_ == "email" and c.enabled:
+                return c.name
+    except Exception as e:
+        print(f"Warning: failed to list notification channels: {e}")
+    return None
+
+
 if __name__ == "__main__":
     import sys
     if len(sys.argv) > 1 and sys.argv[1] == "list":
         list_quality_alerts()
     elif len(sys.argv) > 1 and sys.argv[1] == "all":
-        setup_all_alerts()
+        channel = _get_notification_channel()
+        if channel:
+            print(f"Using notification channel: {channel}")
+        else:
+            print("Warning: no active email notification channel found.")
+        setup_all_alerts(notification_channel=channel)
     else:
         metric = sys.argv[1] if len(sys.argv) > 1 else "helpfulness"
         threshold = float(sys.argv[2]) if len(sys.argv) > 2 else 3.0
-        create_quality_alert(metric_name=metric, threshold=threshold)
+        channel = _get_notification_channel()
+        create_quality_alert(metric_name=metric, threshold=threshold, notification_channel=channel)

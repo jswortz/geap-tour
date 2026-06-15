@@ -25,7 +25,7 @@ credentials*.json
 !scripts/toolspecs/*
 
 # GCP raw exports (may contain env vars / secrets from other services)
-docs/verification/*.raw.json
+docs/verification/*.json
 
 # OS / editor
 .DS_Store
