@@ -34,7 +34,7 @@ REQUIREMENTS = [
     # Server-side cloudpickle unpickle needs google.auth._regional_access_boundary_utils
     # which was added in google-auth 2.52.0. The base image ships an older version.
     "google-auth>=2.52.0",
-    "google-adk[a2a,agent-identity]>=1.33.0",
+    "google-adk[a2a,agent-identity]==1.33.0",
     "a2a-sdk>=0.3.26",
     "google-cloud-iamconnectorcredentials>=0.1.0",
     "google-genai>=1.14.0",

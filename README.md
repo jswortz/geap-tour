@@ -22,6 +22,7 @@ A hands-on workshop demonstrating the full Gemini Enterprise Agent Platform (GEA
 | Document | Description |
 |----------|-------------|
 | [Workshop Guide](docs/workshop_guide.md) | Full 4-session hands-on walkthrough |
+| [Monitoring Guide](docs/monitoring_integration_guide.md) | Quality alerts and custom metrics bridge guide |
 | [Component FAQ](docs/faq.md) | What each component does and why it matters |
 | [Evaluation Guide](docs/eval_operations.md) | Evaluation pipeline operations |
 | [Cost Comparison](docs/multi_model_cost_comparison.md) | Multi-model routing cost analysis |
@@ -68,6 +69,8 @@ All screenshots are captured from real deployed GCP resources:
 | ![BigQuery Sink](docs/screenshots/session2_bigquery_sink.png) | Log Router sinks to BigQuery |
 | ![Policies](docs/screenshots/session3_policies_iam.png) | IAM Allow governance policies |
 | ![Business Policies](docs/screenshots/session3_business_policies.png) | Semantic Governance Policies (SGP) |
+| ![Metrics Explorer Out-of-Spec](docs/screenshots/session5_metrics_explorer_out_of_spec.png) | Cloud Monitoring Metrics Explorer showing evaluation scores drop |
+| ![Quality Alert Firing](docs/screenshots/session5_monitoring_alert_firing.png) | Cloud Monitoring Alerting Policy in FIRING state |
 
 ## Workshop Guide
 

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from google import genai
 from google.genai.types import GenerateContentConfig
 
-from .config import GCP_PROJECT_ID, GCP_REGION, COMPLEXITY_THRESHOLD_HIGH
+from .config import CLASSIFIER_MODEL, GCP_PROJECT_ID, GCP_REGION, COMPLEXITY_THRESHOLD_HIGH
 
 CLASSIFIER_PROMPT_TEMPLATE = (
     "Rate the complexity of this user prompt on a 0-1 scale.\n\n"
@@ -55,7 +55,7 @@ RESPONSE_SCHEMA = {
 async def classify_complexity(prompt: str) -> ComplexityResult:
     client = genai.Client(vertexai=True, project=GCP_PROJECT_ID, location=GCP_REGION)
     response = await client.aio.models.generate_content(
-        model="gemini-2.0-flash-lite",
+        model=CLASSIFIER_MODEL,
         contents=CLASSIFIER_PROMPT_TEMPLATE.format(prompt=prompt),
         config=GenerateContentConfig(
             response_mime_type="application/json",

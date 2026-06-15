@@ -31,18 +31,19 @@ EXPENSE_MCP_SERVER = os.environ.get(
 )
 
 OTEL_ENV_VARS = {
+    "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
     "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
     "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY",
 }
 
-AGENT_MODEL = "gemini-2.0-flash"
+AGENT_MODEL = "gemini-2.5-flash"
 
 # Multi-model router
-LITE_MODEL = os.environ.get("LITE_MODEL", "gemini-2.0-flash-lite")
+LITE_MODEL = os.environ.get("LITE_MODEL", "gemini-2.5-flash-lite")
 FLASH_MODEL = os.environ.get("FLASH_MODEL", "gemini-2.5-flash")
 OPUS_MODEL = os.environ.get("OPUS_MODEL", "vertex_ai/claude-opus-4-7")
 COMPLEXITY_THRESHOLD_HIGH = float(os.environ.get("COMPLEXITY_THRESHOLD_HIGH", "0.65"))
-CLASSIFIER_MODEL = os.environ.get("CLASSIFIER_MODEL", "gemini-2.0-flash-lite")
+CLASSIFIER_MODEL = os.environ.get("CLASSIFIER_MODEL", "gemini-2.5-flash-lite")
 
 # Evaluation
 EVAL_OUTPUT_DIR = os.environ.get("EVAL_OUTPUT_DIR", "eval_outputs")

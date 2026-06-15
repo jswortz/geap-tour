@@ -139,6 +139,9 @@ name = deploy_agent(coordinator_agent)
 print(name)
 " 2>&1 | tail -1)
 ok "coordinator_agent deployed: $AGENT_RESOURCE"
+NEW_AGENT_ID=$(basename "$AGENT_RESOURCE")
+echo "AGENT_ENGINE_ID=${NEW_AGENT_ID}" >> .env
+export AGENT_ENGINE_ID="${NEW_AGENT_ID}"
 
 # ─── Step 8: Generate traffic and run evaluations ───────────────────
 step "8/11" "Generating traffic and running evaluations"

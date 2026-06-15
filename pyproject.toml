@@ -15,7 +15,7 @@ dependencies = [
     "pandas>=2.0.0",
     "a2a-types>=0.1.0",
     "a2a-sdk>=0.3.4,<0.4",
-    "google-adk[agent-identity]>=1.33.0",
+    "google-adk[agent-identity]==1.33.0",
 ]
 
 [project.optional-dependencies]
