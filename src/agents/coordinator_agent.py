@@ -1,5 +1,13 @@
 """Coordinator Agent — routes user requests to travel or expense sub-agents."""
 
+# Workaround for b/330372060 or pyOpenSSL SSL context mutation issue:
+try:
+    import urllib3.contrib.pyopenssl
+    urllib3.contrib.pyopenssl.extract_from_urllib3()
+except Exception:
+    pass
+
+
 from google.adk.agents import LlmAgent
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.models.lite_llm import LiteLlm

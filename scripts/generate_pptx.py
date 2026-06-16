@@ -1206,7 +1206,7 @@ def build_deck():
     add_text(s, Inches(0.8), Inches(0.3), Inches(10), Inches(0.8),
              "Memory Bank & User Namespaces", 36, bold=True)
     add_code_block(s, Inches(0.8), Inches(1.3), Inches(5.5), Inches(4.2),
-                   'coordinator_agent = LlmAgent(\n    model=AGENT_MODEL,\n    name="coordinator_agent",\n    tools=[\n        get_mcp_tools(SEARCH_MCP_SERVER),\n        # Retrieves relevant memories at\n        # turn start, injects into system\n        # instruction\n        PreloadMemoryTool(),\n    ],\n    after_agent_callback=\n        save_memories_callback,\n)\n\nasync def save_memories_callback(ctx):\n    await ctx.add_session_to_memory()\n    return None',
+                   'coordinator_agent = LlmAgent(\n    model=AGENT_MODEL,\n    name="coordinator_agent",\n    tools=[\n        get_mcp_tools(SEARCH_MCP_SERVER),\n        # Retrieves relevant memories at\n        # turn start, injects into system\n        # instruction\n        PreloadMemoryTool(),\n    ],\n    after_agent_callback=\n        save_memories_callback,\n)\n\nasync def save_memories_callback(ctx):\n    await ctx.add_events_to_memory(\n        events=ctx.session.events,\n        custom_metadata={"wait_for_completion": True}\n    )\n    return None',
                    font_size=12)
     add_card(s, Inches(7), Inches(1.3), Inches(5.5), Inches(2),
              "Memory Recall",
