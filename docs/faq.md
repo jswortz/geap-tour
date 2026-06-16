@@ -19,6 +19,8 @@ Quick reference for each component — what it is, how it works, and why it matt
 
 ## 1. ADK Agents
 
+> **Official docs:** [Agent Development Kit (ADK) Overview](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-development-kit/overview)
+
 **What is it?** — Three agents built with the Google Agent Development Kit (ADK) that form the core application layer of the workshop. The Coordinator routes user requests to a Travel Agent and an Expense Agent.
 
 **How does it work?** — The Coordinator agent is an `LlmAgent` that uses `sub_agents` delegation to hand off tasks. When a user asks about flights or hotels, the Coordinator delegates to the Travel Agent, which searches and books via MCP tool connections. Expense-related requests go to the Expense Agent, which submits expenses and checks policies. Each agent connects to its backend MCP servers through `McpToolset`. `before_agent_callback` and `after_agent_callback` hooks enforce guardrails (e.g., content screening) and persist memories after each turn.
@@ -33,6 +35,8 @@ Quick reference for each component — what it is, how it works, and why it matt
 ---
 
 ## 2. MCP Servers
+
+> **Official docs:** [MCP on Vertex AI](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-development-kit/mcp-tools) | [Cloud Run Docs](https://cloud.google.com/run/docs)
 
 **What is it?** — Three FastMCP tool servers deployed to Cloud Run that expose backend capabilities (search, booking, expense management) over the Model Context Protocol.
 
@@ -50,6 +54,8 @@ Quick reference for each component — what it is, how it works, and why it matt
 
 ## 3. Multi-Model Router
 
+> **Official docs:** [Gemini Models on Vertex AI](https://cloud.google.com/vertex-ai/generative-ai/docs/models/gemini) | [Claude on Vertex AI](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude)
+
 **What is it?** — A complexity-based routing layer that directs each prompt to the most cost-effective model, using a Gemini Flash Lite micro-judge to score request difficulty.
 
 **How does it work?** — The complexity scorer in `complexity.py` sends each prompt to Gemini Flash Lite, which returns a score between 0.0 and 1.0. Low-complexity prompts (0.00-0.34) stay on Flash Lite at $0.075/M tokens. Medium-complexity prompts (0.35-0.64) route to Gemini Flash at $0.15/M tokens. High-complexity prompts (0.65-1.0) escalate to Claude Opus via LiteLLM at $15/M tokens. The routing decision is injected through a `before_agent_callback` called `complexity_router_callback` on the router agent. Model thresholds and pricing are configurable in `config.py`.
@@ -65,9 +71,11 @@ Quick reference for each component — what it is, how it works, and why it matt
 
 ## 4. Memory Bank
 
+> **Official docs:** [Vertex AI Agent Engine Persistent Memory](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/add-memory)
+
 **What is it?** — Vertex AI Agent Engine's built-in persistent memory system, giving agents the ability to recall past conversations and user preferences across sessions.
 
-**How does it work?** — At the start of each turn, `PreloadMemoryTool()` retrieves relevant memories and injects them into the agent's system instruction, providing context from prior interactions. After each turn, the `save_memories_callback` in the Coordinator agent calls `add_session_to_memory()` to persist new information. Memories are scoped by `{user_id, app_name}`, so each user gets an isolated namespace. The router agent also integrates Memory Bank for cross-session continuity. No external database is needed — Agent Engine handles storage and retrieval natively.
+**How does it work?** — At the start of each turn, `PreloadMemoryTool()` retrieves relevant memories and injects them into the agent's system instruction, providing context from prior interactions. After each turn, the `save_memories_callback` in the Coordinator agent calls `add_events_to_memory()` with `wait_for_completion=True` to persist new information synchronously. Memories are scoped by `{user_id, app_name}`, so each user gets an isolated namespace. The router agent also integrates Memory Bank for cross-session continuity. No external database is needed — Agent Engine handles storage and retrieval natively.
 
 **Why does it matter?** — Stateless agents forget everything between sessions. Memory Bank transforms agents into persistent assistants that learn user preferences, remember booking history, and provide continuity — a requirement for any production agent that interacts with the same user more than once.
 
@@ -78,6 +86,8 @@ Quick reference for each component — what it is, how it works, and why it matt
 ---
 
 ## 5. Agent Gateway
+
+> **Official docs:** [Agent Gateway Ingress & Egress](https://cloud.google.com/products/agent-gateway)
 
 **What is it?** — A dual-mode network governance layer that controls both inbound access to agents (ingress) and outbound access from agents to external services (egress).
 
@@ -93,6 +103,8 @@ Quick reference for each component — what it is, how it works, and why it matt
 
 ## 6. Agent Identity (SPIFFE)
 
+> **Official docs:** [Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation)
+
 **What is it?** — A SPIFFE-based workload identity system that gives each deployed agent a cryptographic identity, eliminating the need for long-lived service account keys.
 
 **How does it work?** — The setup script creates a Workload Identity Pool, an OIDC provider, and service accounts with CEL-based attestation policies. When an agent runs on Cloud Run or GKE, the platform issues a short-lived OIDC token that maps to a SPIFFE ID. The identity federation layer validates the token against the attestation policy before granting access. Three identity types are defined: ID-1 (User) for human callers, ID-2 (Agent) for autonomous agent workloads, and ID-3 (Delegated) for agents acting on behalf of a user.
@@ -105,6 +117,8 @@ Quick reference for each component — what it is, how it works, and why it matt
 ---
 
 ## 7. Evaluation Pipeline
+
+> **Official docs:** [Vertex AI Agent Evaluation](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/evaluate) | [Workload Identity Federation for GitHub Actions](https://cloud.google.com/iam/docs/workload-identity-federation-with-deployment-pipelines#github-actions)
 
 **What is it?** — A three-tier evaluation system covering batch testing, continuous online monitoring, and CI/CD quality gates for the deployed agents.
 
@@ -124,6 +138,8 @@ Quick reference for each component — what it is, how it works, and why it matt
 
 ## 8. Model Armor
 
+> **Official docs:** [Model Armor Security Templates](https://cloud.google.com/security/products/model-armor)
+
 **What is it?** — A dual-layer content screening system that filters both inputs and outputs for responsible AI violations, prompt injection, jailbreak attempts, and PII leakage.
 
 **How does it work?** — The server-side layer uses Model Armor templates configured via `setup_model_armor.sh`, which define screening rules for RAI categories, prompt injection detection, jailbreak detection, and PII filtering. The client-side layer uses ADK guardrail callbacks: a `before_model_callback` screens user input before it reaches the model, and an `after_model_callback` screens model output before it reaches the user. Template resource names are stored in `.env` as `MODEL_ARMOR_PROMPT_TEMPLATE` and `MODEL_ARMOR_RESPONSE_TEMPLATE`. The armor module in `src/armor/config.py` wires these templates into the ADK callback system.
@@ -137,6 +153,8 @@ Quick reference for each component — what it is, how it works, and why it matt
 ---
 
 ## 9. Agent Registry
+
+> **Official docs:** [Agent Registry Overview](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-registry/overview)
 
 **What is it?** — A fleet catalog service for agent discovery, governance, and lifecycle management, allowing administrators to register, find, and control agents across the organization.
 
@@ -154,6 +172,8 @@ Quick reference for each component — what it is, how it works, and why it matt
 ---
 
 ## 10. GEPA Optimization
+
+> **Official docs:** [ADK Optimization & GEPA](https://google.github.io/adk-docs/optimize/)
 
 **What is it?** — Gemini Evolutionary Prompt Algorithm, an automated prompt engineering system that uses genetic algorithms to evolve better agent instructions over multiple generations.
 

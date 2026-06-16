@@ -2,6 +2,14 @@
 
 This guide walks you through setting up a complete observability and alerting pipeline for agents deployed on **Vertex AI Agent Engine (Reasoning Engine)**. It explains how to collect OpenTelemetry traces, evaluate agent runs using native **Online Evaluators**, sink traces/logs to **BigQuery**, bridge evaluation scores into **Cloud Monitoring**, and configure alerting thresholds to detect and report quality degradation.
 
+> **Official docs:**
+> - [Vertex AI Agent Engine (Reasoning Engine)](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/overview)
+> - [Online Evaluation Monitors](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/evaluate#online-evaluation)
+> - [Cloud Logging Sinks](https://cloud.google.com/logging/docs/export/configure_export_v2)
+> - [BigQuery](https://cloud.google.com/bigquery/docs)
+> - [Cloud Monitoring Custom Metrics](https://cloud.google.com/monitoring/custom-metrics)
+> - [Cloud Monitoring Alert Policies](https://cloud.google.com/monitoring/alerts)
+
 ---
 
 ## 🏛️ Pipeline Architecture
@@ -149,14 +157,19 @@ Here is the **Alerting Policies** dashboard showing an active quality alert in t
 
 ![Alert Dashboard showing helpfulness alert firing](./screenshots/session5_monitoring_alert_firing.png)
 
+When an alert fires, a notification is automatically dispatched to the configured notification channels (e.g., via email):
+
+![Email notification showing quality alert details](./screenshots/session5_email_alert.png)
+
 ---
 
 ## 🏁 Summary of Resources Set Up
 
 - **Logging Sink**: `geap-agent-traces` -> BQ Dataset `geap_workshop_logs`
 - **Online Evaluators**:
-  - `GEAP Coordinator Online Evaluator` targeting agent `629772222843584512`
-  - `GEAP Router Online Evaluator` targeting agent `4105988185220186112`
+  - `GEAP Coordinator Online Evaluator` targeting agent `3532905132637290496` (resolved via Agent Registry URN `urn:endpoint:projects-679926387543:projects:679926387543:locations:global:agentregistry:services:coordinator-agent`)
+  - `GEAP Router Online Evaluator` targeting agent `5972730230765256704` (resolved via Agent Registry URN `urn:endpoint:projects-679926387543:projects:679926387543:locations:global:agentregistry:services:router-agent`)
+
 - **Cloud Monitoring Alert Policies**:
   - `GEAP Workshop: helpfulness quality alert` (Threshold < 3.0)
   - `GEAP Workshop: tool_use_accuracy quality alert` (Threshold < 3.0)

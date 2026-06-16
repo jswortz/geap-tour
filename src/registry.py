@@ -9,7 +9,7 @@ Provides two modes:
 """
 
 import os
-from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, SseConnectionParams
+from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, StreamableHTTPConnectionParams
 
 from src.config import (
     SEARCH_MCP_URL,
@@ -29,11 +29,11 @@ _SERVER_URL_MAP = {
 
 
 def get_mcp_tools(server_name: str) -> MCPToolset:
-    """Return an MCPToolset for the given server, using SSE transport."""
+    """Return an MCPToolset for the given server, using StreamableHTTP transport."""
     url = _SERVER_URL_MAP.get(server_name)
     if not url:
         raise ValueError(
             f"Unknown MCP server: {server_name}. "
             f"Known: {list(_SERVER_URL_MAP)}"
         )
-    return MCPToolset(connection_params=SseConnectionParams(url=url))
+    return MCPToolset(connection_params=StreamableHTTPConnectionParams(url=url))

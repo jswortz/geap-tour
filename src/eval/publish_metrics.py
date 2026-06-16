@@ -90,7 +90,7 @@ def fetch_evaluation_logs(lookback_minutes: int = 60) -> list[dict]:
     timestamp_filter = cutoff.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     filter_str = (
-        f'resource.type="aiplatform.googleapis.com/ReasoningEngine" AND '
+        f'resource.type="aiplatform.googleapis.com/OnlineEvaluator" AND '
         f'labels."event.name"="gen_ai.evaluation.result" AND '
         f'timestamp >= "{timestamp_filter}"'
     )
@@ -145,7 +145,8 @@ def publish_metrics_to_monitoring(entries: list[dict]):
             print(f"Skipping invalid score value: {score_str}")
             continue
 
-        agent_id = entry.get("resource", {}).get("labels", {}).get("reasoning_engine_id", "unknown")
+        agent_resource_path = entry.get("labels", {}).get("agent_resource")
+        agent_id = agent_resource_path.split("/")[-1] if agent_resource_path else "unknown"
         
         # Parse timestamp from log entry
         log_ts_str = entry.get("timestamp")

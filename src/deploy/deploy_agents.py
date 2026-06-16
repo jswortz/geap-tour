@@ -52,14 +52,14 @@ def _build_gateway_config() -> dict | None:
     """Build the agent_gateway_config dict for agent_engines.create().
 
     Gateway attachment happens at deploy time via the config parameter,
-    not via post-deploy PATCH. The egress gateway must have a registries
-    link to the regional Agent Registry for agent discovery.
+    not via post-deploy PATCH.
     """
-    if not AGENT_GATEWAY_EGRESS_PATH:
-        return None
-    # Only egress (agent_to_anywhere_config) is used at deploy time.
-    # Ingress (client_to_agent_config) is handled by the gateway's registry link.
-    return {"agent_to_anywhere_config": {"agent_gateway": AGENT_GATEWAY_EGRESS_PATH}}
+    config = {}
+    if AGENT_GATEWAY_PATH:
+        config["client_to_agent_config"] = {"agent_gateway": AGENT_GATEWAY_PATH}
+    if AGENT_GATEWAY_EGRESS_PATH:
+        config["agent_to_anywhere_config"] = {"agent_gateway": AGENT_GATEWAY_EGRESS_PATH}
+    return config if config else None
 
 
 def _memory_service_builder():
@@ -111,7 +111,13 @@ def deploy_agent(agent, display_name: str | None = None) -> str:
         "extra_packages": ["src"],
     }
 
-    gateway_config = _build_gateway_config()
+    # Router agent contains sub-agents with third-party models (Claude via LiteLlm).
+    # Deploying it with AGENT_IDENTITY and no egress gateway blocks model verification calls during deployment.
+    # We bypass gateway attachment for the router agent since it's not the main user ingress.
+    if agent.name == "router_agent":
+        gateway_config = None
+    else:
+        gateway_config = _build_gateway_config()
     if gateway_config:
         config["agent_gateway_config"] = gateway_config
     # AGENT_IDENTITY gives SPIFFE credentials independent of gateway attachment.

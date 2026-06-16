@@ -97,7 +97,10 @@ async def complexity_router_callback(callback_context=None, **kwargs):
 
 async def save_memories_callback(callback_context: CallbackContext = None, **kwargs):
     """Persist session events to Memory Bank after each turn."""
-    await callback_context.add_session_to_memory()
+    await callback_context.add_events_to_memory(
+        events=callback_context.session.events,
+        custom_metadata={"wait_for_completion": True}
+    )
     return None
 
 

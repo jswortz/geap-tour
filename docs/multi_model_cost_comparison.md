@@ -10,6 +10,11 @@ This demo routes prompts by complexity to the most cost-effective model:
 - **Medium** (moderate reasoning) → Gemini 2.5 Flash ($0.15/M input)
 - **High** (deep analysis) → Claude Opus 4-7 via Vertex AI ($15/M input)
 
+> **Official docs:**
+> - [Gemini Models on Vertex AI](https://cloud.google.com/vertex-ai/generative-ai/docs/models/gemini)
+> - [Claude on Vertex AI](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude)
+> - [Vertex AI Pricing](https://cloud.google.com/vertex-ai/generative-ai/pricing)
+
 ## Architecture
 
 ```

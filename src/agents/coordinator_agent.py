@@ -4,6 +4,14 @@ Integrates Vertex AI Agent Engine Memory Bank so the agent remembers user
 interactions (past bookings, expense submissions, preferences) across sessions.
 """
 
+# Workaround for b/330372060 or pyOpenSSL SSL context mutation issue:
+try:
+    import urllib3.contrib.pyopenssl
+    urllib3.contrib.pyopenssl.extract_from_urllib3()
+except Exception:
+    pass
+
+
 from google.adk.agents import LlmAgent
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.tools.preload_memory_tool import PreloadMemoryTool
@@ -36,11 +44,14 @@ When delegating, briefly explain which specialist is handling their request.
 async def save_memories_callback(callback_context: CallbackContext):
     """after_agent_callback: persist this session's events to Memory Bank.
 
-    Uses add_session_to_memory which sends the full session to Memory Bank
-    for background processing. Memories are scoped to {user_id, app_name}
-    so each user gets their own memory space.
+    Uses add_events_to_memory with wait_for_completion=True to block
+    synchronously until memory extraction is complete. Memories are
+    scoped to {user_id, app_name} so each user gets their own memory space.
     """
-    await callback_context.add_session_to_memory()
+    await callback_context.add_events_to_memory(
+        events=callback_context.session.events,
+        custom_metadata={"wait_for_completion": True}
+    )
     return None
 
 

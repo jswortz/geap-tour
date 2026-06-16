@@ -124,3 +124,18 @@ resource.labels.gateway_type="SECURE_WEB_GATEWAY"
 Key fields: `httpRequest.status` (look for 403), `jsonPayload.authzPolicyInfo.policies.result` (overall AuthZ result), `httpRequest.requestUrl` (exact destination).
 
 **Fix:** This is almost always upstream — usually a missing or misconfigured Agent Registry entry, an `authz_policy` that doesn't target the gateway, or a recent platform-side change. Walk the registry-verification and authz-wiring steps in `field-manual.md`. The proxy's policy itself is Google-managed and derived from your registry/policy state; you don't edit it directly.
+
+---
+
+## 9. Egress Gateway proxy blocks bootstrap calls (b/512837903)
+
+**Symptom:**
+- ReasoningEngine deployment hangs or fails during creation.
+- Startup logs show timeout or connection refused errors when accessing external Google APIs or metadata service.
+- Disabling/commenting out the egress gateway config allows the agent to deploy and start.
+
+**Cause:**
+Under certain private preview setups, the egress gateway proxy fails to route bootstrap gRPC/HTTPS calls from the agent runtime container (including authentication metadata endpoints and Vertex AI backend APIs).
+
+**Mitigation:**
+Temporarily bypass the egress gateway routing by commenting out the `agentGatewayConfig.agentToAnywhereConfig` (egress gateway path) in the deployment configuration `.env` file (e.g. `AGENT_GATEWAY_EGRESS_PATH=""`), while keeping the ingress gateway (`CLIENT_TO_AGENT`) active.

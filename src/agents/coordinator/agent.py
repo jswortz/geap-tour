@@ -119,10 +119,14 @@ If the user asks about travel, direct them to the travel assistant.""",
 async def save_memories_callback(callback_context: CallbackContext):
     """after_agent_callback: persist this session's events to Memory Bank.
 
-    Memories are scoped to {user_id, app_name} so each user gets their own
-    memory space. The agent can recall past bookings, expenses, and preferences.
+    Uses add_events_to_memory with wait_for_completion=True to block
+    synchronously until memory extraction is complete. Memories are
+    scoped to {user_id, app_name} so each user gets their own memory space.
     """
-    await callback_context.add_session_to_memory()
+    await callback_context.add_events_to_memory(
+        events=callback_context.session.events,
+        custom_metadata={"wait_for_completion": True}
+    )
     return None
 
 

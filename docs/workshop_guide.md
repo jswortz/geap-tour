@@ -1056,7 +1056,7 @@ The traffic generator sends 20 single queries (tagged by complexity) plus 3 mult
 uv run python -m src.traffic.generate_traffic
 
 # Target a specific agent by ID
-uv run python -m src.traffic.generate_traffic 443583122819252224
+uv run python -m src.traffic.generate_traffic 3532905132637290496
 
 # Repeat the single-query set multiple times (memory convos always run once)
 uv run python -m src.traffic.generate_traffic --count 3
@@ -1087,7 +1087,10 @@ from google.adk.tools.preload_memory_tool import PreloadMemoryTool
 from google.adk.agents.callback_context import CallbackContext
 
 async def save_memories_callback(callback_context: CallbackContext, **kwargs):
-    await callback_context.add_session_to_memory()
+    await callback_context.add_events_to_memory(
+        events=callback_context.session.events,
+        custom_metadata={"wait_for_completion": True}
+    )
     return None
 
 agent = LlmAgent(
