@@ -92,10 +92,11 @@ def deploy_agent(agent, display_name: str | None = None) -> str:
 
     env_vars = {
         **OTEL_ENV_VARS,
+        "PYTHONPATH": "/code/src",
+        "GOOGLE_API_USE_CLIENT_CERTIFICATE": "false",
         "SEARCH_MCP_URL": SEARCH_MCP_URL,
         "BOOKING_MCP_URL": BOOKING_MCP_URL,
         "EXPENSE_MCP_URL": EXPENSE_MCP_URL,
-        "AGENT_ENGINE_ID": AGENT_ENGINE_ID,
         "OPUS_MODEL": OPUS_MODEL,
         "LITE_MODEL": LITE_MODEL,
         "FLASH_MODEL": FLASH_MODEL,
