@@ -28,7 +28,8 @@ uv run python src/deploy/deploy_agents.py all
 uv run python src/deploy/deploy_mcp_servers.py
 
 # Operations & Run-time setup
-uv run python -m src.traffic.generate_traffic               # Generate traffic
+uv run python -m src.traffic.generate_traffic               # Generate basic test traffic
+uv run python src/traffic/async_traffic_alerts.py           # Generate quality alert traffic & check metrics
 uv run python -m src.eval.setup_online_evaluators create    # Setup online evals
 uv run python -m src.eval.batch_eval                        # Run batch evaluation
 
