@@ -27,23 +27,32 @@ This guide walks you through setting up a complete observability and alerting pi
 
 ## 🛠️ Step 1: Deploy Agents with OpenTelemetry Enabled
 
-To enable OpenTelemetry tracing in your ADK agents, configure the Agent Engine deployment with the required environment variables (implemented in [deploy_agents.py](file:///usr/local/google/home/jwortz/geap-tour/src/deploy/deploy_agents.py)):
+To enable OpenTelemetry tracing in your ADK agents, configure the Agent Engine deployment with the required environment variables (defined in [config.py:L33-37](file:///usr/local/google/home/jwortz/geap-tour/src/config.py#L33-L37) and used in [deploy_agents.py:L93-113](file:///usr/local/google/home/jwortz/geap-tour/src/deploy/deploy_agents.py#L93-L113)):
 
 ```python
-# snippet from src/deploy/deploy_agents.py
+# snippet from src/config.py
 OTEL_ENV_VARS = {
+    "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true",
     "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
     "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY",
 }
 
-create_config = {
+# snippet from src/deploy/deploy_agents.py
+env_vars = {
+    **OTEL_ENV_VARS,
+    "PYTHONPATH": "/code/src",
+    # ...
+}
+
+config = {
+    "staging_bucket": f"gs://{GCP_STAGING_BUCKET}",
     "requirements": REQUIREMENTS,
-    "display_name": agent.name,
-    "env_vars": {**env_vars, **OTEL_ENV_VARS},
+    "display_name": display_name or agent.name,
+    "env_vars": env_vars,
     "extra_packages": ["src"],
 }
 
-remote = client.agent_engines.create(agent=agent, config=create_config)
+remote = client.agent_engines.create(agent=agent, config=config)
 ```
 
 Traces and logs will automatically flow to Cloud Logging.
@@ -67,27 +76,33 @@ To store logs and traces permanently in BigQuery, set up a **Logging Sink** poin
 
 Online Evaluators perform automated, LLM-as-a-judge assessments on your agent's live traces. 
 
-Create an Online Evaluator configuration (configured in [setup_online_evaluators.py](file:///usr/local/google/home/jwortz/geap-tour/src/eval/setup_online_evaluators.py)) specifying the target agent, predefined metrics, and your custom evaluation rubrics:
+Create an Online Evaluator configuration (configured in [_build_evaluator_config](file:///usr/local/google/home/jwortz/geap-tour/src/eval/setup_online_evaluators.py#L215-L234) within [setup_online_evaluators.py](file:///usr/local/google/home/jwortz/geap-tour/src/eval/setup_online_evaluators.py)) specifying the target agent, predefined metrics, and your custom evaluation rubrics:
 
 ```python
 # snippet from src/eval/setup_online_evaluators.py
-evaluator_config = {
-    "displayName": "GEAP Coordinator Online Evaluator",
-    "agentResource": "projects/PROJECT_NUMBER/locations/REGION/reasoningEngines/ENGINE_ID",
-    "metricSources": [
-        {"metric": {"predefinedMetricSpec": {"metricSpecName": "final_response_quality_v1"}}},
-        {"metric": {"predefinedMetricSpec": {"metricSpecName": "tool_use_quality_v1"}}},
-        {"metricResourceName": "projects/PROJECT_NUMBER/locations/REGION/evaluationMetrics/CUSTOM_METRIC_ID"}
-    ],
-    "config": {"randomSampling": {"percentage": 100}},
-    "cloudObservability": {
-        "traceScope": {},
-        "openTelemetry": {"semconvVersion": "1.39.0"}
+def _build_evaluator_config(
+    agent_label: str, engine_id: str, custom_metric_names: list[str]
+) -> dict:
+    metric_sources = [
+        {"metric": {"predefinedMetricSpec": {"metricSpecName": m}}}
+        for m in PREDEFINED_METRICS
+    ]
+    for name in custom_metric_names:
+        metric_sources.append({"metricResourceName": name})
+
+    return {
+        "displayName": f"GEAP {agent_label.title()} Online Evaluator",
+        "agentResource": _agent_resource(engine_id),
+        "metricSources": metric_sources,
+        "config": {"randomSampling": {"percentage": 100}},
+        "cloudObservability": {
+            "traceScope": {},
+            "openTelemetry": {"semconvVersion": "1.39.0"},
+        },
     }
-}
 ```
 
-Submit this configuration via the Vertex AI API to activate background evaluation.
+Submit this configuration via the Vertex AI API to activate background evaluation (implemented in [create_evaluators](file:///usr/local/google/home/jwortz/geap-tour/src/eval/setup_online_evaluators.py#L266-L295)).
 
 ---
 
@@ -147,20 +162,26 @@ Once registered, you can include the metric's resource name (URN) inside the Onl
 
 Online evaluation results are written to Cloud Logging as structured logs. To query and plot these scores in Cloud Monitoring, we use a Metric Publisher Bridge (implemented in [publish_metrics.py](file:///usr/local/google/home/jwortz/geap-tour/src/eval/publish_metrics.py)):
 
-1. Create a custom **Metric Descriptor** for each quality metric:
+1. Create a custom **Metric Descriptor** for each quality metric (implemented in [create_metric_descriptors](file:///usr/local/google/home/jwortz/geap-tour/src/eval/publish_metrics.py#L41-L82)):
    ```python
-   # custom.googleapis.com/agent_eval/helpfulness
-   descriptor = {
-       "type": "custom.googleapis.com/agent_eval/helpfulness",
-       "metric_kind": "GAUGE",
-       "value_type": "DOUBLE",
-       "description": "GEAP Evaluator score for helpfulness",
-       "display_name": "GEAP Agent Eval: helpfulness",
-       "labels": [{"key": "agent", "value_type": "STRING", "description": "Agent Resource ID"}]
-   }
-   client.create_metric_descriptor(name="projects/PROJECT_ID", metric_descriptor=descriptor)
+   # snippet from src/eval/publish_metrics.py
+        descriptor = {
+            "type": metric_type,
+            "metric_kind": "GAUGE",
+            "value_type": "DOUBLE",
+            "description": f"GEAP Evaluator score for {internal_name}",
+            "display_name": f"GEAP Agent Eval: {custom_name}",
+            "labels": [
+                {
+                    "key": "agent",
+                    "value_type": "STRING",
+                    "description": "Agent Resource ID"
+                }
+            ]
+        }
+        client.create_metric_descriptor(name=project_name, metric_descriptor=descriptor)
    ```
-2. Periodically query Cloud Logging for evaluation results (`labels."event.name"="gen_ai.evaluation.result"`) and write them to Cloud Monitoring using the TimeSeries API.
+2. Periodically query Cloud Logging for evaluation results (`labels."event.name"="gen_ai.evaluation.result"`) and write them to Cloud Monitoring using the TimeSeries API (implemented in [publish_metrics_to_monitoring](file:///usr/local/google/home/jwortz/geap-tour/src/eval/publish_metrics.py#L120-L188)).
 
 ---
 
@@ -192,28 +213,34 @@ To view it:
 
 ## 🚨 Step 6: Configure Quality Alert Policies
 
-To get notified when agent performance drops (e.g. below a score of `3.0` for 10 minutes), create a Cloud Monitoring Alert Policy (implemented in [quality_alerts.py](file:///usr/local/google/home/jwortz/geap-tour/src/eval/quality_alerts.py)):
+To get notified when agent performance drops (e.g. below a score of `3.0` for 10 minutes), create a Cloud Monitoring Alert Policy (implemented in [create_quality_alert](file:///usr/local/google/home/jwortz/geap-tour/src/eval/quality_alerts.py#L9-L53) within [quality_alerts.py](file:///usr/local/google/home/jwortz/geap-tour/src/eval/quality_alerts.py)):
 
 ```python
 # snippet from src/eval/quality_alerts.py
-policy = {
-    "displayName": "GEAP Workshop: helpfulness quality alert",
-    "combiner": "OR",
-    "conditions": [{
-        "displayName": "Helpfulness Quality Condition",
-        "conditionThreshold": {
-            "filter": 'metric.type="custom.googleapis.com/agent_eval/helpfulness" AND resource.type="global"',
-            "comparison": "COMPARISON_LT",
-            "thresholdValue": 3.0,
-            "duration": "600s", # 10 minutes
-            "aggregations": [{
-                "alignmentPeriod": "60s",
-                "perSeriesAligner": "ALIGN_MEAN"
-            }]
-        }
-    }],
-    "notificationChannels": ["projects/PROJECT_ID/notificationChannels/CHANNEL_ID"]
-}
+    condition = monitoring_v3.AlertPolicy.Condition(
+        display_name=f"Agent {metric_name} score below {threshold}",
+        condition_threshold=monitoring_v3.AlertPolicy.Condition.MetricThreshold(
+            filter=f'metric.type="custom.googleapis.com/agent_eval/{metric_name}" AND resource.type="global"',
+            comparison=monitoring_v3.ComparisonType.COMPARISON_LT,
+            threshold_value=threshold,
+            duration=duration_pb2.Duration(seconds=600),
+            aggregations=[
+                monitoring_v3.Aggregation(
+                    alignment_period=duration_pb2.Duration(seconds=600),
+                    per_series_aligner=monitoring_v3.Aggregation.Aligner.ALIGN_MEAN,
+                )
+            ],
+        ),
+    )
+
+    policy = monitoring_v3.AlertPolicy(
+        display_name=f"GEAP Workshop: {metric_name} quality alert",
+        # ...
+        conditions=[condition],
+        combiner=monitoring_v3.AlertPolicy.ConditionCombinerType.OR,
+        notification_channels=channels,
+        enabled=True,
+    )
 ```
 
 If the helpfulness metric remains below `3.0` for 10 consecutive minutes, an incident is created and notifications are dispatched.
