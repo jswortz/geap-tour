@@ -141,18 +141,20 @@ def _run_single_agent_eval(
     # Per-metric pass/fail
     metric_results = {}
     all_pass = True
-    for metric_name, value in summary.items():
+    metrics_dict = summary.get("metrics", summary)
+    for metric_name, value in metrics_dict.items():
         if isinstance(value, dict):
             avg = value.get("mean", value.get("average", 0))
         elif isinstance(value, (int, float)):
             avg = value
         else:
             avg = 0
-        passed = avg >= score_threshold
+        avg_scaled = avg * 5.0 if avg <= 1.0 else avg
+        passed = avg_scaled >= score_threshold
         if not passed:
             all_pass = False
         metric_results[metric_name] = {
-            "score": avg,
+            "score": avg_scaled,
             "threshold": score_threshold,
             "passed": passed,
         }

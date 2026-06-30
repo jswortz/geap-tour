@@ -110,15 +110,13 @@ def deploy_agent(agent, display_name: str | None = None) -> str:
         "display_name": display_name or agent.name,
         "env_vars": env_vars,
         "extra_packages": ["src"],
+        "labels": {"agent": "payroll", "org": "hr"},
     }
 
     # Router agent contains sub-agents with third-party models (Claude via LiteLlm).
     # Deploying it with AGENT_IDENTITY and no egress gateway blocks model verification calls during deployment.
     # We bypass gateway attachment for the router agent since it's not the main user ingress.
-    if agent.name == "router_agent":
-        gateway_config = None
-    else:
-        gateway_config = _build_gateway_config()
+    gateway_config = _build_gateway_config()
     if gateway_config:
         config["agent_gateway_config"] = gateway_config
     # AGENT_IDENTITY gives SPIFFE credentials independent of gateway attachment.
@@ -184,3 +182,39 @@ if __name__ == "__main__":
     print("\n=== Deployed Agent Resource Names ===")
     for name, resource in deployed.items():
         print(f"  {name}: {resource}")
+    
+    # Update .env file in-place
+    env_file = os.path.join(PROJECT_ROOT, ".env")
+    if os.path.exists(env_file):
+        updates = {}
+        for name, resource in deployed.items():
+            engine_id = os.path.basename(resource)
+            if name == "coordinator_agent":
+                updates["AGENT_ENGINE_ID"] = engine_id
+            elif name == "router_agent":
+                updates["ROUTER_ENGINE_ID"] = engine_id
+        
+        # Read lines
+        with open(env_file, "r") as f:
+            lines = f.readlines()
+            
+        new_lines = []
+        applied_keys = set()
+        for line in lines:
+            stripped = line.strip()
+            if stripped and not stripped.startswith("#") and "=" in stripped:
+                key = stripped.split("=", 1)[0].strip()
+                if key in updates:
+                    new_lines.append(f"{key}={updates[key]}\n")
+                    applied_keys.add(key)
+                    continue
+            new_lines.append(line)
+            
+        for key, val in updates.items():
+            if key not in applied_keys:
+                new_lines.append(f"{key}={val}\n")
+                
+        with open(env_file, "w") as f:
+            f.writelines(new_lines)
+            
+        print("  Updated agent engine IDs in .env")
