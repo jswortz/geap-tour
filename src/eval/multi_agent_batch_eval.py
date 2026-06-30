@@ -30,7 +30,6 @@ from src.config import (
 )
 from src.eval.agent_eval_configs import (
     ALL_AGENTS,
-    build_agent_info,
     get_eval_cases,
     get_metrics,
 )
@@ -68,7 +67,6 @@ def _run_single_agent_eval(
 ) -> dict:
     """Run batch evaluation for a single agent."""
     cases = get_eval_cases(agent_name)
-    agent_info = build_agent_info(agent_name)
     metrics = get_metrics(agent_name)
 
     print(f"\n{'─' * 60}")
@@ -141,22 +139,25 @@ def _run_single_agent_eval(
     except Exception as e:
         print(f"  Warning: could not extract summary metrics: {e}")
 
-    # Extract AVERAGE scores (keys like "agent_engine_0/safety_v1/AVERAGE")
-    # API returns scores on 0-1 scale; normalize threshold accordingly
-    normalized_threshold = score_threshold / 5.0
     metric_results = {}
     all_pass = True
-    for key, value in raw_metrics.items():
-        if "/AVERAGE" in key:
-            avg = float(value)
-            passed = avg >= normalized_threshold
-            if not passed:
-                all_pass = False
-            metric_results[key.rsplit("/AVERAGE", 1)[0]] = {
-                "score": avg,
-                "threshold": normalized_threshold,
-                "passed": passed,
-            }
+    metrics_dict = raw_metrics.get("metrics", raw_metrics)
+    for metric_name, value in metrics_dict.items():
+        if isinstance(value, dict):
+            avg = value.get("mean", value.get("average", 0))
+        elif isinstance(value, (int, float)):
+            avg = value
+        else:
+            avg = 0
+        avg_scaled = avg * 5.0 if avg <= 1.0 else avg
+        passed = avg_scaled >= score_threshold
+        if not passed:
+            all_pass = False
+        metric_results[metric_name] = {
+            "score": avg_scaled,
+            "threshold": score_threshold,
+            "passed": passed,
+        }
 
     # Per-item details
     items = []
@@ -182,7 +183,7 @@ def _run_single_agent_eval(
         "test_cases": len(cases),
         "inference_seconds": round(elapsed, 1),
         "metrics": metric_results,
-        "summary_raw": summary,
+        "summary_raw": raw_metrics,
         "evaluation_run_name": getattr(evaluation_run, "name", None),
         "item_count": len(items),
         "items": items,

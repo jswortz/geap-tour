@@ -113,6 +113,10 @@ create_sgp_policy() {
         msg=$(echo "$result" | python3 -c "import sys,json; print(json.load(sys.stdin)['error']['message'])" 2>/dev/null)
         local reason
         reason=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin)['error'].get('details',[]); print(next((x.get('reason','') for x in d if 'reason' in x), ''))" 2>/dev/null)
+        if [ "$reason" = "SEMANTIC_GOVERNANCE_POLICY_ALREADY_EXISTS" ]; then
+            ok "${label} (already exists)"
+            return 0
+        fi
         fail "${label} failed: ${reason:-$msg}"
         if [ "$reason" = "SEMANTIC_GOVERNANCE_POLICY_AGENT_NOT_CONFIGURED" ]; then
             warn "Agent is not attached to a gateway. The agentGatewayConfig private preview enrollment is required."
@@ -413,7 +417,7 @@ else
         # SGP requires agent registry format: projects/P/locations/L/agents/AGENT_ID
         AGENT_REGISTRY_NAME=$(gcloud alpha agent-registry agents list \
             --location=${REGION} --project=${PROJECT_ID} \
-            --format="value(name)" --filter="displayName:'GEAP Coordinator'" 2>/dev/null | head -1)
+            --format="value(name)" --filter="displayName:'coordinator_agent'" 2>/dev/null | head -1)
         if [ -z "$AGENT_REGISTRY_NAME" ]; then
             warn "Could not find agent in registry — policies may fail"
             AGENT_REGISTRY_NAME="projects/${PROJECT_ID}/locations/${REGION}/agents/PLACEHOLDER"
@@ -446,7 +450,7 @@ else
                 \"displayName\": \"Expense Amount Guardrail\",
                 \"description\": \"Enforce expense policy limits at the governance layer\",
                 \"agent\": \"${AGENT_REGISTRY_NAME}\",
-                \"mcpTools\": [{\"mcpServer\": \"expense-mcp\", \"tools\": [\"submit_expense\"]}],
+                \"mcpTools\": [{\"mcpServer\": \"${EXPENSE_SERVER}\", \"tools\": [\"submit_expense\"]}],
                 \"naturalLanguageConstraint\": \"Disallow expense submissions exceeding 200 dollars for the meals category. Disallow expense submissions exceeding 500 dollars for the entertainment category. Any expense over 1000 dollars in any category must be denied with a message to contact their manager for approval.\"
             }"
 
@@ -460,7 +464,7 @@ else
                 \"displayName\": \"Booking Confirmation Required\",
                 \"description\": \"Require user confirmation before finalizing bookings\",
                 \"agent\": \"${AGENT_REGISTRY_NAME}\",
-                \"mcpTools\": [{\"mcpServer\": \"booking-mcp\", \"tools\": [\"book_flight\"]}],
+                \"mcpTools\": [{\"mcpServer\": \"${BOOKING_SERVER}\", \"tools\": [\"book_flight\"]}],
                 \"naturalLanguageConstraint\": \"Always require explicit user confirmation before booking any flight. The agent must present the flight details including price, departure time, and airline to the user and receive a clear confirmation such as yes, confirm, or book it before calling the book_flight tool. If the user has not explicitly confirmed, the verdict should be ALLOW_IF_CONFIRMED.\"
             }"
 
@@ -598,7 +602,7 @@ run_cmd curl -s -X POST \
     "https://networkservices.googleapis.com/v1beta1/projects/${PROJECT_ID}/locations/${REGION}/authzExtensions?authzExtensionId=geap-iap-extension" \
     -H "Authorization: Bearer ${ACCESS_TOKEN}" \
     -H "Content-Type: application/json" \
-    -d '{"service":"iap.googleapis.com","failOpen":true,"timeout":"1s"}' \
+    -d '{"service":"iap.googleapis.com","failOpen":true,"timeout":"1s","metadata":{"iapPolicyVersion":"1"}}' \
     && ok "IAP authz extension created" \
     || warn "IAP authz extension creation failed (may already exist)"
 sleep 10
