@@ -18,17 +18,20 @@ EXPENSE_MCP_URL = os.environ.get("EXPENSE_MCP_URL", "https://expense-mcp-in2bk2m
 
 # Agent Registry — MCP server resource names (global location)
 AGENT_REGISTRY_LOCATION = os.environ.get("AGENT_REGISTRY_LOCATION", "us-central1")
-SEARCH_MCP_SERVER = os.environ["SEARCH_MCP_SERVER"]
-BOOKING_MCP_SERVER = os.environ["BOOKING_MCP_SERVER"]
-EXPENSE_MCP_SERVER = os.environ["EXPENSE_MCP_SERVER"]
+SEARCH_MCP_SERVER = os.environ.get(
+    "SEARCH_MCP_SERVER",
+    f"projects/{GCP_PROJECT_ID}/locations/{AGENT_REGISTRY_LOCATION}/agentRegistries/default/mcpServers/search-mcp"
+)
+BOOKING_MCP_SERVER = os.environ.get(
+    "BOOKING_MCP_SERVER",
+    f"projects/{GCP_PROJECT_ID}/locations/{AGENT_REGISTRY_LOCATION}/agentRegistries/default/mcpServers/booking-mcp"
+)
+EXPENSE_MCP_SERVER = os.environ.get(
+    "EXPENSE_MCP_SERVER",
+    f"projects/{GCP_PROJECT_ID}/locations/{AGENT_REGISTRY_LOCATION}/agentRegistries/default/mcpServers/expense-mcp"
+)
 
 # Fallback: map Agent Registry server names → Cloud Run URLs
-MCP_SERVER_URLS = {
-    SEARCH_MCP_SERVER: SEARCH_MCP_URL,
-    BOOKING_MCP_SERVER: BOOKING_MCP_URL,
-    EXPENSE_MCP_SERVER: EXPENSE_MCP_URL,
-}
-
 MCP_SERVER_URLS = {
     SEARCH_MCP_SERVER: SEARCH_MCP_URL,
     BOOKING_MCP_SERVER: BOOKING_MCP_URL,
