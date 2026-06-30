@@ -87,6 +87,22 @@ PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format="value(projectN
 RE_SA="service-${PROJECT_NUMBER}@gcp-sa-aiplatform-re.iam.gserviceaccount.com"
 ACCESS_TOKEN=$(gcloud auth print-access-token 2>/dev/null)
 
+# Construct trust domain / agent principal dynamically
+ORG_ID=$(gcloud projects get-ancestors "$PROJECT_ID" --format="value(id)" 2>/dev/null | tail -n 1)
+EFFECTIVE_IDENTITY=$(curl -s -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+  "https://${REGION}-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_ID}/locations/${REGION}/reasoningEngines" \
+  | python3 -c "import sys,json; r=json.load(sys.stdin); engines=r.get('reasoningEngines',[]); print(next((e.get('spec',{}).get('effectiveIdentity','') for e in engines if 'coordinator' in e.get('displayName','').lower()), '') if engines else '')" 2>/dev/null)
+
+if [[ -n "$EFFECTIVE_IDENTITY" ]]; then
+    AGENT_PRINCIPAL="principal://${EFFECTIVE_IDENTITY}"
+elif [[ -n "$ORG_ID" && "$ORG_ID" =~ ^[0-9]+$ ]]; then
+    AGENT_PRINCIPAL="principalSet://agents.global.org-${ORG_ID}.system.id.goog/attribute.platformContainer/aiplatform/projects/${PROJECT_NUMBER}"
+else
+    # Fallback to project-wide format if orgless/unknown
+    AGENT_PRINCIPAL="principalSet://agents.global.project-${PROJECT_NUMBER}.system.id.goog/attribute.platformContainer/aiplatform/projects/${PROJECT_NUMBER}"
+fi
+echo "Using Agent Principal: ${AGENT_PRINCIPAL}"
+
 SGP_FAILURES=0
 create_sgp_policy() {
     local label="$1"; shift
@@ -97,6 +113,10 @@ create_sgp_policy() {
         msg=$(echo "$result" | python3 -c "import sys,json; print(json.load(sys.stdin)['error']['message'])" 2>/dev/null)
         local reason
         reason=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin)['error'].get('details',[]); print(next((x.get('reason','') for x in d if 'reason' in x), ''))" 2>/dev/null)
+        if [ "$reason" = "SEMANTIC_GOVERNANCE_POLICY_ALREADY_EXISTS" ]; then
+            ok "${label} (already exists)"
+            return 0
+        fi
         fail "${label} failed: ${reason:-$msg}"
         if [ "$reason" = "SEMANTIC_GOVERNANCE_POLICY_AGENT_NOT_CONFIGURED" ]; then
             warn "Agent is not attached to a gateway. The agentGatewayConfig private preview enrollment is required."
@@ -209,21 +229,19 @@ step "Layer 1: IAM Allow Policies"
 # Policy 1: Coordinator → Search MCP (read-only)
 cat > /tmp/iam-policy-coordinator-search.json <<POLICY
 {
-  "policy": {
-    "bindings": [
-      {
-        "role": "roles/iap.egressor",
-        "members": [
-          "principal://${RE_SA}"
-        ],
-        "condition": {
-          "title": "Coordinator read-only search access",
-          "description": "GEAP Coordinator can only perform read-only operations on Search MCP",
-          "expression": "api.getAttribute('iap.googleapis.com/mcp.tool.isReadOnly', false) == true"
-        }
+  "bindings": [
+    {
+      "role": "roles/iap.egressor",
+      "members": [
+        "${AGENT_PRINCIPAL}"
+      ],
+      "condition": {
+        "title": "Coordinator read-only search access",
+        "description": "GEAP Coordinator can only perform read-only operations on Search MCP",
+        "expression": "api.getAttribute('iap.googleapis.com/mcp.tool.isReadOnly', false) == true"
       }
-    ]
-  }
+    }
+  ]
 }
 POLICY
 ok "IAM policy created: Coordinator → Search MCP (read-only)"
@@ -231,21 +249,19 @@ ok "IAM policy created: Coordinator → Search MCP (read-only)"
 # Policy 2: Travel Agent → Booking MCP (non-destructive)
 cat > /tmp/iam-policy-travel-booking.json <<POLICY
 {
-  "policy": {
-    "bindings": [
-      {
-        "role": "roles/iap.egressor",
-        "members": [
-          "principal://${RE_SA}"
-        ],
-        "condition": {
-          "title": "Travel agent booking access - no destructive ops",
-          "description": "Travel agent can use Booking MCP tools but cannot perform destructive operations",
-          "expression": "api.getAttribute('iap.googleapis.com/mcp.tool.isDestructive', false) == false"
-        }
+  "bindings": [
+    {
+      "role": "roles/iap.egressor",
+      "members": [
+        "${AGENT_PRINCIPAL}"
+      ],
+      "condition": {
+        "title": "Travel agent booking access - no destructive ops",
+        "description": "Travel agent can use Booking MCP tools but cannot perform destructive operations",
+        "expression": "api.getAttribute('iap.googleapis.com/mcp.tool.isDestructive', false) == false"
       }
-    ]
-  }
+    }
+  ]
 }
 POLICY
 ok "IAM policy created: Travel Agent → Booking MCP (non-destructive)"
@@ -253,27 +269,51 @@ ok "IAM policy created: Travel Agent → Booking MCP (non-destructive)"
 # Policy 3: Expense Agent → Expense MCP (specific tools only)
 cat > /tmp/iam-policy-expense-tools.json <<POLICY
 {
-  "policy": {
-    "bindings": [
-      {
-        "role": "roles/iap.egressor",
-        "members": [
-          "principal://${RE_SA}"
-        ],
-        "condition": {
-          "title": "Expense agent tool-level access",
-          "description": "Expense agent can only use submit_expense, check_policy, and get_expenses tools",
-          "expression": "api.getAttribute('iap.googleapis.com/mcp.toolName', '') in ['submit_expense', 'check_expense_policy', 'get_expenses'] && api.getAttribute('iap.googleapis.com/request.auth.type', '') == 'MCP'"
-        }
+  "bindings": [
+    {
+      "role": "roles/iap.egressor",
+      "members": [
+        "${AGENT_PRINCIPAL}"
+      ],
+      "condition": {
+        "title": "Expense agent tool-level access",
+        "description": "Expense agent can only use submit_expense, check_policy, and get_expenses tools",
+        "expression": "api.getAttribute('iap.googleapis.com/mcp.toolName', '') in ['submit_expense', 'check_expense_policy', 'get_expenses'] && api.getAttribute('iap.googleapis.com/request.auth.type', '') == 'MCP'"
       }
-    ]
-  }
+    }
+  ]
 }
 POLICY
 ok "IAM policy created: Expense Agent → Expense MCP (specific tools only)"
 
 info "Policy files written to /tmp/iam-policy-*.json"
-info "Apply with: gcloud beta iap web set-iam-policy <file.json> --project=${PROJECT_ID} --mcpServer=<server> --region=${REGION}"
+
+# Resolve MCP Server Resource IDs and apply policies
+SEARCH_SERVER=$(gcloud alpha agent-registry mcp-servers list --location="${REGION}" --project="${PROJECT_ID}" --format="value(name)" --filter="displayName:search-mcp" 2>/dev/null | head -n 1)
+BOOKING_SERVER=$(gcloud alpha agent-registry mcp-servers list --location="${REGION}" --project="${PROJECT_ID}" --format="value(name)" --filter="displayName:booking-mcp" 2>/dev/null | head -n 1)
+EXPENSE_SERVER=$(gcloud alpha agent-registry mcp-servers list --location="${REGION}" --project="${PROJECT_ID}" --format="value(name)" --filter="displayName:expense-mcp" 2>/dev/null | head -n 1)
+
+if [[ -n "$SEARCH_SERVER" ]]; then
+    SEARCH_ID=$(basename "$SEARCH_SERVER")
+    info "Applying IAM policy for Search MCP (${SEARCH_ID})..."
+    run_cmd gcloud beta iap web set-iam-policy /tmp/iam-policy-coordinator-search.json \
+        --project="${PROJECT_ID}" --region="${REGION}" --resource-type=agent-registry --mcp-server="${SEARCH_ID}" --quiet
+fi
+
+if [[ -n "$BOOKING_SERVER" ]]; then
+    BOOKING_ID=$(basename "$BOOKING_SERVER")
+    info "Applying IAM policy for Booking MCP (${BOOKING_ID})..."
+    run_cmd gcloud beta iap web set-iam-policy /tmp/iam-policy-travel-booking.json \
+        --project="${PROJECT_ID}" --region="${REGION}" --resource-type=agent-registry --mcp-server="${BOOKING_ID}" --quiet
+fi
+
+if [[ -n "$EXPENSE_SERVER" ]]; then
+    EXPENSE_ID=$(basename "$EXPENSE_SERVER")
+    info "Applying IAM policy for Expense MCP (${EXPENSE_ID})..."
+    run_cmd gcloud beta iap web set-iam-policy /tmp/iam-policy-expense-tools.json \
+        --project="${PROJECT_ID}" --region="${REGION}" --resource-type=agent-registry --mcp-server="${EXPENSE_ID}" --quiet
+fi
+
 echo ""
 
 # ─────────────────────────────────────────────────────────────
@@ -377,7 +417,7 @@ else
         # SGP requires agent registry format: projects/P/locations/L/agents/AGENT_ID
         AGENT_REGISTRY_NAME=$(gcloud alpha agent-registry agents list \
             --location=${REGION} --project=${PROJECT_ID} \
-            --format="value(name)" --filter="displayName:'GEAP Coordinator'" 2>/dev/null | head -1)
+            --format="value(name)" --filter="displayName:'coordinator_agent'" 2>/dev/null | head -1)
         if [ -z "$AGENT_REGISTRY_NAME" ]; then
             warn "Could not find agent in registry — policies may fail"
             AGENT_REGISTRY_NAME="projects/${PROJECT_ID}/locations/${REGION}/agents/PLACEHOLDER"
@@ -410,7 +450,7 @@ else
                 \"displayName\": \"Expense Amount Guardrail\",
                 \"description\": \"Enforce expense policy limits at the governance layer\",
                 \"agent\": \"${AGENT_REGISTRY_NAME}\",
-                \"mcpTools\": [{\"mcpServer\": \"expense-mcp\", \"tools\": [\"submit_expense\"]}],
+                \"mcpTools\": [{\"mcpServer\": \"${EXPENSE_SERVER}\", \"tools\": [\"submit_expense\"]}],
                 \"naturalLanguageConstraint\": \"Disallow expense submissions exceeding 200 dollars for the meals category. Disallow expense submissions exceeding 500 dollars for the entertainment category. Any expense over 1000 dollars in any category must be denied with a message to contact their manager for approval.\"
             }"
 
@@ -424,7 +464,7 @@ else
                 \"displayName\": \"Booking Confirmation Required\",
                 \"description\": \"Require user confirmation before finalizing bookings\",
                 \"agent\": \"${AGENT_REGISTRY_NAME}\",
-                \"mcpTools\": [{\"mcpServer\": \"booking-mcp\", \"tools\": [\"book_flight\"]}],
+                \"mcpTools\": [{\"mcpServer\": \"${BOOKING_SERVER}\", \"tools\": [\"book_flight\"]}],
                 \"naturalLanguageConstraint\": \"Always require explicit user confirmation before booking any flight. The agent must present the flight details including price, departure time, and airline to the user and receive a clear confirmation such as yes, confirm, or book it before calling the book_flight tool. If the user has not explicitly confirmed, the verdict should be ALLOW_IF_CONFIRMED.\"
             }"
 
@@ -562,7 +602,7 @@ run_cmd curl -s -X POST \
     "https://networkservices.googleapis.com/v1beta1/projects/${PROJECT_ID}/locations/${REGION}/authzExtensions?authzExtensionId=geap-iap-extension" \
     -H "Authorization: Bearer ${ACCESS_TOKEN}" \
     -H "Content-Type: application/json" \
-    -d '{"service":"iap.googleapis.com","failOpen":true,"timeout":"1s"}' \
+    -d '{"service":"iap.googleapis.com","failOpen":true,"timeout":"1s","metadata":{"iapPolicyVersion":"1"}}' \
     && ok "IAP authz extension created" \
     || warn "IAP authz extension creation failed (may already exist)"
 sleep 10

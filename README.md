@@ -28,10 +28,25 @@ A hands-on workshop demonstrating the full Gemini Enterprise Agent Platform (GEA
 | Document | Description |
 |----------|-------------|
 | [Workshop Guide](docs/workshop_guide.md) | Full 4-session hands-on walkthrough |
+| [Monitoring Guide](docs/monitoring_integration_guide.md) | Quality alerts and custom metrics bridge guide |
 | [Component FAQ](docs/faq.md) | What each component does and why it matters |
 | [Evaluation Guide](docs/eval_operations.md) | Evaluation pipeline operations |
 | [Cost Comparison](docs/multi_model_cost_comparison.md) | Multi-model routing cost analysis |
 | [Slides](docs/slides.pptx) | Workshop deck (34 slides) |
+
+## Reference Documentation
+
+For official product guides and SDK references:
+- [Agent Development Kit (ADK) Overview](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-development-kit/overview)
+- [Agent Engine (Agent Runtime)](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/overview)
+- [Model Context Protocol (MCP) on Vertex AI](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-development-kit/mcp-tools)
+- [Agent Gateway Ingress & Egress](https://cloud.google.com/products/agent-gateway)
+- [Model Armor Security Templates](https://cloud.google.com/security/products/model-armor)
+- [Cloud Monitoring Alerts](https://cloud.google.com/monitoring/alerts)
+- [Cloud Trace Overview](https://cloud.google.com/trace/docs)
+- [Vertex AI Agent Evaluation](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/evaluate)
+- [Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation)
+- [Agent Registry Overview](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-registry/overview)
 
 ## Quick Start
 
@@ -56,6 +71,30 @@ bash scripts/setup_governance_policies.sh
 bash scripts/setup_governance_policies.sh --sgp
 ```
 
+## Agent Ingress Routing & Registry
+
+Requests targeting deployed agents flow through a logical client URN mapped in the **Agent Registry** and governed by the **Agent Gateway**:
+
+1. **Logical Endpoint URN:**
+   `urn:endpoint:projects-679926387543:projects:679926387543:locations:global:agentregistry:services:coordinator-agent`
+   
+2. **Registry Mapping:**
+   If a Reasoning Engine is redeployed, the service's interface URL in the registry must be updated:
+   ```bash
+   gcloud alpha agent-registry services update coordinator-agent \
+     --location=global \
+     --project=wortz-project-352116 \
+     --interfaces=protocolBinding=HTTP_JSON,url=https://us-central1-aiplatform.googleapis.com/v1beta1/projects/wortz-project-352116/locations/us-central1/reasoningEngines/<ACTIVE_ENGINE_ID>
+   ```
+
+3. **Running the Traffic Simulator & Alert Verification:**
+   To test traffic routing, trigger evaluations, and verify Cloud Monitoring alert policies:
+   ```bash
+   # Generates bad/good traffic, polls logs, publishes custom metrics, checks alerts
+   PYTHONPATH=. uv run python src/traffic/async_traffic_alerts.py
+   ```
+
+
 ## Screenshots
 
 All screenshots are captured from real deployed GCP resources:
@@ -74,6 +113,8 @@ All screenshots are captured from real deployed GCP resources:
 | ![BigQuery Sink](docs/screenshots/session2_bigquery_sink.png) | Log Router sinks to BigQuery |
 | ![Policies](docs/screenshots/session3_policies_iam.png) | IAM Allow governance policies |
 | ![Business Policies](docs/screenshots/session3_business_policies.png) | Semantic Governance Policies (SGP) |
+| ![Metrics Explorer Out-of-Spec](docs/screenshots/session5_metrics_explorer_out_of_spec.png) | Cloud Monitoring Metrics Explorer showing evaluation scores drop |
+| ![Quality Alert Firing](docs/screenshots/session5_monitoring_alert_firing.png) | Cloud Monitoring Alerting Policy in FIRING state |
 
 ## Workshop Guide
 

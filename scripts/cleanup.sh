@@ -27,17 +27,7 @@ done
 
 # Delete Agent Engine instances
 echo "[2/4] Deleting Agent Engine instances..."
-AGENTS=$(gcloud ai agent-engines list \
-    --project="$PROJECT_ID" \
-    --region="$REGION" \
-    --format="value(name)" 2>/dev/null)
-
-if [[ -n "$AGENTS" ]]; then
-    echo "$AGENTS" | while read -r agent; do
-        echo "  Deleting $agent..."
-        gcloud ai agent-engines delete "$agent" --quiet 2>/dev/null || true
-    done
-fi
+uv run python scratch/delete_all_engines.py || echo "  Failed to delete agent engines, continuing."
 
 # Delete logging sink
 echo "[3/4] Deleting logging sink..."

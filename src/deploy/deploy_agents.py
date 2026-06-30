@@ -103,10 +103,11 @@ def _build_config(agent, display_name: str | None = None) -> dict:
         **OTEL_ENV_VARS,
         "GCP_PROJECT_ID": GCP_PROJECT_ID,
         "GCP_REGION": GCP_REGION,
+        "PYTHONPATH": "/code/src",
+        "GOOGLE_API_USE_CLIENT_CERTIFICATE": "false",
         "SEARCH_MCP_URL": SEARCH_MCP_URL,
         "BOOKING_MCP_URL": BOOKING_MCP_URL,
         "EXPENSE_MCP_URL": EXPENSE_MCP_URL,
-        "AGENT_ENGINE_ID": AGENT_ENGINE_ID,
         "OPUS_MODEL": OPUS_MODEL,
         "SONNET_MODEL": SONNET_MODEL,
         "PRO_MODEL": PRO_MODEL,
@@ -128,6 +129,7 @@ def _build_config(agent, display_name: str | None = None) -> dict:
         "display_name": display_name or agent.name,
         "env_vars": env_vars,
         "extra_packages": ["src"],
+        "labels": {"agent": "payroll", "org": "hr"},
     }
 
     if ENABLE_AGENT_IDENTITY:
@@ -135,7 +137,6 @@ def _build_config(agent, display_name: str | None = None) -> dict:
         print("  Identity: AGENT_IDENTITY (SPIFFE-based)")
     else:
         print("  Identity: default (set ENABLE_AGENT_IDENTITY=1 to enable)")
-
     gateway_config = _build_gateway_config()
     if gateway_config:
         config["agent_gateway_config"] = gateway_config
@@ -243,3 +244,39 @@ if __name__ == "__main__":
     print("\n=== Agent Resource Names ===")
     for name, resource in deployed.items():
         print(f"  {name}: {resource}")
+    
+    # Update .env file in-place
+    env_file = os.path.join(PROJECT_ROOT, ".env")
+    if os.path.exists(env_file):
+        updates = {}
+        for name, resource in deployed.items():
+            engine_id = os.path.basename(resource)
+            if name == "coordinator_agent":
+                updates["AGENT_ENGINE_ID"] = engine_id
+            elif name == "router_agent":
+                updates["ROUTER_ENGINE_ID"] = engine_id
+        
+        # Read lines
+        with open(env_file, "r") as f:
+            lines = f.readlines()
+            
+        new_lines = []
+        applied_keys = set()
+        for line in lines:
+            stripped = line.strip()
+            if stripped and not stripped.startswith("#") and "=" in stripped:
+                key = stripped.split("=", 1)[0].strip()
+                if key in updates:
+                    new_lines.append(f"{key}={updates[key]}\n")
+                    applied_keys.add(key)
+                    continue
+            new_lines.append(line)
+            
+        for key, val in updates.items():
+            if key not in applied_keys:
+                new_lines.append(f"{key}={val}\n")
+                
+        with open(env_file, "w") as f:
+            f.writelines(new_lines)
+            
+        print("  Updated agent engine IDs in .env")

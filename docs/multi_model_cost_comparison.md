@@ -3,6 +3,11 @@
 > Generated: 2026-05-27T21:07:11  
 > Rounds: 3 | Cases/round: 22 | Models evaluated: 5 | Judge: `gemini-2.5-pro`
 
+> **Official docs:**
+> - [Gemini Models on Vertex AI](https://cloud.google.com/vertex-ai/generative-ai/docs/models/gemini)
+> - [Claude on Vertex AI](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude)
+> - [Vertex AI Pricing](https://cloud.google.com/vertex-ai/generative-ai/pricing)
+
 ## Architecture
 
 ```

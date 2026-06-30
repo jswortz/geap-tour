@@ -16,7 +16,7 @@ from google.genai.types import GenerateContentConfig
 
 import os
 
-from .config import GCP_PROJECT_ID, GCP_REGION, CLASSIFIER_MODEL
+from .config import GCP_PROJECT_ID, CLASSIFIER_MODEL
 
 # Newer Gemini models (3.x) are only available via location=global
 CLASSIFIER_LOCATION = os.environ.get("CLASSIFIER_LOCATION", "global")

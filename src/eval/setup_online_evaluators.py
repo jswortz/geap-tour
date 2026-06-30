@@ -68,7 +68,16 @@ CUSTOM_METRICS = [
                     <prompt>{prompt}</prompt>
 
                     ## AI-generated Response
-                    <response>{response}</response>"""),
+                    <response>{response}</response>
+
+                    # Output Format
+                    You must output your evaluation in valid JSON format with two keys:
+                    - "score": a number from 1 to 5 representing the rating.
+                    - "explanation": a string explaining your reasoning.
+
+                    Do not output any markdown formatting (like ```json) or extra text outside the JSON object.
+                    Example output:
+                    {"score": 5, "explanation": "The agent completed the task perfectly."}"""),
             },
             "metadata": {
                 "title": "GEAP Task Quality",
@@ -116,7 +125,16 @@ CUSTOM_METRICS = [
                     <prompt>{prompt}</prompt>
 
                     ## AI-generated Response
-                    <response>{response}</response>"""),
+                    <response>{response}</response>
+
+                    # Output Format
+                    You must output your evaluation in valid JSON format with two keys:
+                    - "score": a number from 1 to 5 representing the rating.
+                    - "explanation": a string explaining your reasoning.
+
+                    Do not output any markdown formatting (like ```json) or extra text outside the JSON object.
+                    Example output:
+                    {"score": 5, "explanation": "The agent followed all rules."}"""),
             },
             "metadata": {
                 "title": "GEAP Policy Compliance",
@@ -321,8 +339,8 @@ def verify_evaluators():
         body = {
             "resourceNames": [f"projects/{GCP_PROJECT_ID}"],
             "filter": (
-                f'resource.type="aiplatform.googleapis.com/ReasoningEngine" '
-                f'resource.labels.reasoning_engine_id="{engine_id}" '
+                f'resource.type="aiplatform.googleapis.com/OnlineEvaluator" '
+                f'labels.agent_resource:"{engine_id}" '
                 f'labels."event.name"="gen_ai.evaluation.result"'
             ),
             "orderBy": "timestamp desc",

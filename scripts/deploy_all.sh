@@ -58,6 +58,8 @@ gcloud services enable \
     cloudresourcemanager.googleapis.com \
     monitoring.googleapis.com \
     networkservices.googleapis.com \
+    apphub.googleapis.com \
+    apptopology.googleapis.com \
     --project="$PROJECT_ID" --quiet
 ok "APIs enabled"
 
@@ -195,7 +197,7 @@ EXPENSE_MCP_URL=${EXPENSE_URL}/mcp
 MODEL_ARMOR_PROMPT_TEMPLATE=projects/${PROJECT_ID}/locations/${REGION}/templates/geap-workshop-prompt
 MODEL_ARMOR_RESPONSE_TEMPLATE=projects/${PROJECT_ID}/locations/${REGION}/templates/geap-workshop-response
 AGENT_GATEWAY_PATH=projects/${PROJECT_ID}/locations/${REGION}/agentGateways/geap-workshop-gateway
-AGENT_GATEWAY_EGRESS_PATH=projects/${PROJECT_ID}/locations/${REGION}/agentGateways/geap-workshop-gateway-egress
+AGENT_GATEWAY_EGRESS_PATH=
 
 # Agent Registry MCP server resource names (${REGION})
 SEARCH_MCP_SERVER=${SEARCH_MCP_SERVER}
@@ -213,15 +215,17 @@ ok ".env written"
 set -a && source .env && set +a
 
 echo "  Deploying agents to Agent Runtime (this takes 3-5 min per agent)..."
-AGENT_RESOURCE=$(uv run python -c "
-import vertexai
-vertexai.init(project='${PROJECT_ID}', location='${REGION}', staging_bucket='gs://${STAGING_BUCKET}')
-from src.deploy.deploy_agents import deploy_agent
-from src.agents.coordinator_agent import coordinator_agent
-name = deploy_agent(coordinator_agent)
-print(name)
-" 2>&1 | tail -1)
+uv run python src/deploy/deploy_agents.py all
+
+# Load updated environment variables from .env
+set -a
+source .env
+set +a
+
+AGENT_RESOURCE="projects/${PROJECT_ID}/locations/${REGION}/reasoningEngines/${AGENT_ENGINE_ID}"
+ROUTER_RESOURCE="projects/${PROJECT_ID}/locations/${REGION}/reasoningEngines/${ROUTER_ENGINE_ID}"
 ok "coordinator_agent deployed: $AGENT_RESOURCE"
+ok "router_agent deployed: $ROUTER_RESOURCE"
 
 # Extract engine ID and add to .env
 AGENT_ENGINE_ID=$(echo "$AGENT_RESOURCE" | grep -oP '\d+$')
@@ -233,18 +237,31 @@ ok "AGENT_ENGINE_ID=${AGENT_ENGINE_ID} added to .env"
 # ─── Step 9: Generate traffic and run evaluations ───────────────────
 step "9/11" "Generating traffic and running evaluations"
 echo "  Sending test queries to generate OTel traces..."
-set -a && source .env && set +a
-uv run python -m src.traffic.generate_traffic "$AGENT_RESOURCE" 2>&1 | tail -5 || warn "Some traffic queries had errors"
+uv run python -m src.traffic.generate_traffic "$AGENT_RESOURCE" --router 2>&1 | tail -10 || warn "Some traffic queries had errors"
 ok "Traffic generated"
 
-echo "  Running local evaluation..."
-uv run python -m src.eval.one_time_eval coordinator 1 2>&1 | tail -10 || warn "Eval had issues"
-ok "Local eval complete"
+echo "  Running one-time evaluation for coordinator..."
+uv run python -m src.eval.one_time_eval "$AGENT_RESOURCE" 2>&1 | tail -10 || warn "Coordinator eval had issues"
+echo "  Running one-time evaluation for router..."
+uv run python -m src.eval.one_time_eval "$ROUTER_RESOURCE" 2>&1 | tail -10 || warn "Router eval had issues"
+ok "One-time evals complete"
+
+
+# ─── Step 9: Register in Agent Registry ────────────────────────────
+step "9/11" "Registering agents and MCP servers in Agent Registry"
+if [[ -f scripts/register_agent_registry.sh ]]; then
+    bash scripts/register_agent_registry.sh 2>&1 | grep -E "(Registered|already|skipping|Done)" || warn "Agent Registry registration had warnings"
+    ok "Agent Registry configured"
+else
+    warn "No register_agent_registry.sh found — skipping"
+fi
 
 # ─── Step 10: Setup Governance Policies ────────────────────────────
 step "10/11" "Setting up governance policies (IAM Allow + SGP + Model Armor)"
-bash scripts/setup_governance_policies.sh 2>&1 | grep -E "(Layer|IAM|SGP|policy|Done)" || warn "Governance policy setup had warnings"
-ok "Governance policies configured"
+bash scripts/setup_governance_policies.sh --sgp 2>&1 | grep -E "(Layer|IAM|SGP|policy|Done)" || warn "Governance policy setup had warnings"
+echo "  Configuring endpoint IAM policies..."
+bash scripts/setup_endpoint_iam.sh 2>&1 | grep -E "(Applying|Done|No|Found|Fallback)" || warn "Endpoint IAM setup had warnings"
+ok "Governance and endpoint policies configured"
 
 # ─── Step 11: Verify CI/CD ─────────────────────────────────────────
 step "11/11" "Verifying CI/CD configuration"
