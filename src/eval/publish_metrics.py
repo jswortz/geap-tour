@@ -14,7 +14,7 @@ import google.auth
 import google.auth.transport.requests
 from google.cloud import monitoring_v3
 
-from src.config import GCP_PROJECT_ID, AGENT_ENGINE_ID, ROUTER_ENGINE_ID
+from src.config import GCP_PROJECT_ID, AGENT_ENGINE_ID
 
 # Define custom metrics mapping
 # Vertex AI Online Evaluator metric names -> Custom Metric names
@@ -126,7 +126,8 @@ def publish_metrics_to_monitoring(entries: list[dict]):
     project_name = f"projects/{GCP_PROJECT_ID}"
 
     published_count = 0
-    for entry in entries:
+    # Sort entries chronologically to prevent out-of-order metric rejection
+    for entry in sorted(entries, key=lambda x: x.get("timestamp", "")):
         elabels = entry.get("labels", {})
         eval_metric_name = elabels.get("gen_ai.evaluation.name")
         score_str = elabels.get("gen_ai.evaluation.score.value")
