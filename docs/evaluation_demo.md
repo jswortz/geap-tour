@@ -149,6 +149,12 @@ agents at 100% sampling:
 
 ![Online monitors (live console)](screenshots/eval_console_online_monitors.png)
 
+Every score becomes a Cloud Monitoring metric you can chart in **Metrics Explorer** or a dashboard
+(`custom.googleapis.com/agent_eval/*`, `online_evaluator/scores`). The GEAP quality dashboard below
+shows a simulated quality-drift decline:
+
+![GEAP quality metrics dashboard — Cloud Monitoring (live console)](screenshots/eval_console_metrics_dashboard.png)
+
 ---
 
 ## Phase 4 — Refinement: analyze failures, then optimize

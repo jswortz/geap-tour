@@ -556,6 +556,24 @@ coordinator and router agents at 100% sampling:
 
 ![Online monitors (live console)](screenshots/eval_console_online_monitors.png)
 
+### Metrics visibility — Metrics Explorer & dashboards
+
+Every evaluation score is exported as a **first-class Cloud Monitoring metric**, so you can chart,
+compare, and alert on model quality in **Metrics Explorer** and dashboards:
+
+- `aiplatform.googleapis.com/online_evaluator/scores` — emitted by Online Monitors.
+- `custom.googleapis.com/agent_eval/*` — `helpfulness`, `tool_use_accuracy`, `safety`,
+  `groundedness`, `geap_task_quality`, `policy_compliance`, `complexity_routing_accuracy`, bridged
+  from eval logs by [`src/eval/publish_metrics.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/publish_metrics.py).
+
+The bundled **"GEAP Agent Performance & Quality Dashboard"** charts these metrics — here showing a
+simulated quality-drift decline (feed it with `uv run python -m src.eval.publish_metrics [--simulate-out-of-spec]`):
+
+![GEAP quality metrics dashboard — Cloud Monitoring (live console)](screenshots/eval_console_metrics_dashboard.png)
+
+> Open ad hoc in **Monitoring → Metrics explorer** and query any `agent_eval/*` or
+> `online_evaluator/scores` metric; save charts to a dashboard for a persistent quality view.
+
 ### Evaluator Setup
 
 > **Source:** [`src/eval/setup_online_evaluators.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/setup_online_evaluators.py)

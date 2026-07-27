@@ -171,7 +171,8 @@
         <p class="sub">Online Monitors asynchronously score live traffic and export numeric scores to Cloud Monitoring — so you catch <b>quality drift</b> before users do.</p>
         <ul>
           <li><b>Online Monitors</b> — a ~10-min Query → Evaluate → Report loop with configurable sampling; results land in Logging + Monitoring.</li>
-          <li><b>Quality-drift alerts</b> — three paths: per-monitor policy, dashboard "Recommended Alerts", or programmatic <code>gcloud</code> / <code>monitoring_v3</code> on <code>online_evaluator/scores</code>.</li>
+          <li><b>Metrics Explorer &amp; dashboards</b> — every score is a first-class Cloud Monitoring metric (<code>agent_eval/*</code>, <code>online_evaluator/scores</code>) you can chart, compare &amp; share.</li>
+          <li><b>Quality-drift alerts</b> — per-monitor policy, dashboard "Recommended Alerts", or programmatic <code>gcloud</code> / <code>monitoring_v3</code>.</li>
         </ul>
         <div style="display:flex;gap:14px;flex-wrap:wrap">
           <a class="doclink" href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-online">Docs: Online monitors</a>
@@ -179,6 +180,7 @@
         </div>
         <div class="code-links">
           <a href="https://github.com/jswortz/geap-tour/blob/evaluations/src/eval/setup_online_evaluators.py">setup_online_evaluators.py</a>
+          <a href="https://github.com/jswortz/geap-tour/blob/evaluations/src/eval/publish_metrics.py">publish_metrics.py</a>
           <a href="https://github.com/jswortz/geap-tour/blob/evaluations/src/eval/quality_alerts.py">quality_alerts.py</a>
           <a href="https://github.com/jswortz/geap-tour/blob/evaluations/src/eval/policies/quality_drift_policy.yaml">policies/quality_drift_policy.yaml</a>
         </div>
@@ -186,8 +188,8 @@
       <div class="twoshot">
         <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="url">…/agent-evaluation › Online monitors</span></div>
           <img src="screenshots/eval_console_online_monitors.png" alt="Active online monitors"></div>
-        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="url">console.cloud.google.com/monitoring/alerting</span></div>
-          <img src="screenshots/eval_console_monitoring_alerts.png" alt="GEAP quality-drift alert policies"></div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="url">console.cloud.google.com/monitoring — GEAP quality dashboard</span></div>
+          <img src="screenshots/eval_console_metrics_dashboard.png" alt="GEAP quality metrics dashboard showing drift"></div>
       </div>
     </div>
   </section>
