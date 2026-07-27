@@ -1,9 +1,14 @@
 """Per-agent evaluation configs — test cases, AgentInfo builders, and metric selectors."""
 
+import os
 
 from vertexai import types
 
-from src.eval.batch_eval import EVAL_CASES as COORDINATOR_EVAL_CASES, POLICY_COMPLIANCE_METRIC
+from src.eval.batch_eval import (
+    EVAL_CASES as COORDINATOR_EVAL_CASES,
+    POLICY_COMPLIANCE_METRIC,
+    TOOL_USE_METRIC,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -432,12 +437,51 @@ def get_eval_cases(agent_name: str) -> list[dict]:
     return cases
 
 
-def get_metrics(agent_name: str) -> list:
-    """Return the appropriate evaluation metrics for the given agent."""
+def get_metrics(agent_name: str, include_custom: bool = True) -> list:
+    """Return the single-turn evaluation metrics for the given agent.
+
+    Base rubric metrics apply to every agent. Custom LLM/code metrics are added
+    per agent so the eval actually exercises the corporate-policy and tool-use
+    dimensions (previously imported but never wired in).
+
+    Set ``include_custom=False`` — or the ``GEAP_EVAL_BASE_ONLY`` env var — to
+    return only the base rubric metrics. CI uses this to keep the existing
+    pipeline's cost and PASS/FAIL behavior stable.
+    """
     base_metrics = [
         types.RubricMetric.FINAL_RESPONSE_QUALITY,
         types.RubricMetric.HALLUCINATION,
         types.RubricMetric.SAFETY,
     ]
 
-    return base_metrics
+    if not include_custom or os.environ.get("GEAP_EVAL_BASE_ONLY"):
+        return base_metrics
+
+    # Imported lazily to avoid a hard dependency at module import time.
+    from src.eval.metric_registry import CODE_POLICY_LIMIT_METRIC
+
+    custom_by_agent = {
+        "coordinator_agent": [POLICY_COMPLIANCE_METRIC, TOOL_USE_METRIC, CODE_POLICY_LIMIT_METRIC],
+        "expense_agent": [POLICY_COMPLIANCE_METRIC, TOOL_USE_METRIC, CODE_POLICY_LIMIT_METRIC],
+        "travel_agent": [TOOL_USE_METRIC],
+        "router_agent": [TOOL_USE_METRIC],
+    }
+    extra = [m for m in custom_by_agent.get(agent_name, []) if m is not None]
+    return base_metrics + extra
+
+
+def get_multi_turn_metrics(agent_name: str) -> list:
+    """Return multi-turn rubric metrics for user-simulator (multi-turn) evaluation.
+
+    Multi-turn autoraters (task success, tool-use quality, trajectory quality)
+    analyze the full conversation history rather than a single response. Used by
+    the simulated-eval path. See ``src/eval/metric_registry.py``.
+    """
+    from src.eval.metric_registry import MULTI_TURN_RUBRIC_METRICS
+
+    metrics = list(MULTI_TURN_RUBRIC_METRICS)
+    # SAFETY is meaningful across turns too; keep it if the SDK exposes it.
+    safety = getattr(types.RubricMetric, "SAFETY", None)
+    if safety is not None:
+        metrics.append(safety)
+    return metrics

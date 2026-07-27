@@ -44,6 +44,14 @@ OTEL_ENV_VARS = {
     "OTEL_TRACES_SAMPLER_ARG": "1.0",
     "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
     "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY",
+    # Multimodal media upload — required for offline evaluation over historical
+    # traces/sessions when inputs/outputs include images, audio, or video. The
+    # completion hook uploads message content to Cloud Storage (as JSONL) so the
+    # evaluation service can resolve it later. See:
+    # https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-offline
+    "OTEL_INSTRUMENTATION_GENAI_UPLOAD_FORMAT": "jsonl",
+    "OTEL_INSTRUMENTATION_GENAI_COMPLETION_HOOK": "upload",
+    "OTEL_INSTRUMENTATION_GENAI_UPLOAD_BASE_PATH": f"gs://{GCP_STAGING_BUCKET}/otel-genai",
 }
 
 AGENT_MODEL = os.environ.get("AGENT_MODEL", "gemini-3.5-flash")
