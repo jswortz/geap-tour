@@ -1,8 +1,9 @@
-"""Agent optimization — Python-native GEPA wrapper with ADK patches.
+"""Agent optimization — Python-native GEPA / SimplePromptOptimizer wrapper.
 
-Calls the GEPA optimizer API directly (not via subprocess) so we can
-patch ADK for MCP timeouts and pydantic extra fields before optimization
-runs. The CLI wrapper (`adk optimize`) can't apply these patches.
+Calls the ADK optimizer API directly (not via subprocess). The router evalsets
+carry ``expected_complexity`` at the eval-case top level (which ADK's ``EvalCase``
+permits via ``extra="allow"``) rather than inside a strict sub-model, so no
+runtime monkey-patching of ADK is required.
 
 Two optimizers are supported (the phase-3 "Optimize" step of the Quality
 Flywheel, see https://docs.cloud.google.com/gemini-enterprise-agent-platform/
@@ -27,75 +28,6 @@ import sys
 log = logging.getLogger(__name__)
 
 SAMPLER_CONFIG = os.path.join(os.path.dirname(__file__), "sampler_config.json")
-
-
-def _patch_adk():
-    """Apply ADK patches before optimization runs.
-
-    1. Patches pydantic models to accept extra fields (expected_complexity
-       in router evalsets, etc.)
-    2. Patches LocalEvalService to skip eval cases with None inferences
-       (MCP tool timeouts produce None instead of crashing len(None))
-    """
-    from google.adk.evaluation import eval_case as _ec, eval_set as _es
-    for _mod in (_ec, _es):
-        for _name in dir(_mod):
-            _cls = getattr(_mod, _name)
-            if isinstance(_cls, type) and hasattr(_cls, "model_config"):
-                try:
-                    if _cls.model_config.get("extra") == "forbid":
-                        _cls.model_config["extra"] = "ignore"
-                        _cls.__pydantic_complete__ = False
-                except (TypeError, AttributeError):
-                    pass
-    for _mod in (_ec, _es):
-        for _name in dir(_mod):
-            _cls = getattr(_mod, _name)
-            if isinstance(_cls, type) and hasattr(_cls, "model_rebuild"):
-                try:
-                    _cls.model_rebuild(force=True)
-                except Exception:
-                    pass
-
-    from google.adk.evaluation import local_eval_service as les
-
-    _orig = les.LocalEvalService._evaluate_single_inference_result
-
-    async def _patched(self, inference_result, evaluate_config):
-        if inference_result.inferences is None:
-            log.warning(
-                "Skipping eval case %s — inference returned None (MCP timeout)",
-                inference_result.eval_case_id,
-            )
-            from google.adk.evaluation.eval_result import EvalCaseResult, EvalStatus
-            return inference_result, EvalCaseResult(
-                eval_id=inference_result.eval_case_id,
-                eval_set_id=inference_result.eval_set_id,
-                final_eval_status=EvalStatus.NOT_EVALUATED,
-                overall_eval_metric_results=[],
-                eval_metric_result_per_invocation=[],
-                session_id="skipped",
-            )
-        return await _orig(self, inference_result=inference_result, evaluate_config=evaluate_config)
-
-    les.LocalEvalService._evaluate_single_inference_result = _patched
-
-    # Patch 3: LocalEvalSampler._extract_eval_data crashes with round(None)
-    # when a metric returns score=None (e.g. safety_v1 NOT_EVALUATED on Claude).
-    from google.adk.optimization import local_eval_sampler as sampler_mod
-
-    _orig_extract = sampler_mod.LocalEvalSampler._extract_eval_data
-
-    def _patched_extract(self, eval_set_id, eval_results):
-        for case_result in eval_results:
-            for inv in getattr(case_result, "eval_metric_result_per_invocation", []):
-                for mr in getattr(inv, "eval_metric_results", []):
-                    if mr.score is None:
-                        mr.score = 0.0
-        return _orig_extract(self, eval_set_id, eval_results)
-
-    sampler_mod.LocalEvalSampler._extract_eval_data = _patched_extract
-    log.info("ADK patches applied (extra fields + None inference + None score guard)")
 
 
 def _load_agent(agent_module_path: str):
@@ -137,12 +69,8 @@ def run_optimize(
     print(f"Sampler: {sampler_config_path}")
     print()
 
-    # Step 1: Apply ADK patches
-    print("[1/4] Applying ADK patches...")
-    _patch_adk()
-
-    # Step 2: Load agent and configs (shared by all optimizers)
-    print("[2/4] Loading agent and configs...")
+    # Step 1: Load agent and configs (shared by all optimizers)
+    print("[1/3] Loading agent and configs...")
     from google.adk.evaluation.local_eval_sets_manager import LocalEvalSetsManager
     from google.adk.optimization.local_eval_sampler import (
         LocalEvalSampler,
@@ -177,7 +105,7 @@ def run_optimize(
                 SimplePromptOptimizerConfig,
             )
 
-            print("[3/4] Running SimplePromptOptimizer (iterative prompt tuner)...")
+            print("[2/3] Running SimplePromptOptimizer (iterative prompt tuner)...")
             simple_config = SimplePromptOptimizerConfig(num_iterations=5, batch_size=10)
             optimization_result = asyncio.run(
                 SimplePromptOptimizer(simple_config).optimize(root_agent, sampler)
@@ -204,11 +132,11 @@ def run_optimize(
 
         gepa_optimizer = GEPARootAgentPromptOptimizer(optimizer_config)
 
-        print("[3/4] Running GEPA optimization (this may take 10-20 minutes)...")
+        print("[2/3] Running GEPA optimization (this may take 10-20 minutes)...")
         optimization_result = asyncio.run(gepa_optimizer.optimize(root_agent, sampler))
 
-    # Step 4: Output results
-    print("[4/4] Results")
+    # Step 3: Output results
+    print("[3/3] Results")
     print("=" * 80)
 
     if hasattr(optimization_result, "gepa_result"):

@@ -13,59 +13,6 @@ Usage:
     uv run python -m src.eval.simulated_eval <agent-resource-name> --load-from-agent
 """
 
-def _patch_evals_extra_fields():
-    """Patch two SDK bugs in google-cloud-aiplatform==1.152.0 that break the
-    simulated eval pipeline (generate_conversation_scenarios → run_inference → evaluate).
-
-    Tracked upstream: https://github.com/googleapis/python-aiplatform/issues/6785
-    Remove this function once the SDK is updated to fix both issues.
-
-    Bug 1 — ConversationTurn rejects extra fields from run_inference response:
-        The Vertex AI API returns turn data with fields (model_version, content,
-        id, timestamp, author, actions, invocation_id, etc.) that aren't defined
-        in the SDK's ConversationTurn pydantic model. Since the base class
-        (google.genai._common.BaseModel) sets extra='forbid', pydantic raises
-        ValidationError. Fix: set extra='ignore' so unknown fields are accepted
-        during parsing but excluded from model_dump(), preventing them from being
-        sent back to the evaluate API which also doesn't accept them.
-
-    Bug 2 — turn_index missing from agent engine response:
-        _process_multi_turn_agent_response (in _evals_common.py:1880) constructs
-        AgentData from raw turn dicts returned by the agent engine. These dicts
-        don't include turn_index. When the data is later sent to the evaluate API,
-        it fails with "Required field is not set" for turn_index on every turn.
-        Fix: inject turn_index based on list position before the SDK processes
-        the response.
-    """
-    from vertexai._genai.types import evals as evals_types
-
-    # Bug 1 fix: allow unknown fields through pydantic validation.
-    # __pydantic_complete__ = False forces model_rebuild to regenerate the
-    # cached validator, which otherwise ignores config changes.
-    ct = evals_types.ConversationTurn
-    ct.model_config["extra"] = "ignore"
-    ct.__pydantic_complete__ = False
-    ct.model_rebuild(force=True)
-    evals_types.AgentData.__pydantic_complete__ = False
-    evals_types.AgentData.model_rebuild(force=True)
-
-    # Bug 2 fix: inject turn_index into each turn dict before AgentData
-    # construction. The evaluate API requires this field but the agent engine
-    # response omits it.
-    from vertexai._genai import _evals_common
-
-    _orig_process = _evals_common._process_multi_turn_agent_response
-
-    def _patched_process(resp_item, agent_data_agents):
-        if isinstance(resp_item, list):
-            for i, turn in enumerate(resp_item):
-                if isinstance(turn, dict) and "turn_index" not in turn:
-                    turn["turn_index"] = i
-        return _orig_process(resp_item, agent_data_agents)
-
-    _evals_common._process_multi_turn_agent_response = _patched_process
-
-
 GENERATION_INSTRUCTIONS = {
     "coordinator_agent": (
         "Generate diverse scenarios covering: flight search, hotel booking, "
@@ -189,8 +136,6 @@ def run_simulated_eval(
             (e.g. MCP servers unavailable offline) fall back to
             ``build_agent_info``.
     """
-    _patch_evals_extra_fields()
-
     import vertexai
     from vertexai import Client, types
     from src.config import GCP_PROJECT_ID, GCP_REGION, FLASH_MODEL

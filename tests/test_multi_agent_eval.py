@@ -218,7 +218,7 @@ class TestRouterEvalsetComplexityLevels:
             data = json.load(f)
         levels = set()
         for case in data["eval_cases"]:
-            complexity = case["conversation"][0]["intermediate_data"].get("expected_complexity")
+            complexity = case.get("expected_complexity")
             if complexity:
                 levels.add(complexity)
         assert levels == {"low", "medium", "high"}, f"Missing complexity levels: {{'low', 'medium', 'high'}} - {levels}"
@@ -229,7 +229,7 @@ class TestRouterEvalsetComplexityLevels:
             data = json.load(f)
         counts = {"low": 0, "medium": 0, "high": 0}
         for case in data["eval_cases"]:
-            complexity = case["conversation"][0]["intermediate_data"].get("expected_complexity")
+            complexity = case.get("expected_complexity")
             if complexity in counts:
                 counts[complexity] += 1
         for level, count in counts.items():

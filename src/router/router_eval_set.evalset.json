@@ -3,6 +3,7 @@
   "eval_cases": [
     {
       "eval_id": "low_simple_flight",
+      "expected_complexity": "low",
       "conversation": [
         {
           "user_content": {
@@ -30,8 +31,7 @@
                   "destination": "JFK"
                 }
               }
-            ],
-            "expected_complexity": "low"
+            ]
           }
         }
       ],
@@ -42,6 +42,7 @@
     },
     {
       "eval_id": "low_meal_policy",
+      "expected_complexity": "low",
       "conversation": [
         {
           "user_content": {
@@ -68,8 +69,7 @@
                   "category": "meals"
                 }
               }
-            ],
-            "expected_complexity": "low"
+            ]
           }
         }
       ],
@@ -80,6 +80,7 @@
     },
     {
       "eval_id": "low_hotel_search",
+      "expected_complexity": "low",
       "conversation": [
         {
           "user_content": {
@@ -106,8 +107,7 @@
                   "city": "Miami"
                 }
               }
-            ],
-            "expected_complexity": "low"
+            ]
           }
         }
       ],
@@ -118,6 +118,7 @@
     },
     {
       "eval_id": "low_expense_submit",
+      "expected_complexity": "medium_low",
       "conversation": [
         {
           "user_content": {
@@ -147,8 +148,7 @@
                   "description": "coffee"
                 }
               }
-            ],
-            "expected_complexity": "medium_low"
+            ]
           }
         }
       ],
@@ -159,6 +159,7 @@
     },
     {
       "eval_id": "medium_compare_flights",
+      "expected_complexity": "medium_low",
       "conversation": [
         {
           "user_content": {
@@ -186,8 +187,7 @@
                   "destination": "JFK"
                 }
               }
-            ],
-            "expected_complexity": "medium_low"
+            ]
           }
         }
       ],
@@ -198,6 +198,7 @@
     },
     {
       "eval_id": "medium_hotel_policy_check",
+      "expected_complexity": "medium",
       "conversation": [
         {
           "user_content": {
@@ -230,8 +231,7 @@
                   "category": "lodging"
                 }
               }
-            ],
-            "expected_complexity": "medium"
+            ]
           }
         }
       ],
@@ -242,6 +242,7 @@
     },
     {
       "eval_id": "medium_expense_history_review",
+      "expected_complexity": "medium_low",
       "conversation": [
         {
           "user_content": {
@@ -268,8 +269,7 @@
                   "user_id": "EMP001"
                 }
               }
-            ],
-            "expected_complexity": "medium_low"
+            ]
           }
         }
       ],
@@ -280,6 +280,7 @@
     },
     {
       "eval_id": "medium_book_and_expense",
+      "expected_complexity": "medium",
       "conversation": [
         {
           "user_content": {
@@ -316,8 +317,7 @@
                   "description": "lunch"
                 }
               }
-            ],
-            "expected_complexity": "medium"
+            ]
           }
         }
       ],
@@ -328,6 +328,7 @@
     },
     {
       "eval_id": "high_team_trip_planning",
+      "expected_complexity": "high",
       "conversation": [
         {
           "user_content": {
@@ -373,8 +374,7 @@
                   "category": "entertainment"
                 }
               }
-            ],
-            "expected_complexity": "high"
+            ]
           }
         }
       ],
@@ -385,6 +385,7 @@
     },
     {
       "eval_id": "high_group_booking_comparison",
+      "expected_complexity": "medium_high",
       "conversation": [
         {
           "user_content": {
@@ -443,8 +444,7 @@
                   "category": "lodging"
                 }
               }
-            ],
-            "expected_complexity": "medium_high"
+            ]
           }
         }
       ],
@@ -455,6 +455,7 @@
     },
     {
       "eval_id": "high_expense_analysis",
+      "expected_complexity": "medium_high",
       "conversation": [
         {
           "user_content": {
@@ -496,8 +497,7 @@
                   "description": "lunch"
                 }
               }
-            ],
-            "expected_complexity": "medium_high"
+            ]
           }
         }
       ],
@@ -508,6 +508,7 @@
     },
     {
       "eval_id": "high_multi_city_optimization",
+      "expected_complexity": "high",
       "conversation": [
         {
           "user_content": {
@@ -559,8 +560,7 @@
                   "category": "meals"
                 }
               }
-            ],
-            "expected_complexity": "high"
+            ]
           }
         }
       ],
@@ -571,6 +571,7 @@
     },
     {
       "eval_id": "low_transport_policy",
+      "expected_complexity": "low",
       "conversation": [
         {
           "user_content": {
@@ -597,8 +598,7 @@
                   "category": "transport"
                 }
               }
-            ],
-            "expected_complexity": "low"
+            ]
           }
         }
       ],
@@ -609,6 +609,7 @@
     },
     {
       "eval_id": "low_flight_lax_ord",
+      "expected_complexity": "low",
       "conversation": [
         {
           "user_content": {
@@ -636,8 +637,7 @@
                   "destination": "ORD"
                 }
               }
-            ],
-            "expected_complexity": "low"
+            ]
           }
         }
       ],
@@ -648,6 +648,7 @@
     },
     {
       "eval_id": "low_hotel_chicago",
+      "expected_complexity": "low",
       "conversation": [
         {
           "user_content": {
@@ -674,8 +675,7 @@
                   "city": "Chicago"
                 }
               }
-            ],
-            "expected_complexity": "low"
+            ]
           }
         }
       ],
@@ -686,6 +686,7 @@
     },
     {
       "eval_id": "low_book_flight",
+      "expected_complexity": "medium_low",
       "conversation": [
         {
           "user_content": {
@@ -713,8 +714,7 @@
                   "passenger_name": "Charlie Davis"
                 }
               }
-            ],
-            "expected_complexity": "medium_low"
+            ]
           }
         }
       ],
@@ -725,6 +725,7 @@
     },
     {
       "eval_id": "medium_flight_and_hotel",
+      "expected_complexity": "medium_low",
       "conversation": [
         {
           "user_content": {
@@ -758,8 +759,7 @@
                   "city": "San Francisco"
                 }
               }
-            ],
-            "expected_complexity": "medium_low"
+            ]
           }
         }
       ],
@@ -770,6 +770,7 @@
     },
     {
       "eval_id": "medium_expense_over_limit_check",
+      "expected_complexity": "medium",
       "conversation": [
         {
           "user_content": {
@@ -804,8 +805,7 @@
                   "amount": 250
                 }
               }
-            ],
-            "expected_complexity": "medium"
+            ]
           }
         }
       ],
@@ -816,6 +816,7 @@
     },
     {
       "eval_id": "medium_hotel_comparison",
+      "expected_complexity": "medium_low",
       "conversation": [
         {
           "user_content": {
@@ -842,8 +843,7 @@
                   "city": "New York"
                 }
               }
-            ],
-            "expected_complexity": "medium_low"
+            ]
           }
         }
       ],
@@ -854,6 +854,7 @@
     },
     {
       "eval_id": "high_full_trip_budget",
+      "expected_complexity": "high",
       "conversation": [
         {
           "user_content": {
@@ -899,8 +900,7 @@
                   "category": "meals"
                 }
               }
-            ],
-            "expected_complexity": "high"
+            ]
           }
         }
       ],
@@ -911,6 +911,7 @@
     },
     {
       "eval_id": "high_expense_audit_and_submit",
+      "expected_complexity": "medium_high",
       "conversation": [
         {
           "user_content": {
@@ -952,8 +953,7 @@
                   "description": "office equipment"
                 }
               }
-            ],
-            "expected_complexity": "medium_high"
+            ]
           }
         }
       ],
