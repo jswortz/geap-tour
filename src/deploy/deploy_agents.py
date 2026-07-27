@@ -44,10 +44,10 @@ from src.config import (
 )
 
 REQUIREMENTS = [
-    "google-cloud-aiplatform[adk,agent-engines,evaluation]>=1.152.0",
-    "google-genai>=1.66.0",
+    "google-cloud-aiplatform[adk,agent-engines,evaluation]>=1.162.0",
+    "google-genai>=2.14.0",
     "google-auth>=2.52.0",
-    "google-adk[a2a,agent-identity]>=1.33.0",
+    "google-adk[a2a,agent-identity]>=2.5.0",
     "fastmcp>=2.0.0",
     "python-dotenv>=1.0.0",
     "litellm>=1.83.14",
