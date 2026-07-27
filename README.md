@@ -32,6 +32,7 @@ A hands-on workshop demonstrating the full Gemini Enterprise Agent Platform (GEA
 | [Component FAQ](docs/faq.md) | What each component does and why it matters |
 | [Evaluation Guide](docs/eval_operations.md) | Evaluation pipeline operations + **coverage matrix** for the GEAP Optimize → Evaluation docs |
 | [Evaluation Demo Walkthrough](docs/evaluation_demo.md) | End-to-end Quality Flywheel demo (100% doc coverage) — `python -m src.eval.demo.full_eval_demo` |
+| [Evaluation Slides](docs/eval_slides.html) | 5-slide Google Cloud–style teach-in on agent evals (real console screenshots + code deep links) |
 | [Cost Comparison](docs/multi_model_cost_comparison.md) | Multi-model routing cost analysis |
 | [Slides](docs/slides.pptx) | Workshop deck (34 slides) |
 
