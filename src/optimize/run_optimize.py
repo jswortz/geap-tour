@@ -4,8 +4,17 @@ Calls the GEPA optimizer API directly (not via subprocess) so we can
 patch ADK for MCP timeouts and pydantic extra fields before optimization
 runs. The CLI wrapper (`adk optimize`) can't apply these patches.
 
+Two optimizers are supported (the phase-3 "Optimize" step of the Quality
+Flywheel, see https://docs.cloud.google.com/gemini-enterprise-agent-platform/
+optimize/evaluation/optimize-agent):
+  - "gepa"   (default) — GEPARootAgentPromptOptimizer, evolutionary prompt search.
+  - "simple"           — google.adk.optimization.SimplePromptOptimizer, a lighter
+                         iterative tuner; falls back to GEPA if unavailable in the
+                         installed ADK version.
+
 Usage:
     uv run python -m src.optimize.run_optimize src/agents/coordinator
+    uv run python -m src.optimize.run_optimize src/agents/coordinator --optimizer simple
     uv run python -m src.optimize.run_optimize src/router --sampler-config src/optimize/router_sampler_config.json
 """
 
@@ -110,16 +119,20 @@ def run_optimize(
     sampler_config_path: str = SAMPLER_CONFIG,
     optimizer_config_path: str | None = None,
     print_detailed: bool = True,
+    optimizer: str = "gepa",
 ):
-    """Run GEPA optimization with ADK patches applied.
+    """Run prompt optimization with ADK patches applied.
 
     Args:
         agent_module_path: Path to the agent module directory.
         sampler_config_path: Path to LocalEvalSampler config JSON.
         optimizer_config_path: Optional GEPA optimizer config JSON.
         print_detailed: Print detailed results to console.
+        optimizer: Which optimizer to use — "gepa" (default) or "simple".
+            "simple" uses google.adk.optimization.SimplePromptOptimizer and
+            falls back to GEPA if that class is unavailable in the installed ADK.
     """
-    print("=== Agent Optimization (GEPA) ===")
+    print(f"=== Agent Optimization ({optimizer}) ===")
     print(f"Agent:   {agent_module_path}")
     print(f"Sampler: {sampler_config_path}")
     print()
@@ -128,13 +141,9 @@ def run_optimize(
     print("[1/4] Applying ADK patches...")
     _patch_adk()
 
-    # Step 2: Load agent and configs
+    # Step 2: Load agent and configs (shared by all optimizers)
     print("[2/4] Loading agent and configs...")
     from google.adk.evaluation.local_eval_sets_manager import LocalEvalSetsManager
-    from google.adk.optimization.gepa_root_agent_prompt_optimizer import (
-        GEPARootAgentPromptOptimizer,
-        GEPARootAgentPromptOptimizerConfig,
-    )
     from google.adk.optimization.local_eval_sampler import (
         LocalEvalSampler,
         LocalEvalSamplerConfig,
@@ -155,42 +164,76 @@ def run_optimize(
         print(f"  Overriding sampler app_name to '{app_name}'")
         sampler_config.app_name = app_name
 
-    if optimizer_config_path:
-        with open(optimizer_config_path, "r") as f:
-            optimizer_config = GEPARootAgentPromptOptimizerConfig.model_validate_json(f.read())
-    else:
-        optimizer_config = GEPARootAgentPromptOptimizerConfig()
-
     eval_sets_manager = LocalEvalSetsManager(agents_dir=agents_dir)
     sampler = LocalEvalSampler(sampler_config, eval_sets_manager)
-    optimizer = GEPARootAgentPromptOptimizer(optimizer_config)
 
     # Step 3: Run optimization
-    print("[3/4] Running GEPA optimization (this may take 10-20 minutes)...")
-    optimization_result = asyncio.run(optimizer.optimize(root_agent, sampler))
+    optimization_result = None
+
+    if optimizer == "simple":
+        try:
+            from google.adk.optimization import (
+                SimplePromptOptimizer,
+                SimplePromptOptimizerConfig,
+            )
+
+            print("[3/4] Running SimplePromptOptimizer (iterative prompt tuner)...")
+            simple_config = SimplePromptOptimizerConfig(num_iterations=5, batch_size=10)
+            optimization_result = asyncio.run(
+                SimplePromptOptimizer(simple_config).optimize(root_agent, sampler)
+            )
+        except ImportError:
+            print(
+                "  SimplePromptOptimizer is unavailable in the installed ADK "
+                "version; falling back to the GEPA optimizer."
+            )
+            optimizer = "gepa"
+
+    if optimization_result is None:
+        # GEPA path — the default, and the fallback when "simple" is unavailable.
+        from google.adk.optimization.gepa_root_agent_prompt_optimizer import (
+            GEPARootAgentPromptOptimizer,
+            GEPARootAgentPromptOptimizerConfig,
+        )
+
+        if optimizer_config_path:
+            with open(optimizer_config_path, "r") as f:
+                optimizer_config = GEPARootAgentPromptOptimizerConfig.model_validate_json(f.read())
+        else:
+            optimizer_config = GEPARootAgentPromptOptimizerConfig()
+
+        gepa_optimizer = GEPARootAgentPromptOptimizer(optimizer_config)
+
+        print("[3/4] Running GEPA optimization (this may take 10-20 minutes)...")
+        optimization_result = asyncio.run(gepa_optimizer.optimize(root_agent, sampler))
 
     # Step 4: Output results
     print("[4/4] Results")
     print("=" * 80)
 
-    best_idx = optimization_result.gepa_result["best_idx"]
-    best_agent = optimization_result.optimized_agents[best_idx]
+    if hasattr(optimization_result, "gepa_result"):
+        best_idx = optimization_result.gepa_result["best_idx"]
+        best_agent = optimization_result.optimized_agents[best_idx]
 
-    print("Optimized root agent instruction:")
-    print("-" * 80)
-    print(best_agent.optimized_agent.instruction)
-    print("-" * 80)
+        print("Optimized root agent instruction:")
+        print("-" * 80)
+        print(best_agent.optimized_agent.instruction)
+        print("-" * 80)
 
-    print(f"\nBest variant: {best_idx}")
-    best_scores = getattr(best_agent, "scores", getattr(best_agent, "score", None))
-    print(f"Scores: {best_scores}")
+        print(f"\nBest variant: {best_idx}")
+        best_scores = getattr(best_agent, "scores", getattr(best_agent, "score", None))
+        print(f"Scores: {best_scores}")
 
-    if print_detailed and hasattr(optimization_result, "gepa_result"):
-        gepa = optimization_result.gepa_result
-        print(f"\nGEPA details:")
-        print(f"  Generations: {gepa.get('num_generations', '?')}")
-        print(f"  Population size: {gepa.get('population_size', '?')}")
-        print(f"  Best index: {best_idx}")
+        if print_detailed:
+            gepa = optimization_result.gepa_result
+            print(f"\nGEPA details:")
+            print(f"  Generations: {gepa.get('num_generations', '?')}")
+            print(f"  Population size: {gepa.get('population_size', '?')}")
+            print(f"  Best index: {best_idx}")
+    else:
+        # SimplePromptOptimizer (or another optimizer) — result shape may differ.
+        print("Optimization result:")
+        print(optimization_result)
 
     print("\n✓ Optimization complete")
     return optimization_result
@@ -198,7 +241,32 @@ def run_optimize(
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    module_path = sys.argv[1] if len(sys.argv) > 1 else "src/agents/coordinator"
-    sampler = sys.argv[2] if len(sys.argv) > 2 else SAMPLER_CONFIG
-    optimizer = sys.argv[3] if len(sys.argv) > 3 else None
-    run_optimize(module_path, sampler, optimizer)
+
+    # Simple arg parsing: pull out `--optimizer {gepa,simple}` (also supports
+    # `--optimizer=simple`) while keeping the existing positional args working:
+    #   run_optimize.py [agent_module_path] [sampler_config] [optimizer_config]
+    _argv = sys.argv[1:]
+    optimizer_choice = "gepa"
+    positional: list[str] = []
+    _i = 0
+    while _i < len(_argv):
+        _arg = _argv[_i]
+        if _arg == "--optimizer" and _i + 1 < len(_argv):
+            optimizer_choice = _argv[_i + 1]
+            _i += 2
+            continue
+        if _arg.startswith("--optimizer="):
+            optimizer_choice = _arg.split("=", 1)[1]
+            _i += 1
+            continue
+        positional.append(_arg)
+        _i += 1
+
+    if optimizer_choice not in ("gepa", "simple"):
+        print(f"Unknown --optimizer '{optimizer_choice}'; using 'gepa'. (choices: gepa, simple)")
+        optimizer_choice = "gepa"
+
+    module_path = positional[0] if len(positional) > 0 else "src/agents/coordinator"
+    sampler_cfg = positional[1] if len(positional) > 1 else SAMPLER_CONFIG
+    optimizer_cfg = positional[2] if len(positional) > 2 else None
+    run_optimize(module_path, sampler_cfg, optimizer_cfg, optimizer=optimizer_choice)
