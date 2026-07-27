@@ -30,7 +30,8 @@ A hands-on workshop demonstrating the full Gemini Enterprise Agent Platform (GEA
 | [Workshop Guide](docs/workshop_guide.md) | Full 4-session hands-on walkthrough |
 | [Monitoring Guide](docs/monitoring_integration_guide.md) | Quality alerts and custom metrics bridge guide |
 | [Component FAQ](docs/faq.md) | What each component does and why it matters |
-| [Evaluation Guide](docs/eval_operations.md) | Evaluation pipeline operations |
+| [Evaluation Guide](docs/eval_operations.md) | Evaluation pipeline operations + **coverage matrix** for the GEAP Optimize → Evaluation docs |
+| [Evaluation Demo Walkthrough](docs/evaluation_demo.md) | End-to-end Quality Flywheel demo (100% doc coverage) — `python -m src.eval.demo.full_eval_demo` |
 | [Cost Comparison](docs/multi_model_cost_comparison.md) | Multi-model routing cost analysis |
 | [Slides](docs/slides.pptx) | Workshop deck (34 slides) |
 
@@ -109,6 +110,10 @@ All screenshots are captured from real deployed GCP resources:
 | ![Trace Spans](docs/screenshots/session2_agent_trace_spans.png) | Trace spans — individual trace view |
 | ![Model Armor](docs/screenshots/session4_model_armor.png) | Input/output screening |
 | ![Evaluation](docs/screenshots/session2_evaluation_pipeline.png) | Three-tier eval pipeline |
+| ![Coverage Matrix](docs/screenshots/eval_coverage_matrix.png) | 100% coverage of the GEAP Optimize → Evaluation docs |
+| ![Metric Registry](docs/screenshots/eval_metric_registry.png) | Metric Registry — predefined, custom LLM, custom code, exact-match |
+| ![Failure Clusters](docs/screenshots/eval_failure_clusters_taxonomy.png) | Failure clusters mapped to loss-pattern taxonomies |
+| ![Optimization](docs/screenshots/eval_optimization_before_after.png) | Prompt optimization before/after (Quality Flywheel) |
 | ![Agent Registry](docs/screenshots/session3_agent_registry_mcp.png) | MCP servers in Agent Registry |
 | ![BigQuery Sink](docs/screenshots/session2_bigquery_sink.png) | Log Router sinks to BigQuery |
 | ![Policies](docs/screenshots/session3_policies_iam.png) | IAM Allow governance policies |

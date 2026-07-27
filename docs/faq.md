@@ -184,12 +184,30 @@ remote = client.agent_engines.create(
 **Why does it matter?** — Deploying agents without evaluation is flying blind. This pipeline ensures quality at every stage — pre-deployment testing, real-time production monitoring, and automated regression detection — closing the loop between development and production.
 
 **Key files:**
-- `src/eval/one_time_eval.py` — Batch evaluation with PointwiseMetric rubrics
+- `src/eval/one_time_eval.py` — Batch evaluation with custom LLM-as-judge rubrics
 - `src/eval/batch_eval.py` — Extended batch evaluation (20 test cases, 11 categories)
 - `src/eval/setup_online_evaluators.py` — Native Online Evaluators with custom rubrics (create, list, verify, cleanup)
 - `src/eval/simulated_eval.py` — CI/CD eval gate (blocks PRs below score 3.0)
 - `.github/workflows/eval_ci.yaml` — GitHub Actions workflow for eval-on-PR
 - `src/eval/failure_clusters.py` — Failure pattern clustering and analysis
+
+**How do I run the full 100%-coverage demo?** — Run `uv run python -m src.eval.demo.full_eval_demo --agent-id $AGENT_ENGINE_ID`, or step through `src/eval/demo/evaluation_demo.ipynb`. It exercises every feature in Google's [Optimize → Evaluation](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/agent-evaluation) docs in flywheel order. See [`docs/evaluation_demo.md`](evaluation_demo.md) and the coverage matrix in [`docs/eval_operations.md` §0](eval_operations.md).
+
+**Reference-based vs reference-free metrics?** — Reference-based metrics (e.g. Exact Match, `types.Metric("exact_match")`) compare the response to a supplied reference answer. Reference-free metrics (the rubric metrics, `types.RubricMetric.*`, and custom `LLMMetric`s) judge the trace on its own with no ground truth. Both are demonstrated in `src/eval/metric_registry.py`.
+
+**Adaptive vs static rubrics?** — Adaptive rubrics (e.g. `FINAL_RESPONSE_QUALITY`, `TOOL_USE_QUALITY`) auto-generate per-case criteria from the agent config + prompt and return a pass/fail per criterion; static rubrics (e.g. `HALLUCINATION`, `SAFETY`) apply fixed criteria and return a single 0–1 score.
+
+**Offline (historical) vs re-inference eval?** — `batch_eval.py`/`multi_agent_batch_eval.py` run *fresh* inference and then score it. `offline_trace_eval.py` scores **already-recorded** Traces/Sessions retroactively (no new inference) — reading gen_ai OTel events from BigQuery, falling back to a bundled fixture. Use offline eval to grade production traffic; use batch eval for regression testing.
+
+**How do I add the AI-assistant eval skills?** — `npx skills add https://github.com/google/agents-cli --skill google-agents-cli-eval` and `npx skills add https://github.com/google/skills --skill agent-platform-eval-flywheel`.
+
+**New coverage files:**
+- `src/eval/demo/` — orchestrator + notebook covering all 9 doc pages
+- `src/eval/metric_registry.py` — Metric Registry (predefined + custom LLM + custom code + exact-match)
+- `src/eval/offline_trace_eval.py` — offline eval over historical traces/sessions
+- `src/eval/env_simulation.py` — environment simulation (tool-call mocking + error injection)
+- `src/eval/loss_taxonomy.py` — loss-pattern taxonomies + 3-level triage
+- `src/eval/sdk_optimize.py` + `src/eval/agents_cli_demo.sh` — SDK / agents-cli optimization
 
 ---
 
@@ -238,5 +256,9 @@ remote = client.agent_engines.create(
 
 **Why does it matter?** — Hand-tuning prompts is time-consuming and hard to do systematically. GEPA automates the search for better instructions, treating prompt engineering as an optimization problem rather than an art — producing measurably better agent behavior without manual iteration.
 
+**What about the SDK optimizer and non-GEPA options?** — The docs show an Agent Platform SDK call `client.optimizer.optimize(targets=["system_prompt"], benchmark=eval_result, tests=eval_dataset)`. That method is **not present** in the pinned `google-cloud-aiplatform`, so `src/eval/sdk_optimize.py` feature-detects it and transparently falls back to the ADK GEPA optimizer — the before/after run still completes. `run_optimize.py` also accepts `--optimizer simple` to use ADK's non-GEPA `SimplePromptOptimizer`. You can also drive optimization from an AI assistant via `agents-cli eval optimize` (see `src/eval/agents_cli_demo.sh`).
+
 **Key files:**
-- `src/optimize/run_optimize.py` — GEPA orchestration wrapper
+- `src/optimize/run_optimize.py` — GEPA orchestration wrapper (`--optimizer {gepa,simple}`)
+- `src/eval/sdk_optimize.py` — SDK optimizer wrapper with GEPA fallback (Quality Flywheel)
+- `src/eval/agents_cli_demo.sh` — `agents-cli eval` walkthrough (generate → grade → analyze → optimize)
