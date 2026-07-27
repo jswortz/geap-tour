@@ -21,6 +21,7 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.24.0",
+    "playwright>=1.40",
 ]
 
 [build-system]
@@ -38,4 +39,5 @@ testpaths = ["tests"]
 dev = [
     "pytest>=9.0.3",
     "ruff>=0.15.12",
+    "playwright>=1.40",
 ]
