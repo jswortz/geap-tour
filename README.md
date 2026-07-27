@@ -114,6 +114,10 @@ All screenshots are captured from real deployed GCP resources:
 | ![Metric Registry](docs/screenshots/eval_metric_registry.png) | Metric Registry — predefined, custom LLM, custom code, exact-match |
 | ![Failure Clusters](docs/screenshots/eval_failure_clusters_taxonomy.png) | Failure clusters mapped to loss-pattern taxonomies |
 | ![Optimization](docs/screenshots/eval_optimization_before_after.png) | Prompt optimization before/after (Quality Flywheel) |
+| ![Evaluation Console](docs/screenshots/eval_console_evaluation.png) | Agent Platform → Agents → Evaluation (Experiments / Metrics / Online monitors) |
+| ![Metrics Console](docs/screenshots/eval_console_metrics_tab.png) | Evaluation → Metrics — predefined + registered GEAP custom metrics |
+| ![Online Monitors Console](docs/screenshots/eval_console_online_monitors.png) | Evaluation → Online monitors — active continuous evaluators |
+| ![Alerting Console](docs/screenshots/eval_console_monitoring_alerts.png) | Cloud Monitoring → Alerting — GEAP quality-drift alert policies |
 | ![Agent Registry](docs/screenshots/session3_agent_registry_mcp.png) | MCP servers in Agent Registry |
 | ![BigQuery Sink](docs/screenshots/session2_bigquery_sink.png) | Log Router sinks to BigQuery |
 | ![Policies](docs/screenshots/session3_policies_iam.png) | IAM Allow governance policies |

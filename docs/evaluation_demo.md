@@ -64,6 +64,10 @@ uv run python -m src.eval.metric_registry list
 
 ![Metric registry](screenshots/eval_metric_registry.png)
 
+Live in the console (**Agent Platform → Agents → Evaluation → Metrics**):
+
+![Evaluation Metrics tab (live console)](screenshots/eval_console_metrics_tab.png)
+
 > **Adaptive vs static rubrics:** adaptive rubrics (e.g. `FINAL_RESPONSE_QUALITY`) auto-generate
 > per-case criteria from the agent config + prompt and return a pass/fail per criterion; static
 > rubrics (e.g. `SAFETY`, `HALLUCINATION`) apply fixed criteria and return a single 0–1 score.
@@ -139,6 +143,11 @@ uv run python -m src.eval.setup_online_evaluators verify
 
 ![Online monitor dashboard](screenshots/session5_metrics_explorer_out_of_spec.png)
 
+Live online monitors (**Evaluation → Online monitors**) — active on the coordinator and router
+agents at 100% sampling:
+
+![Online monitors (live console)](screenshots/eval_console_online_monitors.png)
+
 ---
 
 ## Phase 4 — Refinement: analyze failures, then optimize
@@ -206,6 +215,10 @@ gcloud monitoring policies create --policy-from-file=src/eval/policies/quality_d
 ```
 
 ![Quality drift alert](screenshots/eval_quality_drift_alert.png)
+
+Live in Cloud Monitoring → Alerting — the GEAP quality alert policies, all enabled:
+
+![Cloud Monitoring alert policies (live console)](screenshots/eval_console_monitoring_alerts.png)
 
 ---
 

@@ -84,7 +84,7 @@ def _install_hint() -> None:
     print("    #  or:  python -m playwright install chromium")
 
 
-def capture(no_wait: bool = False, only: str | None = None) -> int:
+def capture(no_wait: bool = False, only: str | None = None, poll_login: int = 0) -> int:
     if sync_playwright is None:
         _install_hint()
         return 1
@@ -125,6 +125,24 @@ def capture(no_wait: bool = False, only: str | None = None) -> int:
         if _looks_like_login(page.url):
             if no_wait:
                 print("  Not signed in and --no-wait set; screenshots may show the login page.")
+            elif poll_login > 0:
+                # Non-interactive: poll until the operator finishes signing in via
+                # VNC (the OAuth redirect changes the URL away from the sign-in
+                # page), or until the timeout elapses. No stdin needed.
+                print(
+                    f"\n  >>> Waiting up to {poll_login}s for Google sign-in via VNC "
+                    "(connect to localhost:5901 and log in)..."
+                )
+                waited = 0
+                while _looks_like_login(page.url) and waited < poll_login:
+                    page.wait_for_timeout(5000)
+                    waited += 5
+                    if waited % 30 == 0:
+                        print(f"    ...still waiting ({waited}s); current URL: {page.url[:80]}")
+                if _looks_like_login(page.url):
+                    print("  Sign-in not detected before timeout; capturing anyway.")
+                else:
+                    print(f"  Sign-in detected after ~{waited}s. Proceeding to capture.")
             else:
                 print(
                     "\n  >>> Please complete Google sign-in in the VNC session, "
@@ -179,12 +197,20 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Capture only the CONSOLE_TARGETS entry with this screenshot name.",
     )
+    parser.add_argument(
+        "--poll-login",
+        type=int,
+        default=0,
+        metavar="SECONDS",
+        help="Non-interactive: poll up to N seconds for sign-in via VNC instead of "
+        "waiting on ENTER (useful when run in the background).",
+    )
     args = parser.parse_args(argv)
 
     if args.display:
         os.environ["DISPLAY"] = args.display
 
-    return capture(no_wait=args.no_wait, only=args.targets_only)
+    return capture(no_wait=args.no_wait, only=args.targets_only, poll_login=args.poll_login)
 
 
 if __name__ == "__main__":

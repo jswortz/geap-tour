@@ -34,6 +34,12 @@ See **[evaluation_demo.md](evaluation_demo.md)** for the guided, screenshot-back
 
 ![GEAP Evaluation Coverage Matrix](screenshots/eval_coverage_matrix.png)
 
+The live surface in the Google Cloud Console — **Agent Platform → Agents → Evaluation**
+(`console.cloud.google.com/agent-platform/agent-evaluation`) — with its **Experiments**,
+**Metrics**, and **Online monitors** tabs:
+
+![Agent Platform — Evaluation console](screenshots/eval_console_evaluation.png)
+
 | # | Doc page | What it covers | Demonstrated by | Command |
 |---|----------|----------------|-----------------|---------|
 | 1 | [agent-evaluation](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/agent-evaluation) | Overview: 4 phases, 6-step loop, capabilities | `src/eval/demo/full_eval_demo.py`, [`evaluation_demo.md`](evaluation_demo.md) | `python -m src.eval.demo.full_eval_demo` |
@@ -547,6 +553,11 @@ adk eval_set generate_eval_cases src/agents/coordinator eval_set_coordinator_gen
 
 [Online evaluators](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/evaluate#online-evaluation) continuously score agent responses using [Cloud Trace](https://cloud.google.com/trace/docs/overview) OTel telemetry on a 10-minute cycle. Results appear in the Agent Engine Evaluation tab, [Cloud Logging](https://cloud.google.com/logging/docs/overview), and [Cloud Monitoring](https://cloud.google.com/monitoring/docs/monitoring-overview).
 
+Live online monitors in the console (**Evaluation → Online monitors**) — active monitors on the
+coordinator and router agents at 100% sampling:
+
+![Online monitors (live console)](screenshots/eval_console_online_monitors.png)
+
 ### Evaluator Setup
 
 > **Source:** [`src/eval/setup_online_evaluators.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/setup_online_evaluators.py)
@@ -908,6 +919,12 @@ distinction.
 
 ![Metric Registry](screenshots/eval_metric_registry.png)
 
+Live in the console (**Evaluation → Metrics**) — the predefined rubric metrics (single- and
+multi-turn) alongside the repo's registered custom metrics (`GEAP Task Quality`, `GEAP Policy
+Compliance`):
+
+![Evaluation Metrics tab (live console)](screenshots/eval_console_metrics_tab.png)
+
 | Metric type | SDK | Reference? | Example |
 |-------------|-----|-----------|---------|
 | Predefined rubric (adaptive) | `types.RubricMetric.FINAL_RESPONSE_QUALITY`, `TOOL_USE_QUALITY` | reference-free | auto-generates per-case criteria |
@@ -954,6 +971,14 @@ multi-turn conversation) retroactively — **no new inference**. This differs fr
 [§1 Batch Evaluations](#1-batch-evaluations), which re-runs inference.
 
 ![Offline Trace Evaluation](screenshots/eval_offline_trace.png)
+
+The deployed agents with **Telemetry collection: Enabled** (the OTel gen_ai signals offline eval
+reads), and the BigQuery log sink (`geap_workshop_logs`, `eval_rubric_results`, and the reasoning-
+engine tables) those traces land in:
+
+![Agent deployments — telemetry enabled (live console)](screenshots/eval_console_agent_engines.png)
+
+![BigQuery — geap_workshop_logs / eval_rubric_results (live console)](screenshots/eval_console_bigquery.png)
 
 It reads the gen_ai OpenTelemetry signals emitted by deployed agents:
 `gen_ai.agent.name/description`, `gen_ai.conversation.id`, and the
@@ -1042,6 +1067,11 @@ scores to Cloud Monitoring metric `aiplatform.googleapis.com/online_evaluator/sc
 (label `evaluation_metric_name`); alert policies fire when scores drop. Three creation paths:
 
 ![Quality Drift Alert](screenshots/eval_quality_drift_alert.png)
+
+Live in Cloud Monitoring → Alerting — the GEAP quality alert policies (`complexity_routing_accuracy`,
+`policy_compliance`, `tool_use_accuracy`, `helpfulness`), all enabled:
+
+![Cloud Monitoring alert policies (live console)](screenshots/eval_console_monitoring_alerts.png)
 
 1. **Per-monitor** — *Online monitors → ⋮ → Create alerting policy* in the console.
 2. **Recommended Alerts** — *Dashboard → Evaluation → Recommended Alerts*.
