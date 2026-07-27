@@ -32,8 +32,6 @@ jupyter notebook src/eval/demo/evaluation_demo.ipynb
 
 See **[evaluation_demo.md](evaluation_demo.md)** for the guided, screenshot-backed walkthrough.
 
-![GEAP Evaluation Coverage Matrix](screenshots/eval_coverage_matrix.png)
-
 The live surface in the Google Cloud Console — **Agent Platform → Agents → Evaluation**
 (`console.cloud.google.com/agent-platform/agent-evaluation`) — with its **Experiments**,
 **Metrics**, and **Online monitors** tabs:
@@ -917,8 +915,6 @@ The **Metric Registry** lets you define a metric once and reuse it across offlin
 monitors. This repo demonstrates all three metric types plus the reference-based/reference-free
 distinction.
 
-![Metric Registry](screenshots/eval_metric_registry.png)
-
 Live in the console (**Evaluation → Metrics**) — the predefined rubric metrics (single- and
 multi-turn) alongside the repo's registered custom metrics (`GEAP Task Quality`, `GEAP Policy
 Compliance`):
@@ -969,8 +965,6 @@ uv run python -m src.eval.metric_registry list        # list what's registered
 Offline evaluation scores **already-recorded** Traces (single execution path) or Sessions (full
 multi-turn conversation) retroactively — **no new inference**. This differs from
 [§1 Batch Evaluations](#1-batch-evaluations), which re-runs inference.
-
-![Offline Trace Evaluation](screenshots/eval_offline_trace.png)
 
 The deployed agents with **Telemetry collection: Enabled** (the OTel gen_ai signals offline eval
 reads), and the BigQuery log sink (`geap_workshop_logs`, `eval_rubric_results`, and the reasoning-
@@ -1041,8 +1035,6 @@ multi-turn metric retries with the single-turn set rather than aborting the run)
 doc's named **loss-pattern taxonomies** and surfaced through a **3-level triage**
 (summary metrics → failure clusters + taxonomy → individual traces).
 
-![Failure Clusters with Taxonomy](screenshots/eval_failure_clusters_taxonomy.png)
-
 | Taxonomy | Categories |
 |----------|-----------|
 | **Agent Task Success** (`multi_turn_task_success_v1`) | Hallucination · Instruction Following · Tool Calling · Tool Output Handling · Tool Quality |
@@ -1065,8 +1057,6 @@ In the notebook, `result.show()` and `loss_clusters.show()` render the interacti
 Quality **drift** is a slow score decline even with an unchanged model. Online Monitors export
 scores to Cloud Monitoring metric `aiplatform.googleapis.com/online_evaluator/scores`
 (label `evaluation_metric_name`); alert policies fire when scores drop. Three creation paths:
-
-![Quality Drift Alert](screenshots/eval_quality_drift_alert.png)
 
 Live in Cloud Monitoring → Alerting — the GEAP quality alert policies (`complexity_routing_accuracy`,
 `policy_compliance`, `tool_use_accuracy`, `helpfulness`), all enabled:
@@ -1094,8 +1084,6 @@ uv run python -m src.eval.quality_alerts drift task_success 0.8
 [`src/eval/agents_cli_demo.sh`](https://github.com/jswortz/geap-tour/blob/main/src/eval/agents_cli_demo.sh)
 
 The flywheel closes by refining root system instructions against the eval suite.
-
-![Optimization Before/After](screenshots/eval_optimization_before_after.png)
 
 ```bash
 # ADK GEPA (default) and the non-GEPA sequential optimizer

@@ -110,10 +110,6 @@ All screenshots are captured from real deployed GCP resources:
 | ![Trace Spans](docs/screenshots/session2_agent_trace_spans.png) | Trace spans — individual trace view |
 | ![Model Armor](docs/screenshots/session4_model_armor.png) | Input/output screening |
 | ![Evaluation](docs/screenshots/session2_evaluation_pipeline.png) | Three-tier eval pipeline |
-| ![Coverage Matrix](docs/screenshots/eval_coverage_matrix.png) | 100% coverage of the GEAP Optimize → Evaluation docs |
-| ![Metric Registry](docs/screenshots/eval_metric_registry.png) | Metric Registry — predefined, custom LLM, custom code, exact-match |
-| ![Failure Clusters](docs/screenshots/eval_failure_clusters_taxonomy.png) | Failure clusters mapped to loss-pattern taxonomies |
-| ![Optimization](docs/screenshots/eval_optimization_before_after.png) | Prompt optimization before/after (Quality Flywheel) |
 | ![Evaluation Console](docs/screenshots/eval_console_evaluation.png) | Agent Platform → Agents → Evaluation (Experiments / Metrics / Online monitors) |
 | ![Metrics Console](docs/screenshots/eval_console_metrics_tab.png) | Evaluation → Metrics — predefined + registered GEAP custom metrics |
 | ![Online Monitors Console](docs/screenshots/eval_console_online_monitors.png) | Evaluation → Online monitors — active continuous evaluators |

@@ -26,7 +26,7 @@ six-step loop. The demo executes the loop end-to-end:
 | **Scoring** | 4. Compute metrics | `metric_registry.py`, `agent_eval_configs.get_metrics` |
 | **Refinement** | 5. Analyze → 6. Optimize | `failure_clusters.py`, `loss_taxonomy.py`, `sdk_optimize.py`, `run_optimize.py` |
 
-![Coverage matrix](screenshots/eval_coverage_matrix.png)
+![Agent Platform — Evaluation console](screenshots/eval_console_evaluation.png)
 
 ---
 
@@ -62,9 +62,8 @@ uv run python -m src.eval.metric_registry register
 uv run python -m src.eval.metric_registry list
 ```
 
-![Metric registry](screenshots/eval_metric_registry.png)
-
-Live in the console (**Agent Platform → Agents → Evaluation → Metrics**):
+Live in the console — **Agent Platform → Agents → Evaluation → Metrics** (predefined rubric
+metrics plus the registered `GEAP Task Quality` / `GEAP Policy Compliance` custom metrics):
 
 ![Evaluation Metrics tab (live console)](screenshots/eval_console_metrics_tab.png)
 
@@ -87,7 +86,6 @@ GEAP supports three execution modes; the demo runs all three.
 uv run python -m src.eval.multi_agent_batch_eval --agents coordinator_agent
 ```
 
-![Batch scores](screenshots/eval_demo_batch_scores.png)
 
 ### 2b. Simulated (multi-turn) evaluation — scenario gen + user simulation
 📖 [evaluate-simulated](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-simulated)
@@ -120,7 +118,10 @@ agent — the `gen_ai.*` span/event attributes and, for multimodal, the media-up
 uv run python -m src.eval.offline_trace_eval coordinator_agent
 ```
 
-![Offline trace eval](screenshots/eval_offline_trace.png)
+The BigQuery log sink (`geap_workshop_logs`, `eval_rubric_results`) those historical traces are
+scored from — no new inference:
+
+![BigQuery log sink (live console)](screenshots/eval_console_bigquery.png)
 
 > **Console:** *Agent Platform → Agents → Evaluation → New evaluation →* pick the **Traces** or
 > **Sessions** tab, filter by version/time, and write results to a Cloud Storage bucket.
@@ -167,7 +168,6 @@ uv run python -m src.eval.failure_clusters $AGENT_ENGINE_ID
 In the notebook, `result.show()` and `loss_clusters.show()` render interactive score tables and
 cluster breakdowns.
 
-![Failure clusters with taxonomy](screenshots/eval_failure_clusters_taxonomy.png)
 
 ### 4b. Optimize — the flywheel closes
 📖 [optimize-agent](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/optimize-agent)
@@ -189,7 +189,6 @@ uv run python -m src.optimize.run_optimize src/agents/coordinator --optimizer si
 uv run python -m src.eval.sdk_optimize src/agents/coordinator
 ```
 
-![Optimization before/after](screenshots/eval_optimization_before_after.png)
 
 You can also drive the whole loop from an AI coding assistant via the **agents-cli** eval skill:
 
@@ -214,8 +213,6 @@ uv run python -m src.eval.quality_alerts export-yaml src/eval/policies/quality_d
 gcloud monitoring policies create --policy-from-file=src/eval/policies/quality_drift_policy.yaml
 ```
 
-![Quality drift alert](screenshots/eval_quality_drift_alert.png)
-
 Live in Cloud Monitoring → Alerting — the GEAP quality alert policies, all enabled:
 
 ![Cloud Monitoring alert policies (live console)](screenshots/eval_console_monitoring_alerts.png)
@@ -231,7 +228,6 @@ This project runs on a headless remote machine, so live GCP Console screenshots 
 bash scripts/vnc_setup.sh                 # start Xvfb :1 + fluxbox + x11vnc (port 5901)
 # connect a VNC viewer via: ssh -L 5901:localhost:5901 <host>  → localhost:5901, sign in once
 uv run python scripts/capture_eval_console.py   # captures the live Evaluation console pages
-uv run python scripts/capture_eval_screenshots.py  # renders the matrix + optimization artifacts
 ```
 
 All images land in [`docs/screenshots/`](screenshots) and are embedded above.

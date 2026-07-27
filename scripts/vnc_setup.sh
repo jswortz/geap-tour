@@ -127,9 +127,6 @@ cat <<EOF
   virtual framebuffer:
          DISPLAY=${DISPLAY_NUM} python3 scripts/capture_eval_console.py
      (or:  export DISPLAY=${DISPLAY_NUM}   then run the script)
-
-  HEADLESS HTML-render artifacts (no login needed):
-         python3 scripts/capture_eval_screenshots.py
 EOF
 
 exit 0

@@ -12,8 +12,7 @@ Prereqs (see scripts/vnc_setup.sh):
     # sign in to the GCP Console once in the VNC desktop
     DISPLAY=:1 python3 scripts/capture_eval_console.py
 
-Contrast with scripts/capture_eval_screenshots.py, which renders headless HTML
-mockups and needs no login. This script photographs the REAL console UI.
+This script photographs the REAL, authenticated console UI (no HTML mockups).
 """
 
 import argparse
