@@ -55,7 +55,8 @@ class RouterCostExecutor(AgentExecutor):
             await event_queue.enqueue_event(task)
         updater = TaskUpdater(event_queue, task.id, task.context_id)
         await updater.start_work()
-        await updater.add_artifact(_parts(summary, commands), name="router_cost_dashboard")
+        # Artifact name "response" matches the proven dg-ge-data-agent / party-store executors.
+        await updater.add_artifact(_parts(summary, commands), name="response")
         await updater.complete()
 
     async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:

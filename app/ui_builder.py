@@ -187,13 +187,14 @@ td.money{{text-align:right;font-variant-numeric:tabular-nums}} td.tot{{font-weig
 def build_cost_dashboard_command(acc: Accrual | None = None, height: int = 1180) -> List[dict]:
     """A2UI v0.8 command list: a Column root layout containing one WebFrameSrcdoc panel.
 
-    Mirrors party-store-ge-a2ui/app/tools.py::_screen exactly. Two GE requirements:
-      * the surfaceId must be "canvas-surface" — GE's side panel renders only that surface;
+    Mirrors the proven dg-ge-data-agent / party-store A2A executor. Two GE requirements:
+      * a descriptive per-screen surfaceId (the working agents use "inventory-status" etc.);
+        the ADK-plugin "canvas-surface" convention does NOT apply to this A2A/Cloud Run path.
       * the ``root`` must be a layout container (Column) whose ``explicitList`` children
         reference the WebFrame. A bare WebFrameSrcdoc root opens the panel but paints blank.
     """
     html_content = build_cost_dashboard_html(acc)
-    surface_id = "canvas-surface"
+    surface_id = "router-cost"
     components = [
         {"id": "root-layout", "component": {"Column": {"children": {"explicitList": ["panel"]}}}},
         {"id": "panel", "component": {"WebFrameSrcdoc": {
