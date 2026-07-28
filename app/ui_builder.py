@@ -9,7 +9,9 @@ Pure/stdlib only, so it renders identically in a headless screenshot and in Gemi
 """
 from __future__ import annotations
 
+import hashlib
 import html
+import os
 from typing import List
 
 from app.cost_model import Accrual, build_accrual
@@ -183,30 +185,64 @@ td.money{{text-align:right;font-variant-numeric:tabular-nums}} td.tot{{font-weig
 </div></body></html>"""
 
 
-# --- A2UI command wrapper (WebFrameSrcdoc) ---------------------------------
-def build_cost_dashboard_command(acc: Accrual | None = None, height: int = 1180) -> List[dict]:
-    """A2UI v0.8 command list: a Column root layout containing one WebFrameSrcdoc panel.
+# --- A2UI screen (native Image PNG + WebFrame for offline capture) ---------
+# Gemini Enterprise renders native A2UI components (Image/Text/Button) but does NOT display
+# inline WebFrameSrcdoc HTML in this Cloud Run deployment — its ``a2ui-web-frame-srcdoc`` element
+# receives the htmlContent but paints it empty. So the live GE canvas shows the dashboard as a
+# hosted PNG via the native Image component (rendered by scripts/render_router_panel.py and served
+# at /panels/router_cost.png). The WebFrameSrcdoc is still appended so the offline capture pipeline
+# can extract the pixel-perfect HTML. Mirrors dg-ge-data-agent/app/tools.py::_image_screen.
+_ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+_APP_URL = os.getenv(
+    "APP_URL", "https://geap-router-cost-ui-679926387543.us-east1.run.app"
+).rstrip("/")
+_PANEL_NAME = "router_cost.png"
 
-    Mirrors the proven dg-ge-data-agent / party-store A2A executor. Two GE requirements:
-      * a descriptive per-screen surfaceId (the working agents use "inventory-status" etc.);
-        the ADK-plugin "canvas-surface" convention does NOT apply to this A2A/Cloud Run path.
-      * the ``root`` must be a layout container (Column) whose ``explicitList`` children
-        reference the WebFrame. A bare WebFrameSrcdoc root opens the panel but paints blank.
+
+def _panel_version() -> str:
+    """Content hash of the served PNG, appended to the Image URL so GE busts its image cache
+    whenever the panel is re-rendered (GE caches panel images by URL)."""
+    h = hashlib.md5()
+    try:
+        with open(os.path.join(_ASSETS_DIR, _PANEL_NAME), "rb") as f:
+            h.update(f.read())
+    except OSError:
+        pass
+    return h.hexdigest()[:10]
+
+
+def _panel_url() -> str:
+    return f"{_APP_URL}/panels/{_PANEL_NAME}?v={_panel_version()}"
+
+
+def _image_comp(cid: str, url: str, alt: str = "", fit: str = "contain") -> dict:
+    """Native A2UI Image component. GE renders this from a hosted URL — used to show the full
+    branded router cost dashboard (pre-rendered to PNG) inside the GE canvas."""
+    return {"id": cid, "component": {"Image": {
+        "url": {"literalString": url}, "altText": {"literalString": alt}, "fit": fit}}}
+
+
+def build_cost_dashboard_command(acc: Accrual | None = None, height: int = 1080) -> List[dict]:
+    """A2UI v0.8 command list rendering the router cost dashboard in the GE canvas.
+
+    Emits a native Image (the hosted branded PNG) + a Refresh Button, and appends the
+    WebFrameSrcdoc panel for the offline capture pipeline. See the module note above for why
+    the live GE canvas uses the Image rather than the WebFrame.
     """
-    html_content = build_cost_dashboard_html(acc)
     surface_id = "router-cost"
-    # GE collapses a surface that holds ONLY an opaque WebFrame into an inert "Interactive
-    # content" chip; it renders the canvas inline when the Column also has a native component.
-    # The proven dg-ge-data-agent / party-store screens pair the WebFrame with a Button, so
-    # we do the same (a "Refresh" button that just re-renders the dashboard).
+    img_url = _panel_url()
+    html_content = build_cost_dashboard_html(acc)
     components = [
-        {"id": "root-layout", "component": {"Column": {"children": {"explicitList": ["panel", "refresh-btn"]}}}},
-        {"id": "panel", "component": {"WebFrameSrcdoc": {
-            "htmlContent": {"literalString": html_content}, "height": height}}},
+        {"id": "root-layout", "component": {"Column": {"children": {
+            "explicitList": ["hero-img", "refresh-btn", "panel"]}}}},
+        _image_comp("hero-img", img_url,
+                    "Router cost accrual: Smart Router vs all-Opus baseline", fit="contain"),
         {"id": "refresh-btn", "component": {"Button": {
             "child": "txt_refresh-btn", "primary": False, "action": {"name": "refresh"}}}},
         {"id": "txt_refresh-btn", "component": {"Text": {
             "text": {"literalString": "↻ Refresh cost dashboard"}, "usageHint": "body"}}},
+        {"id": "panel", "component": {"WebFrameSrcdoc": {
+            "htmlContent": {"literalString": html_content}, "height": height}}},
     ]
     return [
         {"beginRendering": {"surfaceId": surface_id, "root": "root-layout"}},

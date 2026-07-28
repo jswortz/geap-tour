@@ -15,6 +15,7 @@ from a2a.server.tasks import InMemoryTaskStore
 from a2a.types import AgentCapabilities, AgentExtension, AgentSkill
 from a2a.utils.constants import AGENT_CARD_WELL_KNOWN_PATH
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from vertexai.preview.reasoning_engines.templates.a2a import create_agent_card
 
 from app.agent_executor import RouterCostExecutor
@@ -88,6 +89,14 @@ _a2a_app.add_routes_to_app(
     agent_card_url=f"{RPC_PATH}{AGENT_CARD_WELL_KNOWN_PATH}",
     rpc_url=RPC_PATH,
 )
+
+
+# Serve the pre-rendered branded dashboard PNG(s). Gemini Enterprise displays these via the native
+# Image component in the A2UI canvas (it does not render inline WebFrameSrcdoc HTML). Rendered by
+# scripts/render_router_panel.py and shipped in app/assets/.
+_ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+if os.path.isdir(_ASSETS_DIR):
+    app.mount("/panels", StaticFiles(directory=_ASSETS_DIR), name="panels")
 
 
 @app.get("/healthz")
