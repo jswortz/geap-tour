@@ -19,7 +19,13 @@ gcloud services enable run.googleapis.com cloudbuild.googleapis.com \
   artifactregistry.googleapis.com aiplatform.googleapis.com discoveryengine.googleapis.com \
   --project="$PROJECT_ID"
 
-echo "=== 2. Stage lean app + deploy to Cloud Run (${SERVICE}) ==="
+echo "=== 2. Render the branded dashboard PNG (GE canvas shows this via native Image) ==="
+# GE does not render inline WebFrameSrcdoc HTML, so the canvas displays app/assets/router_cost.png.
+# Re-render it so the deployed image reflects the current dashboard/cost model.
+uv run --with playwright python "$REPO_ROOT/scripts/render_router_panel.py" || \
+  echo "  (render skipped — keeping the committed app/assets/router_cost.png)"
+
+echo "=== 3. Stage lean app + deploy to Cloud Run (${SERVICE}) ==="
 STAGE="$(mktemp -d)"
 cp -r "$REPO_ROOT/app" "$STAGE/app"
 cp "$REPO_ROOT/deploy/router_ui/Procfile" "$REPO_ROOT/deploy/router_ui/requirements.txt" \
@@ -33,7 +39,7 @@ gcloud run deploy "$SERVICE" \
   --quiet
 rm -rf "$STAGE"
 
-echo "=== 3. Register the Cloud Run card in Gemini Enterprise ==="
+echo "=== 4. Register the Cloud Run card in Gemini Enterprise ==="
 ROUTER_UI_APP_URL="$APP_URL" GEMINI_ENTERPRISE_PROJECT="$PROJECT_ID" \
   uv run python "$REPO_ROOT/scripts/register_router_ui_agent.py" || {
     echo "Registration via API failed — add the agent in the GE console (see script output)."; }
