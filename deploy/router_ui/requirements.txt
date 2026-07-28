@@ -1,7 +1,11 @@
-# Lean Cloud Run image for the Router Cost Visualizer A2A/A2UI service.
-# (ui_builder + cost_model are pure stdlib; these cover the A2A server + agent card.)
+# Lean Cloud Run image for the live Router Cost Visualizer A2A/A2UI service.
+# A2A server + agent card:
 a2a-sdk[http-server]==0.3.26
 fastapi>=0.115
 uvicorn[standard]>=0.30
 google-cloud-aiplatform>=1.162.0
 requests>=2.32
+# Live per-prompt routing + real model execution (classifier + Gemini tiers via genai,
+# Claude tiers via Vertex Model Garden). No ADK / litellm needed.
+google-genai>=1.14.0
+anthropic[vertex]>=0.40

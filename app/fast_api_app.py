@@ -15,7 +15,6 @@ from a2a.server.tasks import InMemoryTaskStore
 from a2a.types import AgentCapabilities, AgentExtension, AgentSkill
 from a2a.utils.constants import AGENT_CARD_WELL_KNOWN_PATH
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
 from vertexai.preview.reasoning_engines.templates.a2a import create_agent_card
 
 from app.agent_executor import RouterCostExecutor
@@ -35,18 +34,22 @@ A2UI_CATALOG_ID = "https://a2ui.org/specification/v0_8/standard_catalog_definiti
 def _build_agent_card():
     skill = AgentSkill(
         id="visualize_router_cost",
-        name="Multi-Model Router Cost Visualizer",
-        description="Visualizes how the complexity router accrues cost per prompt and the savings vs an all-frontier (all-Opus) baseline.",
-        tags=["router", "cost", "finops", "multi-model", "evaluation"],
+        name="Live Multi-Model Router Cost Visualizer",
+        description="Classifies each prompt you send, routes it to the cheapest capable model tier, "
+                    "actually runs it, and charts the real token cost vs an all-Opus baseline — with a "
+                    "tab that teaches the routing scoring logic.",
+        tags=["router", "cost", "finops", "tokenomics", "multi-model"],
         examples=[
-            "Show router cost accrual",
-            "How much does the smart router save vs all-Opus?",
-            "Visualize per-prompt routing cost",
+            "Find flights from SFO to JFK",
+            "Plan a 5-day Tokyo trip for 4 with a budget",
+            "Show routing logic and scoring",
         ],
     )
     card = create_agent_card(
         agent_name="GEAP Router Cost Visualizer",
-        description="Shows the multi-model complexity router routing prompts to the cheapest capable tier, with a live cost-accrual chart vs an all-Opus baseline.",
+        description="Live tokenomics demo: every prompt is classified, routed to the cheapest capable "
+                    "model tier, actually executed, and priced from real token usage vs an all-Opus "
+                    "baseline. Includes a routing-logic/scoring tab.",
         skills=[skill],
         streaming=False,
         default_input_modes=["text/plain"],
@@ -89,14 +92,6 @@ _a2a_app.add_routes_to_app(
     agent_card_url=f"{RPC_PATH}{AGENT_CARD_WELL_KNOWN_PATH}",
     rpc_url=RPC_PATH,
 )
-
-
-# Serve the pre-rendered branded dashboard PNG(s). Gemini Enterprise displays these via the native
-# Image component in the A2UI canvas (it does not render inline WebFrameSrcdoc HTML). Rendered by
-# scripts/render_router_panel.py and shipped in app/assets/.
-_ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
-if os.path.isdir(_ASSETS_DIR):
-    app.mount("/panels", StaticFiles(directory=_ASSETS_DIR), name="panels")
 
 
 @app.get("/healthz")

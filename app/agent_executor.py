@@ -1,9 +1,13 @@
-"""Deterministic A2A executor for the Router Cost Visualizer (Gemini Enterprise).
+"""A2A executor for the live Router Cost Visualizer (Gemini Enterprise).
 
-Mirrors party-store-ge-a2ui/app/agent_executor.py: rather than relying on an LLM to emit UI,
-it builds the A2UI screen in Python and emits each command as a DataPart tagged
-``mimeType=application/json+a2ui`` (without that tag GE silently drops the canvas). Served over
-HTTP on Cloud Run because GE cannot invoke A2A agents on Vertex Agent Runtime.
+For each prompt the user sends to the GE agent, this classifies the prompt, routes it to the cheapest
+capable model tier, ACTUALLY invokes that model (real tokens + cost), accrues the result per GE
+session, and renders a native A2UI dashboard. Two tabs are switched by Button userActions:
+``view_dashboard`` / ``view_routing`` / ``reset``. Nav/reset actions re-render from accrued state
+without calling a model.
+
+Served over HTTP on Cloud Run (GE cannot invoke A2A agents on Vertex Agent Runtime). A2UI DataParts
+are tagged ``application/json+a2ui`` and the requested A2A extension is echoed so GE renders the canvas.
 """
 from a2a.server.agent_execution import AgentExecutor, RequestContext
 from a2a.server.events import EventQueue
@@ -11,8 +15,9 @@ from a2a.server.tasks import TaskUpdater
 from a2a.types import DataPart, Part, TextPart
 from a2a.utils import new_task
 
-from app.cost_model import build_accrual
-from app.ui_builder import build_cost_dashboard_command
+from app import session_store
+from app.router_logic import route_and_run
+from app.ui_builder import build_dashboard_screen, build_routing_logic_screen
 
 A2UI_MIMETYPE = "application/json+a2ui"
 
@@ -24,38 +29,85 @@ def _parts(text: str, ui_messages: list) -> list:
     return parts
 
 
+def _parse(context: RequestContext):
+    """Return (userAction_name, text) from the incoming A2A message."""
+    action, text = None, ""
+    if context.message and context.message.parts:
+        for part in context.message.parts:
+            root = part.root
+            if isinstance(root, DataPart) and isinstance(root.data, dict) and "userAction" in root.data:
+                action = (root.data["userAction"] or {}).get("name")
+            elif isinstance(root, TextPart) and root.text:
+                text = root.text
+    if not text:
+        try:
+            text = context.get_user_input() or ""
+        except Exception:  # noqa: BLE001
+            text = ""
+    return action, text
+
+
 class RouterCostExecutor(AgentExecutor):
-    """Renders the multi-model router's cost-accrual dashboard as an A2UI canvas."""
+    """Live per-prompt routing + cost dashboard, rendered as a native A2UI canvas."""
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
-        # Echo the requested A2A extension(s) back so Gemini Enterprise accepts the
-        # A2UI response and renders the canvas. Without this, the reply omits the
-        # X-A2A-Extensions header and GE silently drops the application/json+a2ui
-        # DataParts (blank agent panel). Matches the party-store / dg-ge reference.
+        # Echo requested A2A extension(s) so GE accepts the A2UI response and renders the canvas.
         for ext in (context.requested_extensions or []):
             try:
                 context.add_activated_extension(ext)
-            except Exception:
+            except Exception:  # noqa: BLE001
                 pass
 
-        acc = build_accrual()
-        commands = build_cost_dashboard_command(acc)
-        summary = (
-            f"Across {len(acc.steps)} prompts the smart router spent "
-            f"${acc.router_total:.4f} vs ${acc.baseline_total:.4f} all-Opus — "
-            f"{acc.savings_pct:.1f}% savings. Frontier (Opus) was used for only "
-            f"{acc.tier_counts.get('Opus', 0)} genuinely complex prompts."
-        )
-
-        # Full task lifecycle, matching the proven party-store executor: a new task must be
-        # enqueued before start_work()/add_artifact() so GE tracks it and renders the canvas.
+        # Task lifecycle: enqueue a new task and start_work() early so GE tracks it while we run models.
         task = context.current_task
         if not task:
             task = new_task(context.message)
             await event_queue.enqueue_event(task)
         updater = TaskUpdater(event_queue, task.id, task.context_id)
         await updater.start_work()
-        # Artifact name "response" matches the proven dg-ge-data-agent / party-store executors.
+
+        ctx_id = task.context_id or ""
+        action, text = _parse(context)
+        low = text.lower().strip()
+
+        is_reset = action == "reset" or low in ("reset", "clear", "reset session", "start over")
+        is_routing = action == "view_routing" or ("routing" in low and ("logic" in low or "scor" in low)) \
+            or low in ("routing logic", "scoring", "routing logic and scoring")
+        is_dashboard = action == "view_dashboard" or low in (
+            "dashboard", "cost dashboard", "show dashboard", "show the router cost dashboard")
+
+        try:
+            if is_reset:
+                acc = session_store.reset(ctx_id)
+                summary = "🔄 Session reset — cost accrual cleared. Send a prompt to start routing again."
+                commands = build_dashboard_screen(acc)
+            elif is_routing:
+                acc = session_store.get(ctx_id)
+                summary = "Here's how prompts get scored and routed across the model tiers."
+                commands = build_routing_logic_screen(acc)
+            elif is_dashboard or not low:
+                acc = session_store.get(ctx_id)
+                summary = "Here's the live router cost dashboard."
+                commands = build_dashboard_screen(acc)
+            else:
+                # A real workload prompt: classify → route → actually run the tier model → accrue.
+                acc = session_store.get(ctx_id)
+                routed = await route_and_run(text)
+                step = acc.add(text, routed)
+                answer = (routed.get("answer") or "").strip()
+                note = (f"— routed to **{step.tier}** ({step.model}) · complexity {step.score:.2f} · "
+                        f"{step.input_tokens:,} in / {step.output_tokens:,} out · ${step.request_cost:.6f} "
+                        f"(session total ${acc.router_total:.6f}, {acc.savings_pct:.1f}% vs all-Opus)")
+                if routed.get("error") and not answer:
+                    summary = f"⚠️ The {step.tier} model call failed: {routed['error']}\n\n{note}"
+                else:
+                    summary = f"{answer}\n\n{note}" if answer else note
+                commands = build_dashboard_screen(acc)
+        except Exception as exc:  # noqa: BLE001 — never fail the A2A task; render an empty dashboard
+            acc = session_store.get(ctx_id)
+            summary = f"⚠️ Sorry, I hit an error: {type(exc).__name__}: {exc}"
+            commands = build_dashboard_screen(acc)
+
         await updater.add_artifact(_parts(summary, commands), name="response")
         await updater.complete()
 

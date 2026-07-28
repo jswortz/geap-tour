@@ -1,250 +1,255 @@
-"""Branded A2UI screen builder for the Router Cost Visualizer.
+"""Native A2UI v0.8 screen builders for the Router Cost Visualizer (Gemini Enterprise canvas).
 
-Like party-store-ge-a2ui/ui_builder.py, each screen is ONE self-contained ``WebFrameSrcdoc``
-HTML panel (Google-Cloud-styled, inline SVG charts, no external JS) rendered in the GE side
-canvas. ``build_cost_dashboard_command`` wraps it as an A2UI v0.8 command list; the executor
-tags each as a DataPart ``mimeType=application/json+a2ui``.
+Gemini Enterprise renders NATIVE A2UI components (Card / Row / Column / Divider / Text / Button and
+an interactive Vega-Lite ``VegaChart``) but does NOT render inline WebFrameSrcdoc HTML. So every screen
+here is built purely from native components — fully dynamic (driven by the live per-prompt accrual),
+no static images, and it scrolls in the GE canvas. Mirrors the proven builders in
+``dg-ge-data-agent/app/ui_builder.py``.
 
-Pure/stdlib only, so it renders identically in a headless screenshot and in Gemini Enterprise.
+Two "tabs", switched by Button userActions handled in ``app/agent_executor.py``:
+  * build_dashboard_screen(acc)      → live cost/routing dashboard (KPIs, cumulative-cost chart,
+                                       tier breakdown, per-prompt routing).
+  * build_routing_logic_screen(acc)  → teaches the scoring: score→tier→model, real token rates, and
+                                       the classifier's real score+reason for each prompt this session.
 """
 from __future__ import annotations
 
-import hashlib
-import html
-import os
 from typing import List
 
-from app.cost_model import Accrual, build_accrual
+from app.cost_model import COST_RATES, Accrual
+from app.router_logic import THRESHOLDS, TIER_LABEL, TIER_MODEL
 
-# --- Google Cloud theme ----------------------------------------------------
-BLUE = "#1a73e8"; BLUE_D = "#1967d2"; INK = "#202124"; MUTED = "#5f6368"
-LINE = "#dadce0"; CHIP = "#e8f0fe"; OKG = "#e6f4ea"; OK = "#137333"
-LITE_C = "#34a853"; FLASH_C = "#1a73e8"; OPUS_C = "#d93025"; BASE_C = "#c5221f"
-TIER_COLOR = {"Lite": LITE_C, "Flash": FLASH_C, "Opus": OPUS_C}
-LEVEL_LABEL = {"low": "Low", "medium": "Medium", "high": "High"}
+SURFACE_ID = "router-cost"
+
+# Colors for the Vega charts (Google-Cloud palette).
+C_ROUTER = "#1a73e8"
+C_BASELINE = "#c5221f"
+TIER_COLOR = {"Lite": "#34a853", "Flash": "#1a73e8", "Sonnet": "#a142f4", "Pro": "#f29900", "Opus": "#d93025"}
 
 
 def _fmt(x: float) -> str:
-    return f"${x:,.4f}" if x < 1 else f"${x:,.2f}"
+    if x == 0:
+        return "$0"
+    return f"${x:,.6f}" if abs(x) < 0.01 else (f"${x:,.4f}" if abs(x) < 1 else f"${x:,.2f}")
 
 
-def _cumulative_chart_svg(acc: Accrual, w: int = 760, h: int = 300) -> str:
-    """Two cumulative-cost lines (Smart Router vs all-Opus) over the prompt sequence."""
-    steps = acc.steps
-    n = len(steps)
-    if n == 0:
-        return "<svg viewBox='0 0 760 300'></svg>"
-    pad_l, pad_r, pad_t, pad_b = 64, 18, 18, 40
-    plot_w, plot_h = w - pad_l - pad_r, h - pad_t - pad_b
-    ymax = max(acc.baseline_total, acc.router_total) * 1.08 or 1.0
+class _Screen:
+    """Accumulates native A2UI components with unique ids and emits the command list."""
 
-    def X(i: int) -> float:
-        return pad_l + (plot_w * (i / (n - 1 if n > 1 else 1)))
+    def __init__(self) -> None:
+        self.components: List[dict] = []
+        self._n = 0
 
-    def Y(v: float) -> float:
-        return pad_t + plot_h - (plot_h * (v / ymax))
+    def _id(self, prefix: str) -> str:
+        self._n += 1
+        return f"{prefix}-{self._n}"
 
-    def pts(getter) -> str:
-        return " ".join(f"{X(i):.1f},{Y(getter(s)):.1f}" for i, s in enumerate(steps))
+    def text(self, s: str, hint: str = "body") -> str:
+        cid = self._id("t")
+        self.components.append({"id": cid, "component": {"Text": {"text": {"literalString": str(s)}, "usageHint": hint}}})
+        return cid
 
-    base_pts = pts(lambda s: s.cum_baseline)
-    router_pts = pts(lambda s: s.cum_router)
-    # gridlines + y labels (4 bands)
-    grid = ""
-    for g in range(5):
-        val = ymax * g / 4
-        y = Y(val)
-        grid += (f"<line x1='{pad_l}' y1='{y:.1f}' x2='{w - pad_r}' y2='{y:.1f}' "
-                 f"stroke='#eef1f5' stroke-width='1'/>"
-                 f"<text x='{pad_l - 8}' y='{y + 4:.1f}' text-anchor='end' font-size='11' fill='{MUTED}'>{_fmt(val)}</text>")
-    # x ticks (every other)
-    xt = ""
-    for i in range(0, n, max(1, n // 6)):
-        xt += (f"<text x='{X(i):.1f}' y='{h - pad_b + 20}' text-anchor='middle' font-size='11' fill='{MUTED}'>{i + 1}</text>")
-    # area under router line
-    area = f"{pad_l},{Y(0):.1f} " + router_pts + f" {X(n-1):.1f},{Y(0):.1f}"
-    end_r = Y(acc.router_total); end_b = Y(acc.baseline_total)
-    return f"""<svg width='100%' viewBox='0 0 {w} {h}' font-family='Roboto,Inter,sans-serif'>
-<polygon points='{area}' fill='{BLUE}' opacity='0.06'/>
-{grid}
-<polyline points='{base_pts}' fill='none' stroke='{BASE_C}' stroke-width='2.5' stroke-dasharray='6 5' stroke-linejoin='round'/>
-<polyline points='{router_pts}' fill='none' stroke='{BLUE}' stroke-width='3' stroke-linejoin='round'/>
-<circle cx='{X(n-1):.1f}' cy='{end_b:.1f}' r='4' fill='{BASE_C}'/>
-<circle cx='{X(n-1):.1f}' cy='{end_r:.1f}' r='4' fill='{BLUE}'/>
-<text x='{X(n-1)-6:.1f}' y='{end_b-8:.1f}' text-anchor='end' font-size='12' font-weight='700' fill='{BASE_C}'>all-Opus {_fmt(acc.baseline_total)}</text>
-<text x='{X(n-1)-6:.1f}' y='{end_r+16:.1f}' text-anchor='end' font-size='12' font-weight='700' fill='{BLUE_D}'>Smart Router {_fmt(acc.router_total)}</text>
-<text x='{pad_l}' y='{h-6}' font-size='11' fill='{MUTED}'>Prompt #  →  cumulative cost (USD)</text>
-</svg>"""
+    def card(self, child_id: str) -> str:
+        cid = self._id("card")
+        self.components.append({"id": cid, "component": {"Card": {"child": child_id}}})
+        return cid
 
+    def text_card(self, s: str, hint: str = "body") -> str:
+        return self.card(self.text(s, hint))
 
-def _tier_bars(acc: Accrual) -> str:
-    total = sum(acc.tier_counts.values()) or 1
-    rows = ""
-    for tier in ("Lite", "Flash", "Opus"):
-        cnt = acc.tier_counts.get(tier, 0)
-        cost = acc.tier_cost.get(tier, 0.0)
-        pct = 100 * cnt / total
-        c = TIER_COLOR[tier]
-        rows += f"""<div class='trow'>
-          <div class='tname'><span class='tdot' style='background:{c}'></span>{tier}</div>
-          <div class='tbar'><span style='width:{pct:.0f}%;background:{c}'></span></div>
-          <div class='tmeta'>{cnt} req · {_fmt(cost)}</div></div>"""
-    return rows
+    def col(self, child_ids: List[str]) -> str:
+        cid = self._id("col")
+        self.components.append({"id": cid, "component": {"Column": {"children": {"explicitList": child_ids}}}})
+        return cid
+
+    def row(self, child_ids: List[str], dist: str = "spaceBetween") -> str:
+        cid = self._id("row")
+        self.components.append({"id": cid, "component": {"Row": {"children": {"explicitList": child_ids}, "distribution": dist}}})
+        return cid
+
+    def divider(self) -> str:
+        cid = self._id("div")
+        self.components.append({"id": cid, "component": {"Divider": {}}})
+        return cid
+
+    def vega(self, spec: dict) -> str:
+        cid = self._id("vega")
+        self.components.append({"id": cid, "component": {"VegaChart": {"spec": spec}}})
+        return self.card(cid)
+
+    def button(self, label: str, action: str, primary: bool = False) -> str:
+        eid = self._id("btn")
+        tid = f"txt_{eid}"
+        self.components.append({"id": eid, "component": {"Button": {"child": tid, "primary": primary, "action": {"name": action}}}})
+        self.components.append({"id": tid, "component": {"Text": {"text": {"literalString": label}, "usageHint": "body"}}})
+        return eid
+
+    def build(self, root_child_ids: List[str]) -> List[dict]:
+        self.components.insert(0, {"id": "root-layout", "component": {"Column": {"children": {"explicitList": root_child_ids}}}})
+        return [
+            {"beginRendering": {"surfaceId": SURFACE_ID, "root": "root-layout"}},
+            {"surfaceUpdate": {"surfaceId": SURFACE_ID, "components": self.components}},
+        ]
 
 
-def _prompt_rows(acc: Accrual) -> str:
-    rows = ""
+# --- Vega-Lite specs (real data, rendered natively by GE) ------------------
+def _cumulative_cost_spec(acc: Accrual) -> dict:
+    values = []
     for s in acc.steps:
-        c = TIER_COLOR.get(s.tier, MUTED)
-        rows += f"""<tr>
-          <td class='num'>{s.idx}</td>
-          <td class='pr'>{html.escape(s.prompt[:70])}{'…' if len(s.prompt) > 70 else ''}</td>
-          <td><span class='chip' style='color:{c};background:{c}1a'>{LEVEL_LABEL.get(s.level, s.level)}</span></td>
-          <td class='mono'>{html.escape(s.model)}</td>
-          <td class='money'>{_fmt(s.request_cost)}</td>
-          <td class='money tot'>{_fmt(s.cum_router)}</td></tr>"""
-    return rows
+        values.append({"n": s.idx, "cost": round(s.cum_router, 6), "series": "Smart Router"})
+        values.append({"n": s.idx, "cost": round(s.cum_baseline, 6), "series": "All-Opus baseline"})
+    return {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "background": "transparent",
+        "title": {"text": "Cumulative cost as prompts arrive (USD)", "fontSize": 13},
+        "data": {"values": values},
+        "mark": {"type": "line", "point": True, "strokeWidth": 3},
+        "encoding": {
+            "x": {"field": "n", "type": "ordinal", "title": "Prompt #"},
+            "y": {"field": "cost", "type": "quantitative", "title": "Cumulative USD"},
+            "color": {"field": "series", "type": "nominal", "title": None,
+                      "scale": {"domain": ["Smart Router", "All-Opus baseline"], "range": [C_ROUTER, C_BASELINE]}},
+            "tooltip": [{"field": "n", "title": "Prompt #"}, {"field": "series", "title": "Series"},
+                        {"field": "cost", "title": "Cumulative USD", "format": "$.6f"}],
+        },
+        "width": "container",
+        "height": 260,
+    }
 
 
-def build_cost_dashboard_html(acc: Accrual | None = None) -> str:
-    """Full standalone HTML for the router cost-accrual dashboard."""
-    acc = acc or build_accrual()
+def _cost_by_tier_spec(acc: Accrual) -> dict:
+    values = [{"tier": t, "cost": round(c, 6), "requests": acc.tier_counts.get(t, 0)}
+              for t, c in acc.tier_cost.items()]
+    order = ["Lite", "Flash", "Sonnet", "Pro", "Opus"]
+    return {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "background": "transparent",
+        "title": {"text": "Real spend by model tier (USD)", "fontSize": 13},
+        "data": {"values": values},
+        "mark": {"type": "bar", "cornerRadiusEnd": 3},
+        "encoding": {
+            "x": {"field": "tier", "type": "nominal", "title": None, "sort": order},
+            "y": {"field": "cost", "type": "quantitative", "title": "USD"},
+            "color": {"field": "tier", "type": "nominal", "legend": None,
+                      "scale": {"domain": order, "range": [TIER_COLOR[t] for t in order]}},
+            "tooltip": [{"field": "tier", "title": "Tier"}, {"field": "requests", "title": "Requests"},
+                        {"field": "cost", "title": "USD", "format": "$.6f"}],
+        },
+        "width": "container",
+        "height": 240,
+    }
+
+
+# --- Screen 1: live cost dashboard -----------------------------------------
+def build_dashboard_screen(acc: Accrual) -> List[dict]:
+    sc = _Screen()
+    root: List[str] = []
+
+    header = sc.col([
+        sc.text("⚡ Multi-Model Router — Live Cost Dashboard", "h2"),
+        sc.text("Every prompt you send is classified, routed to the cheapest capable model, actually "
+                "run, and priced from real token usage — vs an all-Opus baseline on the same tokens.", "body"),
+    ])
+    root.append(sc.card(header))
+
+    if not acc.steps:
+        empty = sc.col([
+            sc.text("No prompts routed yet", "h3"),
+            sc.text("Send a corporate travel or expense request (e.g. \"Find flights from SFO to JFK\" "
+                    "or \"Plan a 5-day Tokyo trip for 4 with a budget\"). I'll classify its complexity, "
+                    "route it to the right tier, run it for real, and chart the cost here.", "body"),
+        ])
+        root.append(sc.card(empty))
+        root.append(sc.button("🔬 Routing logic & scoring", "view_routing", primary=True))
+        return sc.build(root)
+
     n = len(acc.steps)
     opus_n = acc.tier_counts.get("Opus", 0)
-    return f"""<!doctype html><html><head><meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'>
-<link href='https://fonts.googleapis.com/css2?family=Google+Sans:wght@500;700&family=Roboto:wght@400;500;700&display=swap' rel='stylesheet'>
-<style>
-*{{box-sizing:border-box}} html,body{{margin:0;background:#f8f9fa;color:{INK};
-font-family:'Roboto',-apple-system,Segoe UI,sans-serif;-webkit-font-smoothing:antialiased}}
-.wrap{{max-width:840px;margin:0 auto;padding:18px}}
-.hero{{background:linear-gradient(120deg,#1a73e8 0%,#1967d2 60%,#174ea6 100%);color:#fff;
-border-radius:16px;padding:18px 22px;box-shadow:0 12px 30px -14px rgba(26,115,232,.55)}}
-.hero .chip{{font-family:'Google Sans';font-weight:700;font-size:12px;background:rgba(255,255,255,.22);
-padding:4px 11px;border-radius:8px;letter-spacing:.04em}}
-.hero h1{{font-family:'Google Sans';font-weight:700;font-size:22px;margin:10px 0 3px}}
-.hero .sub{{font-size:13px;opacity:.95}}
-.kpis{{display:flex;gap:12px;margin:14px 0}}
-.kpi{{flex:1;background:#fff;border:1px solid #eceff5;border-top:3px solid {BLUE};border-radius:12px;
-padding:12px 14px;box-shadow:0 6px 18px -12px rgba(16,24,40,.25)}}
-.kpi.win{{border-top-color:{OK}}}
-.kpi .lab{{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:{MUTED}}}
-.kpi .val{{font-family:'Google Sans';font-weight:700;font-size:26px;margin-top:5px;line-height:1}}
-.kpi.win .val{{color:{OK}}}
-.kpi .foot{{font-size:11px;color:{MUTED};margin-top:4px}}
-.card{{background:#fff;border:1px solid #eceff5;border-radius:14px;padding:14px 16px;margin:14px 0;
-box-shadow:0 8px 24px -16px rgba(16,24,40,.3)}}
-.card h2{{font-family:'Google Sans';font-weight:700;font-size:14px;margin:0 0 10px;
-padding-left:9px;border-left:4px solid {BLUE}}}
-.legend{{display:flex;gap:16px;font-size:12px;color:{MUTED};margin-top:2px}}
-.legend b{{color:{INK}}} .lg{{display:inline-block;width:22px;height:0;border-top:3px solid;vertical-align:middle;margin-right:5px}}
-.trow{{display:flex;align-items:center;gap:12px;margin:8px 0;font-size:13px}}
-.tname{{width:78px;font-weight:600;display:flex;align-items:center;gap:7px}}
-.tdot{{width:9px;height:9px;border-radius:50%;display:inline-block}}
-.tbar{{flex:1;height:9px;border-radius:999px;background:#eef1f8;overflow:hidden}}
-.tbar>span{{display:block;height:100%;border-radius:999px}}
-.tmeta{{width:150px;text-align:right;font-size:12px;color:{MUTED}}}
-table{{width:100%;border-collapse:collapse;font-size:12.5px}}
-th{{text-align:left;color:{MUTED};font-weight:500;font-size:11px;text-transform:uppercase;
-letter-spacing:.03em;padding:6px 8px;border-bottom:2px solid #eceff5}}
-td{{padding:7px 8px;border-bottom:1px solid #f1f3f4}}
-td.num{{color:{MUTED};width:26px}} td.pr{{color:{INK}}}
-td.mono,.mono{{font-family:'Roboto Mono',monospace;font-size:11.5px;color:#3c4043}}
-td.money{{text-align:right;font-variant-numeric:tabular-nums}} td.tot{{font-weight:700;color:{BLUE_D}}}
-.chip{{font-size:11px;font-weight:600;padding:2px 9px;border-radius:11px}}
-.foot-note{{font-size:11.5px;color:{MUTED};text-align:center;padding:8px 0 2px}}
-</style></head><body><div class='wrap'>
-  <div class='hero'>
-    <span class='chip'>MULTI-MODEL ROUTER</span>
-    <h1>Cost accrual: Smart Router vs all-Opus</h1>
-    <div class='sub'>A Flash-Lite micro-classifier scores each prompt's complexity and routes it to the
-    cheapest capable tier — frontier dollars are spent only where they're earned.</div>
-  </div>
-  <div class='kpis'>
-    <div class='kpi'><div class='lab'>Prompts</div><div class='val'>{n}</div><div class='foot'>{opus_n} routed to Opus</div></div>
-    <div class='kpi'><div class='lab'>Smart Router</div><div class='val'>{_fmt(acc.router_total)}</div><div class='foot'>classified + routed</div></div>
-    <div class='kpi'><div class='lab'>All-Opus baseline</div><div class='val'>{_fmt(acc.baseline_total)}</div><div class='foot'>every prompt on frontier</div></div>
-    <div class='kpi win'><div class='lab'>Savings</div><div class='val'>{acc.savings_pct:.1f}%</div><div class='foot'>vs all-Opus</div></div>
-  </div>
-  <div class='card'>
-    <h2>Cumulative cost as prompts arrive</h2>
-    {_cumulative_chart_svg(acc)}
-    <div class='legend'><span><span class='lg' style='border-color:{BLUE}'></span><b>Smart Router</b></span>
-    <span><span class='lg' style='border-color:{BASE_C};border-top-style:dashed'></span><b>all-Opus</b> baseline</span></div>
-  </div>
-  <div class='card'>
-    <h2>Where the traffic went (by tier)</h2>
-    {_tier_bars(acc)}
-  </div>
-  <div class='card'>
-    <h2>Per-prompt routing &amp; running total</h2>
-    <table><thead><tr><th>#</th><th>Prompt</th><th>Complexity</th><th>Model</th><th style='text-align:right'>Req cost</th><th style='text-align:right'>Running</th></tr></thead>
-    <tbody>{_prompt_rows(acc)}</tbody></table>
-  </div>
-  <div class='foot-note'>Pricing mirrors src/router/cost_tracker.py · assumes {200} in / {500} out tokens per request + classifier overhead.</div>
-</div></body></html>"""
+    kpis = sc.row([
+        sc.text_card(f"Prompts routed\n{n}", "h4"),
+        sc.text_card(f"Smart Router\n{_fmt(acc.router_total)}", "h4"),
+        sc.text_card(f"All-Opus baseline\n{_fmt(acc.baseline_total)}", "h4"),
+        sc.text_card(f"Savings\n{acc.savings_pct:.1f}%", "h4"),
+    ])
+    root.append(kpis)
+    root.append(sc.vega(_cumulative_cost_spec(acc)))
+
+    root.append(sc.text("Where the traffic went (by tier)", "h3"))
+    for tier in ("Lite", "Flash", "Sonnet", "Pro", "Opus"):
+        cnt = acc.tier_counts.get(tier, 0)
+        if cnt:
+            root.append(sc.text_card(f"{tier} — {cnt} req · {_fmt(acc.tier_cost.get(tier, 0.0))}", "body"))
+
+    root.append(sc.divider())
+    root.append(sc.text("Per-prompt routing & running total", "h3"))
+    for s in acc.steps:
+        prompt = s.prompt if len(s.prompt) <= 90 else s.prompt[:88] + "…"
+        line = (
+            f"#{s.idx}  {s.tier}  (score {s.score:.2f})\n"
+            f"{prompt}\n"
+            f"{s.model} · {s.input_tokens:,} in / {s.output_tokens:,} out · "
+            f"{_fmt(s.request_cost)}  (running {_fmt(s.cum_router)})"
+        )
+        if s.error:
+            line += f"\n⚠️ {s.error}"
+        root.append(sc.text_card(line, "body"))
+
+    root.append(sc.divider())
+    root.append(sc.button("🔬 Routing logic & scoring", "view_routing", primary=True))
+    root.append(sc.button("↺ Reset session", "reset", primary=False))
+    root.append(sc.text(f"Frontier (Opus) was used for {opus_n} of {n} prompts. "
+                        "Baseline = Opus rates on the same real token counts.", "caption"))
+    return sc.build(root)
 
 
-# --- A2UI screen (native Image PNG + WebFrame for offline capture) ---------
-# Gemini Enterprise renders native A2UI components (Image/Text/Button) but does NOT display
-# inline WebFrameSrcdoc HTML in this Cloud Run deployment — its ``a2ui-web-frame-srcdoc`` element
-# receives the htmlContent but paints it empty. So the live GE canvas shows the dashboard as a
-# hosted PNG via the native Image component (rendered by scripts/render_router_panel.py and served
-# at /panels/router_cost.png). The WebFrameSrcdoc is still appended so the offline capture pipeline
-# can extract the pixel-perfect HTML. Mirrors dg-ge-data-agent/app/tools.py::_image_screen.
-_ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
-_APP_URL = os.getenv(
-    "APP_URL", "https://geap-router-cost-ui-679926387543.us-east1.run.app"
-).rstrip("/")
-_PANEL_NAME = "router_cost.png"
+# --- Screen 2: routing logic & scoring (tokenomics teaching) ----------------
+def build_routing_logic_screen(acc: Accrual) -> List[dict]:
+    sc = _Screen()
+    root: List[str] = []
 
+    header = sc.col([
+        sc.text("🔬 How prompts get routed — scoring & tokenomics", "h2"),
+        sc.text("A lightweight classifier scores each prompt 0–1 on complexity. The score selects a "
+                "model tier; you pay that tier's token rates instead of always paying frontier prices.", "body"),
+    ])
+    root.append(sc.card(header))
 
-def _panel_version() -> str:
-    """Content hash of the served PNG, appended to the Image URL so GE busts its image cache
-    whenever the panel is re-rendered (GE caches panel images by URL)."""
-    h = hashlib.md5()
-    try:
-        with open(os.path.join(_ASSETS_DIR, _PANEL_NAME), "rb") as f:
-            h.update(f.read())
-    except OSError:
-        pass
-    return h.hexdigest()[:10]
+    # Score → tier → model → real rates.
+    root.append(sc.text("Complexity score → model tier → token price", "h3"))
+    lo = 0.0
+    order = ["lite", "flash", "sonnet", "pro", "opus"]
+    for key in order:
+        hi = THRESHOLDS.get(key)
+        rng = f"{lo:.2f}–{hi:.2f}" if hi is not None else f"{lo:.2f}–1.00"
+        model = TIER_MODEL[key]
+        rate = COST_RATES.get(model, {})
+        rate_str = f"${rate.get('input', 0):.3f} in / ${rate.get('output', 0):.2f} out per 1M tokens"
+        root.append(sc.text_card(f"{TIER_LABEL[key]}  (score {rng})\n{model}\n{rate_str}", "body"))
+        lo = hi if hi is not None else lo
 
+    root.append(sc.text_card(
+        "💡 Tokenomics: Opus costs 200× Lite on input and 250× on output per token. Routing the ~half "
+        "of traffic that is simple to Lite/Flash keeps frontier dollars for the prompts that truly need "
+        "multi-step reasoning — the savings compound with volume.", "body"))
 
-def _panel_url() -> str:
-    return f"{_APP_URL}/panels/{_PANEL_NAME}?v={_panel_version()}"
+    # This session's real routing decisions (real score + classifier reason).
+    root.append(sc.divider())
+    root.append(sc.text("This session's routing decisions", "h3"))
+    if not acc.steps:
+        root.append(sc.text_card("No prompts scored yet — send one from the Cost dashboard and its real "
+                                 "score, reason, and chosen tier will appear here.", "body"))
+    else:
+        for s in acc.steps:
+            prompt = s.prompt if len(s.prompt) <= 90 else s.prompt[:88] + "…"
+            reason = s.reason or "(no reason returned)"
+            root.append(sc.text_card(
+                f"#{s.idx}  score {s.score:.2f} → {s.tier}\n"
+                f"{prompt}\n"
+                f"Why: {reason}\n"
+                f"{s.model} · {s.input_tokens:,} in / {s.output_tokens:,} out · {_fmt(s.request_cost)}", "body"))
+        root.append(sc.vega(_cost_by_tier_spec(acc)))
 
-
-def _image_comp(cid: str, url: str, alt: str = "", fit: str = "contain") -> dict:
-    """Native A2UI Image component. GE renders this from a hosted URL — used to show the full
-    branded router cost dashboard (pre-rendered to PNG) inside the GE canvas."""
-    return {"id": cid, "component": {"Image": {
-        "url": {"literalString": url}, "altText": {"literalString": alt}, "fit": fit}}}
-
-
-def build_cost_dashboard_command(acc: Accrual | None = None, height: int = 1080) -> List[dict]:
-    """A2UI v0.8 command list rendering the router cost dashboard in the GE canvas.
-
-    Emits a native Image (the hosted branded PNG) + a Refresh Button, and appends the
-    WebFrameSrcdoc panel for the offline capture pipeline. See the module note above for why
-    the live GE canvas uses the Image rather than the WebFrame.
-    """
-    surface_id = "router-cost"
-    img_url = _panel_url()
-    html_content = build_cost_dashboard_html(acc)
-    components = [
-        {"id": "root-layout", "component": {"Column": {"children": {
-            "explicitList": ["hero-img", "refresh-btn", "panel"]}}}},
-        _image_comp("hero-img", img_url,
-                    "Router cost accrual: Smart Router vs all-Opus baseline", fit="contain"),
-        {"id": "refresh-btn", "component": {"Button": {
-            "child": "txt_refresh-btn", "primary": False, "action": {"name": "refresh"}}}},
-        {"id": "txt_refresh-btn", "component": {"Text": {
-            "text": {"literalString": "↻ Refresh cost dashboard"}, "usageHint": "body"}}},
-        {"id": "panel", "component": {"WebFrameSrcdoc": {
-            "htmlContent": {"literalString": html_content}, "height": height}}},
-    ]
-    return [
-        {"beginRendering": {"surfaceId": surface_id, "root": "root-layout"}},
-        {"surfaceUpdate": {"surfaceId": surface_id, "components": components}},
-    ]
+    root.append(sc.divider())
+    root.append(sc.button("📊 Cost dashboard", "view_dashboard", primary=True))
+    root.append(sc.button("↺ Reset session", "reset", primary=False))
+    return sc.build(root)
