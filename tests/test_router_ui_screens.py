@@ -1,11 +1,10 @@
-"""Structural tests for the native A2UI screens (no network, no image assets)."""
+"""Structural tests for the A2UI screens (Image docked in the GE canvas) + PNG render smoke tests."""
+import pytest
+
 from app.cost_model import Accrual
-from app.ui_builder import (
-    DASHBOARD_SURFACE,
-    ROUTING_SURFACE,
-    build_dashboard_screen,
-    build_routing_logic_screen,
-)
+from app.ui_builder import CANVAS_SURFACE, build_dashboard_screen, build_routing_logic_screen
+
+URL = "https://svc.example/panels/dashboard.png?ctx=abc&v=2"
 
 
 def _accrual_with_steps() -> Accrual:
@@ -19,71 +18,61 @@ def _accrual_with_steps() -> Accrual:
     return acc
 
 
-def _ids_and_refs(commands: list):
-    """Return (declared_ids, referenced_ids) from the surfaceUpdate command."""
+def _ids_refs_and_su(commands):
     su = next(c["surfaceUpdate"] for c in commands if "surfaceUpdate" in c)
     ids, refs = set(), set()
     for comp in su["components"]:
         ids.add(comp["id"])
-        body = comp["component"]
-        for kind, spec in body.items():
+        for kind, spec in comp["component"].items():
             if kind in ("Column", "Row"):
                 refs.update(spec["children"]["explicitList"])
-            elif kind == "Card":
-                refs.add(spec["child"])
-            elif kind == "Button":
+            elif kind in ("Card", "Button"):
                 refs.add(spec["child"])
     return su, ids, refs
 
 
-def _assert_valid_surface(commands, expect_actions, surface):
+def _assert_valid(commands, expect_actions):
     assert isinstance(commands, list) and len(commands) == 2
     begin = next(c["beginRendering"] for c in commands if "beginRendering" in c)
-    assert begin["surfaceId"] == surface and begin["root"] == "root-layout"
-    su, ids, refs = _ids_and_refs(commands)
-    assert su["surfaceId"] == surface
-    assert "root-layout" in ids
-    # Referential integrity: every referenced child id is declared.
-    missing = refs - ids
-    assert not missing, f"dangling child refs: {missing}"
-    # Expected button actions present.
-    actions = {b["component"]["Button"]["action"]["name"]
-               for b in su["components"] if "Button" in b["component"]}
+    assert begin["surfaceId"] == CANVAS_SURFACE and begin["root"] == "root-layout"
+    su, ids, refs = _ids_refs_and_su(commands)
+    assert su["surfaceId"] == CANVAS_SURFACE and "root-layout" in ids
+    assert not (refs - ids), f"dangling refs: {refs - ids}"
+    actions = {b["component"]["Button"]["action"]["name"] for b in su["components"] if "Button" in b["component"]}
     assert expect_actions <= actions, f"missing actions {expect_actions - actions}"
+    # Exactly one Image, carrying the given URL (this is what docks in the GE canvas).
+    imgs = [c for c in su["components"] if "Image" in c["component"]]
+    assert len(imgs) == 1
+    assert imgs[0]["component"]["Image"]["url"]["literalString"] == URL
 
 
-def test_dashboard_empty_state():
-    cmds = build_dashboard_screen(Accrual())
-    _assert_valid_surface(cmds, {"view_routing"}, DASHBOARD_SURFACE)
-    # No VegaChart on the empty state.
-    su = next(c["surfaceUpdate"] for c in cmds if "surfaceUpdate" in c)
-    assert not any("VegaChart" in c["component"] for c in su["components"])
+def test_dashboard_screen_is_image_plus_tabs():
+    _assert_valid(build_dashboard_screen(_accrual_with_steps(), URL), {"view_routing", "reset"})
 
 
-def test_dashboard_with_steps_has_chart_and_buttons():
-    cmds = build_dashboard_screen(_accrual_with_steps())
-    _assert_valid_surface(cmds, {"view_routing", "reset"}, DASHBOARD_SURFACE)
-    su = next(c["surfaceUpdate"] for c in cmds if "surfaceUpdate" in c)
-    vegas = [c for c in su["components"] if "VegaChart" in c["component"]]
-    assert len(vegas) == 1
-    spec = vegas[0]["component"]["VegaChart"]["spec"]
-    assert spec["width"] == "container" and spec["data"]["values"], "chart must have data"
+def test_dashboard_empty_still_valid():
+    _assert_valid(build_dashboard_screen(Accrual(), URL), {"view_routing", "reset"})
 
 
-def test_routing_logic_screen_structure():
-    cmds = build_routing_logic_screen(_accrual_with_steps())
-    _assert_valid_surface(cmds, {"view_dashboard", "reset"}, ROUTING_SURFACE)
-    su = next(c["surfaceUpdate"] for c in cmds if "surfaceUpdate" in c)
-    # The classifier's real reason for a routed prompt is surfaced somewhere in the text.
-    blob = "".join(
-        c["component"]["Text"]["text"]["literalString"]
-        for c in su["components"] if "Text" in c["component"]
-    )
-    assert "multi-step planning" in blob and "Opus" in blob
+def test_routing_logic_screen_is_image_plus_tabs():
+    _assert_valid(build_routing_logic_screen(_accrual_with_steps(), URL), {"view_dashboard", "reset"})
 
 
-def test_routing_logic_empty_has_no_chart():
-    cmds = build_routing_logic_screen(Accrual())
-    _assert_valid_surface(cmds, {"view_dashboard", "reset"}, ROUTING_SURFACE)
-    su = next(c["surfaceUpdate"] for c in cmds if "surfaceUpdate" in c)
-    assert not any("VegaChart" in c["component"] for c in su["components"])
+# --- PNG render smoke tests (skip if matplotlib isn't installed in the local env) ---
+matplotlib = pytest.importorskip("matplotlib")
+
+
+def _is_png(b: bytes) -> bool:
+    return isinstance(b, bytes) and b[:8] == b"\x89PNG\r\n\x1a\n" and len(b) > 1000
+
+
+def test_render_dashboard_png_empty_and_populated():
+    from app import panel_render
+    assert _is_png(panel_render.render_dashboard_png(Accrual()))
+    assert _is_png(panel_render.render_dashboard_png(_accrual_with_steps()))
+
+
+def test_render_routing_png_empty_and_populated():
+    from app import panel_render
+    assert _is_png(panel_render.render_routing_png(Accrual()))
+    assert _is_png(panel_render.render_routing_png(_accrual_with_steps()))

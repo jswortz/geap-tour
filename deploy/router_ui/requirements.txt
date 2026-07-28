@@ -9,3 +9,6 @@ requests>=2.32
 # Claude tiers via Vertex Model Garden). No ADK / litellm needed.
 google-genai>=1.14.0
 anthropic[vertex]>=0.40
+# Render the live dashboards to PNG (docked in the GE side canvas via a native Image). Agg backend,
+# pure-pip, no headless browser / system libs.
+matplotlib>=3.8

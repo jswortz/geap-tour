@@ -9,6 +9,8 @@ without calling a model.
 Served over HTTP on Cloud Run (GE cannot invoke A2A agents on Vertex Agent Runtime). A2UI DataParts
 are tagged ``application/json+a2ui`` and the requested A2A extension is echoed so GE renders the canvas.
 """
+import os
+
 from a2a.server.agent_execution import AgentExecutor, RequestContext
 from a2a.server.events import EventQueue
 from a2a.server.tasks import TaskUpdater
@@ -20,6 +22,14 @@ from app.router_logic import route_and_run
 from app.ui_builder import build_dashboard_screen, build_routing_logic_screen
 
 A2UI_MIMETYPE = "application/json+a2ui"
+APP_URL = os.getenv("APP_URL", "https://geap-router-cost-ui-679926387543.us-east1.run.app").rstrip("/")
+
+
+def _panel_url(name: str, ctx_id: str, acc) -> str:
+    """URL of the per-request dashboard PNG (docked in the GE canvas). ``v`` (step count) is a
+    cache-buster so GE refetches after each prompt."""
+    from urllib.parse import quote
+    return f"{APP_URL}/panels/{name}.png?ctx={quote(ctx_id or '_default')}&v={len(acc.steps)}"
 
 
 def _parts(text: str, ui_messages: list) -> list:
@@ -81,15 +91,15 @@ class RouterCostExecutor(AgentExecutor):
             if is_reset:
                 acc = session_store.reset(ctx_id)
                 summary = "🔄 Session reset — cost accrual cleared. Send a prompt to start routing again."
-                commands = build_dashboard_screen(acc)
+                commands = build_dashboard_screen(acc, _panel_url("dashboard", ctx_id, acc))
             elif is_routing:
                 acc = session_store.get(ctx_id)
-                summary = "Here's how prompts get scored and routed across the model tiers."
-                commands = build_routing_logic_screen(acc)
+                summary = "Here's how prompts get scored and routed across the model tiers (see the canvas)."
+                commands = build_routing_logic_screen(acc, _panel_url("routing", ctx_id, acc))
             elif is_dashboard or not low:
                 acc = session_store.get(ctx_id)
-                summary = "Here's the live router cost dashboard."
-                commands = build_dashboard_screen(acc)
+                summary = "Here's the live router cost dashboard (see the canvas on the right)."
+                commands = build_dashboard_screen(acc, _panel_url("dashboard", ctx_id, acc))
             else:
                 # A real workload prompt: classify → route → actually run the tier model → accrue.
                 acc = session_store.get(ctx_id)
@@ -103,11 +113,11 @@ class RouterCostExecutor(AgentExecutor):
                     summary = f"⚠️ The {step.tier} model call failed: {routed['error']}\n\n{note}"
                 else:
                     summary = f"{answer}\n\n{note}" if answer else note
-                commands = build_dashboard_screen(acc)
+                commands = build_dashboard_screen(acc, _panel_url("dashboard", ctx_id, acc))
         except Exception as exc:  # noqa: BLE001 — never fail the A2A task; render an empty dashboard
             acc = session_store.get(ctx_id)
             summary = f"⚠️ Sorry, I hit an error: {type(exc).__name__}: {exc}"
-            commands = build_dashboard_screen(acc)
+            commands = build_dashboard_screen(acc, _panel_url("dashboard", ctx_id, acc))
 
         await updater.add_artifact(_parts(summary, commands), name="response")
         await updater.complete()

@@ -94,6 +94,26 @@ _a2a_app.add_routes_to_app(
 )
 
 
+@app.get("/panels/{name}")
+def panel(name: str, ctx: str = "", v: str = "") -> "Response":
+    """Render the live dashboard/routing PNG for a GE session (contextId=ctx) on the fly.
+
+    GE's canvas panel fetches this URL for the native Image; ``v`` is a cache-buster the executor
+    bumps after each prompt so GE refetches. Reads the in-memory per-session accrual.
+    """
+    from fastapi import Response
+
+    from app import panel_render, session_store
+
+    acc = session_store.get(ctx)
+    if name.startswith("routing"):
+        png = panel_render.render_routing_png(acc)
+    else:
+        png = panel_render.render_dashboard_png(acc)
+    return Response(content=png, media_type="image/png",
+                    headers={"Cache-Control": "public, max-age=31536000, immutable"})
+
+
 @app.get("/healthz")
 def healthz() -> dict[str, str]:
     return {"status": "ok"}
