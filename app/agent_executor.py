@@ -38,9 +38,6 @@ class RouterCostExecutor(AgentExecutor):
             except Exception:
                 pass
 
-        task = context.current_task or new_task(context.message)
-        updater = TaskUpdater(event_queue, task.id, task.context_id)
-
         acc = build_accrual()
         commands = build_cost_dashboard_command(acc)
         summary = (
@@ -49,6 +46,15 @@ class RouterCostExecutor(AgentExecutor):
             f"{acc.savings_pct:.1f}% savings. Frontier (Opus) was used for only "
             f"{acc.tier_counts.get('Opus', 0)} genuinely complex prompts."
         )
+
+        # Full task lifecycle, matching the proven party-store executor: a new task must be
+        # enqueued before start_work()/add_artifact() so GE tracks it and renders the canvas.
+        task = context.current_task
+        if not task:
+            task = new_task(context.message)
+            await event_queue.enqueue_event(task)
+        updater = TaskUpdater(event_queue, task.id, task.context_id)
+        await updater.start_work()
         await updater.add_artifact(_parts(summary, commands), name="router_cost_dashboard")
         await updater.complete()
 

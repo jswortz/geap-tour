@@ -185,16 +185,21 @@ td.money{{text-align:right;font-variant-numeric:tabular-nums}} td.tot{{font-weig
 
 # --- A2UI command wrapper (WebFrameSrcdoc) ---------------------------------
 def build_cost_dashboard_command(acc: Accrual | None = None, height: int = 1180) -> List[dict]:
-    """A2UI v0.8 command list: begin render + a single WebFrameSrcdoc surface."""
+    """A2UI v0.8 command list: a Column root layout containing one WebFrameSrcdoc panel.
+
+    Mirrors party-store-ge-a2ui/app/tools.py::_screen exactly. Two GE requirements:
+      * the surfaceId must be "canvas-surface" — GE's side panel renders only that surface;
+      * the ``root`` must be a layout container (Column) whose ``explicitList`` children
+        reference the WebFrame. A bare WebFrameSrcdoc root opens the panel but paints blank.
+    """
     html_content = build_cost_dashboard_html(acc)
-    # GE's canvas panel only renders the surface whose id is "canvas-surface"
-    # (the party-store/rag reference plugin standardizes every surfaceId to this).
-    # Any other surfaceId leaves the panel blank.
     surface_id = "canvas-surface"
+    components = [
+        {"id": "root-layout", "component": {"Column": {"children": {"explicitList": ["panel"]}}}},
+        {"id": "panel", "component": {"WebFrameSrcdoc": {
+            "htmlContent": {"literalString": html_content}, "height": height}}},
+    ]
     return [
-        {"beginRendering": {"surfaceId": surface_id, "root": "root"}},
-        {"surfaceUpdate": {"surfaceId": surface_id, "components": [
-            {"id": "root", "component": {"WebFrameSrcdoc": {
-                "htmlContent": {"literalString": html_content}, "height": height}}}
-        ]}},
+        {"beginRendering": {"surfaceId": surface_id, "root": "root-layout"}},
+        {"surfaceUpdate": {"surfaceId": surface_id, "components": components}},
     ]
