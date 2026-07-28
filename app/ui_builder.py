@@ -195,10 +195,18 @@ def build_cost_dashboard_command(acc: Accrual | None = None, height: int = 1180)
     """
     html_content = build_cost_dashboard_html(acc)
     surface_id = "router-cost"
+    # GE collapses a surface that holds ONLY an opaque WebFrame into an inert "Interactive
+    # content" chip; it renders the canvas inline when the Column also has a native component.
+    # The proven dg-ge-data-agent / party-store screens pair the WebFrame with a Button, so
+    # we do the same (a "Refresh" button that just re-renders the dashboard).
     components = [
-        {"id": "root-layout", "component": {"Column": {"children": {"explicitList": ["panel"]}}}},
+        {"id": "root-layout", "component": {"Column": {"children": {"explicitList": ["panel", "refresh-btn"]}}}},
         {"id": "panel", "component": {"WebFrameSrcdoc": {
             "htmlContent": {"literalString": html_content}, "height": height}}},
+        {"id": "refresh-btn", "component": {"Button": {
+            "child": "txt_refresh-btn", "primary": False, "action": {"name": "refresh"}}}},
+        {"id": "txt_refresh-btn", "component": {"Text": {
+            "text": {"literalString": "↻ Refresh cost dashboard"}, "usageHint": "body"}}},
     ]
     return [
         {"beginRendering": {"surfaceId": surface_id, "root": "root-layout"}},
