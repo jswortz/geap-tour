@@ -82,6 +82,9 @@ class RouterCostExecutor(AgentExecutor):
 
         # Nav is detected by SUBSTRING (GE may reword/annotate the prompt text, so exact matches
         # are unreliable) or by an explicit Button userAction.
+        # GE sometimes hands off its own orchestrator text (e.g. a transfer_to_agent tool result) as the
+        # first message — don't classify/route/accrue that; just show the dashboard.
+        is_internal = "transfer_to_agent" in low or low.startswith("[root_agent]") or "tool returned result" in low
         is_reset = action == "reset" or "reset" in low or low in ("clear", "start over")
         is_routing = action == "view_routing" or "routing logic" in low or "scoring" in low \
             or ("rout" in low and "logic" in low)
@@ -96,7 +99,7 @@ class RouterCostExecutor(AgentExecutor):
                 acc = session_store.get(ctx_id)
                 summary = "Here's how prompts get scored and routed across the model tiers (see the canvas)."
                 commands = build_routing_logic_screen(acc, _panel_url("routing", ctx_id, acc))
-            elif is_dashboard or not low:
+            elif is_dashboard or is_internal or not low:
                 acc = session_store.get(ctx_id)
                 summary = "Here's the live router cost dashboard (see the canvas on the right)."
                 commands = build_dashboard_screen(acc, _panel_url("dashboard", ctx_id, acc))
