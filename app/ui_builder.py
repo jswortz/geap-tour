@@ -187,7 +187,10 @@ td.money{{text-align:right;font-variant-numeric:tabular-nums}} td.tot{{font-weig
 def build_cost_dashboard_command(acc: Accrual | None = None, height: int = 1180) -> List[dict]:
     """A2UI v0.8 command list: begin render + a single WebFrameSrcdoc surface."""
     html_content = build_cost_dashboard_html(acc)
-    surface_id = "router-cost"
+    # GE's canvas panel only renders the surface whose id is "canvas-surface"
+    # (the party-store/rag reference plugin standardizes every surfaceId to this).
+    # Any other surfaceId leaves the panel blank.
+    surface_id = "canvas-surface"
     return [
         {"beginRendering": {"surfaceId": surface_id, "root": "root"}},
         {"surfaceUpdate": {"surfaceId": surface_id, "components": [
