@@ -19,11 +19,15 @@ from typing import List
 from app.cost_model import COST_RATES, Accrual
 from app.router_logic import THRESHOLDS, TIER_LABEL, TIER_MODEL
 
-# Distinct surfaceId per screen so Gemini Enterprise renders each as its own surface (a repeated
-# surfaceId is updated in place / in the side canvas rather than re-rendered inline on tab switch).
-DASHBOARD_SURFACE = "router-cost"
-ROUTING_SURFACE = "router-logic"
-SURFACE_ID = DASHBOARD_SURFACE  # back-compat default
+# "canvas-surface" is the reserved surfaceId that Gemini Enterprise renders in the right-hand CANVAS
+# PANEL (vs inline in the chat) — confirmed by the a2ui-seed-agent reference and the ADK a2ui_plugin,
+# which standardizes every surfaceId to it "so the GE panel renders them". Both tabs share this one
+# persistent canvas surface, so switching tabs updates the side panel in place. Native components
+# scroll inside the panel, so the dashboard is both docked on the side and scrollable.
+CANVAS_SURFACE = "canvas-surface"
+DASHBOARD_SURFACE = CANVAS_SURFACE
+ROUTING_SURFACE = CANVAS_SURFACE
+SURFACE_ID = CANVAS_SURFACE  # back-compat default
 
 # Colors for the Vega charts (Google-Cloud palette).
 C_ROUTER = "#1a73e8"
