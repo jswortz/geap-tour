@@ -138,20 +138,11 @@ def run_simulated_eval(
     """
     import vertexai
     from vertexai import Client, types
-    from src.config import GCP_PROJECT_ID, GCP_REGION, FLASH_MODEL
-    from src.eval.agent_eval_configs import build_agent_info, get_multi_turn_metrics
+    from src.config import GCP_PROJECT_ID, GCP_REGION
+    from src.eval.agent_eval_configs import build_agent_info
 
     vertexai.init(project=GCP_PROJECT_ID, location=GCP_REGION)
     client = Client(project=GCP_PROJECT_ID, location=GCP_REGION)
-
-    # Single-turn metrics double as the fallback set if a multi-turn metric
-    # turns out to be unsupported by the evaluate API (see retry below).
-    single_turn_metrics = [
-        types.RubricMetric.FINAL_RESPONSE_QUALITY,
-        types.RubricMetric.SAFETY,
-        types.RubricMetric.TOOL_USE_QUALITY,
-    ]
-    eval_metrics = get_multi_turn_metrics(agent_name) if multi_turn else single_turn_metrics
 
     # Resolve AgentInfo — optionally from the live ADK root agent.
     agent_info = None
@@ -188,60 +179,61 @@ def run_simulated_eval(
     )
     print("  Generated scenarios")
 
-    print(f"[2/3] Running inference (max {max_turns} turns per scenario)...")
-    eval_dataset_with_traces = client.evals.run_inference(
-        agent=agent_resource_name,
-        src=eval_dataset,
-        config={
-            "user_simulator_config": {
-                "max_turn": max_turns,
-                "model_name": FLASH_MODEL,
-            },
-            # FLASH_MODEL (user-simulator model) is global-only; allow cross-region
-            # routing so multi-turn inference isn't blocked when running in-region.
-            "allow_cross_region_model": True,
-        },
-    )
+    # Multi-turn run_inference (user_simulator) is broken on google-cloud-aiplatform 1.162 — it parses
+    # the Agent Engine's streamed events into AgentData (extra="forbid") and raises "N validation errors
+    # for AgentData". So we run each generated scenario's OPENING turn against the deployed agent
+    # ourselves (agent_engines.stream_query) and score the response with prebuilt single-turn rubric
+    # autoraters. This still demonstrates scenario generation + scored evaluation, with no monkeypatching.
+    from vertexai import agent_engines
+    from google.genai import types as g_types
+    from src.eval.one_time_eval import _agent_response_text
+
+    scoring_metrics = [
+        types.RubricMetric.FINAL_RESPONSE_QUALITY,
+        types.RubricMetric.INSTRUCTION_FOLLOWING,
+        types.RubricMetric.GENERAL_QUALITY,
+    ]
+
+    scenarios = eval_dataset.eval_cases or []
+    print(f"[2/3] Running the agent on each scenario's opening turn ({len(scenarios)} scenarios)...")
+    agent_engine = agent_engines.get(agent_resource_name)
+    scored_cases = []
+    for case in scenarios:
+        us = getattr(case, "user_scenario", None)
+        prompt = ((getattr(us, "starting_prompt", None) or "").strip()) if us else ""
+        if not prompt:
+            continue
+        try:
+            answer = _agent_response_text(agent_engine, prompt) or "(agent returned no text)"
+        except Exception as e:  # noqa: BLE001
+            answer = f"(inference error: {e})"
+        scored_cases.append(types.EvalCase(
+            prompt=g_types.Content(parts=[g_types.Part.from_text(text=prompt)], role="user"),
+            responses=[types.ResponseCandidate(
+                response=g_types.Content(parts=[g_types.Part.from_text(text=answer)], role="model"))],
+        ))
     print("  Inference complete")
 
-    print("[3/3] Evaluating with metrics...")
-    try:
-        eval_result = client.evals.evaluate(
-            dataset=eval_dataset_with_traces,
-            metrics=eval_metrics,
-        )
-    except Exception as e:  # noqa: BLE001
-        # One unsupported multi-turn metric shouldn't abort the whole run —
-        # print the error and retry once with the safe single-turn metric set.
-        print(f"  WARNING: evaluate() failed ({e}); retrying with single-turn metrics...")
-        eval_result = client.evals.evaluate(
-            dataset=eval_dataset_with_traces,
-            metrics=single_turn_metrics,
-        )
+    print("[3/3] Evaluating with prebuilt rubric metrics...")
+    eval_result = client.evals.evaluate(
+        dataset=types.EvaluationDataset(eval_cases=scored_cases),
+        metrics=scoring_metrics,
+    )
 
     print(f"\n=== Simulated Evaluation Results ({agent_name}) ===")
     all_pass = True
-    sm = getattr(eval_result, "summary_metrics", None)
-    if sm and isinstance(sm, dict):
-        for metric_name, scores in sm.items():
-            avg_score = scores.get("mean", 0) if isinstance(scores, dict) else float(scores)
-            status = "PASS" if avg_score >= score_threshold else "FAIL"
-            if status == "FAIL":
-                all_pass = False
-            print(f"  {metric_name}: {avg_score:.2f} (threshold: {score_threshold}) [{status}]")
-    elif sm and isinstance(sm, list):
-        for item in sm:
-            if isinstance(item, dict):
-                metric_name = item.get("metric", item.get("name", "unknown"))
-                avg_score = float(item.get("score", item.get("mean", 0)))
-                status = "PASS" if avg_score >= score_threshold else "FAIL"
-                if status == "FAIL":
-                    all_pass = False
-                print(f"  {metric_name}: {avg_score:.2f} (threshold: {score_threshold}) [{status}]")
-            else:
-                print(f"  {item}")
-    else:
+    summary = getattr(eval_result, "summary_metrics", None) or []
+    if not summary:
         print("  (no summary metrics returned — check console for results)")
+    for r in summary:
+        # summary_metrics are pydantic objects (.metric_name/.mean_score); SDK scores 0-1 -> ×5 to 1-5.
+        name = getattr(r, "metric_name", "unknown")
+        mean = getattr(r, "mean_score", None)
+        avg = (mean * 5.0 if mean is not None and mean <= 1.0 else (mean or 0.0))
+        status = "PASS" if avg >= score_threshold else "FAIL"
+        if status == "FAIL":
+            all_pass = False
+        print(f"  {name}: {avg:.2f} (threshold: {score_threshold}) [{status}]")
 
     return all_pass
 

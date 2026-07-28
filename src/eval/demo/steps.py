@@ -180,11 +180,19 @@ def online_monitors(do_setup: bool = False) -> dict:
 # ---------------------------------------------------------------------------
 # Phase 4 — Refinement
 # ---------------------------------------------------------------------------
-def optimize(client, agent_module_path: str = "src/agents/coordinator") -> dict:
-    """[optimize-agent] Optimize — SDK optimizer path with ADK-GEPA fallback (Quality Flywheel)."""
+def optimize(client, agent_module_path: str = "src/agents/coordinator",
+             run: bool = False, max_metric_calls: int = 30) -> dict:
+    """[optimize-agent] Optimize — SDK optimizer path with ADK-GEPA fallback (Quality Flywheel).
+
+    ``run=True`` executes a live, bounded GEPA optimization of the coordinator's instruction against
+    its eval set (the notebook's finale). It runs the deployed agent, so the MCP tool servers must be
+    reachable. ``run=False`` (the headless-orchestrator default) returns a ``skipped`` summary so CI
+    doesn't block on the multi-minute job.
+    """
     try:
         from src.eval.sdk_optimize import sdk_optimize
-        result = sdk_optimize(client=client, agent_module_path=agent_module_path)
+        result = sdk_optimize(client=client, agent_module_path=agent_module_path,
+                              run=run, max_metric_calls=max_metric_calls)
         return _ok(9, "Optimize agent prompts (Quality Flywheel)", "optimize-agent", result=result)
     except Exception as e:  # noqa: BLE001
         return _skipped(9, "Optimize agent prompts", "optimize-agent", str(e))

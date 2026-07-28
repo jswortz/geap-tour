@@ -76,6 +76,8 @@ def sdk_optimize(
     eval_dataset=None,
     agent_module_path: str = "src/agents/coordinator",
     targets=None,
+    run: bool = False,
+    max_metric_calls: int | None = None,
 ) -> dict:
     """Optimize an agent's prompt(s), preferring the documented SDK optimizer.
 
@@ -128,15 +130,15 @@ def sdk_optimize(
     # --- Path 2: ADK GEPA fallback (src/optimize/run_optimize.py) -------------
     # GEPA is a live 10-20 min optimization against a real GCP project, so it is
     # opt-in via GEAP_RUN_GEPA to avoid blocking during import / validation.
-    run_gepa = os.environ.get("GEAP_RUN_GEPA", "").strip().lower() in {"1", "true", "yes", "on"}
+    run_gepa = run or os.environ.get("GEAP_RUN_GEPA", "").strip().lower() in {"1", "true", "yes", "on"}
     if not run_gepa:
         return {
             "method": "adk_gepa_fallback",
             "status": "skipped",
             "reason": (
-                "GEPA is a live 10-20 min optimization; set GEAP_RUN_GEPA=1 and run "
-                "in an authenticated GCP environment to execute it. Would call: "
-                f"run_optimize(agent_module_path={agent_module_path!r})."
+                "GEPA is a live optimization against the deployed agent (requires reachable MCP "
+                "servers). Pass run=True (the demo does) or set GEAP_RUN_GEPA=1 to execute it. "
+                f"Would call: run_optimize(agent_module_path={agent_module_path!r})."
             ),
             "agent_module_path": agent_module_path,
         }
@@ -144,11 +146,20 @@ def sdk_optimize(
     try:
         from src.optimize.run_optimize import run_optimize
 
-        run_optimize(agent_module_path)
+        result = run_optimize(agent_module_path, max_metric_calls=max_metric_calls)
+        best_instruction = None
+        try:
+            if hasattr(result, "gepa_result"):
+                best = result.optimized_agents[result.gepa_result["best_idx"]]
+                best_instruction = getattr(best.optimized_agent, "instruction", None)
+        except Exception:  # noqa: BLE001
+            pass
         return {
             "method": "adk_gepa_fallback",
             "status": "completed",
             "agent_module_path": agent_module_path,
+            "max_metric_calls": max_metric_calls,
+            "optimized_instruction": best_instruction,
         }
     except Exception as e:  # noqa: BLE001
         return {

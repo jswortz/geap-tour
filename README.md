@@ -27,6 +27,7 @@ A hands-on workshop demonstrating the full Gemini Enterprise Agent Platform (GEA
 
 | Document | Description |
 |----------|-------------|
+| ▶ **[Interactive Evaluation Notebook](src/eval/demo/evaluation_demo.ipynb)** | **Start here for evals** — run the full Quality Flywheel cell-by-cell (Design → Execution → Scoring → **live prompt optimization**) against the deployed agent, with real results and `.show()` visualizations |
 | [Workshop Guide](docs/workshop_guide.md) | Full 4-session hands-on walkthrough |
 | [Monitoring Guide](docs/monitoring_integration_guide.md) | Quality alerts and custom metrics bridge guide |
 | [Component FAQ](docs/faq.md) | What each component does and why it matters |

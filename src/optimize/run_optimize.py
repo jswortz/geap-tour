@@ -46,12 +46,25 @@ def _load_agent(agent_module_path: str):
     return module.agent.root_agent
 
 
+def _ensure_vertex_env() -> None:
+    """Route ADK/genai model calls through Vertex AI (ADC) instead of the Gemini Developer API.
+
+    The GEPA optimizer's sampler + reflection model call ``google.genai`` directly; without these the
+    client raises "No API key was provided". Set them from src.config if unset (no overwrite)."""
+    from src.config import GCP_PROJECT_ID, GCP_REGION
+
+    os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "true")
+    os.environ.setdefault("GOOGLE_CLOUD_PROJECT", GCP_PROJECT_ID)
+    os.environ.setdefault("GOOGLE_CLOUD_LOCATION", GCP_REGION)
+
+
 def run_optimize(
     agent_module_path: str = "src/agents/coordinator",
     sampler_config_path: str = SAMPLER_CONFIG,
     optimizer_config_path: str | None = None,
     print_detailed: bool = True,
     optimizer: str = "gepa",
+    max_metric_calls: int | None = None,
 ):
     """Run prompt optimization with ADK patches applied.
 
@@ -64,6 +77,8 @@ def run_optimize(
             "simple" uses google.adk.optimization.SimplePromptOptimizer and
             falls back to GEPA if that class is unavailable in the installed ADK.
     """
+    _ensure_vertex_env()
+
     print(f"=== Agent Optimization ({optimizer}) ===")
     print(f"Agent:   {agent_module_path}")
     print(f"Sampler: {sampler_config_path}")
@@ -127,12 +142,16 @@ def run_optimize(
         if optimizer_config_path:
             with open(optimizer_config_path, "r") as f:
                 optimizer_config = GEPARootAgentPromptOptimizerConfig.model_validate_json(f.read())
+        elif max_metric_calls:
+            # Bound the search for a demo-length run (default is 100 metric calls ~ 10-20 min).
+            optimizer_config = GEPARootAgentPromptOptimizerConfig(max_metric_calls=max_metric_calls)
         else:
             optimizer_config = GEPARootAgentPromptOptimizerConfig()
 
         gepa_optimizer = GEPARootAgentPromptOptimizer(optimizer_config)
 
-        print("[2/3] Running GEPA optimization (this may take 10-20 minutes)...")
+        budget = getattr(optimizer_config, "max_metric_calls", "?")
+        print(f"[2/3] Running GEPA optimization (max_metric_calls={budget}; live agent runs)...")
         optimization_result = asyncio.run(gepa_optimizer.optimize(root_agent, sampler))
 
     # Step 3: Output results
