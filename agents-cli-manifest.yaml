@@ -1,0 +1,12 @@
+name: geap-router-cost-ui
+acli_version: 0.4.0
+agent_directory: app
+region: us-east1
+base_template: adk
+language: python
+create_params:
+  deployment_target: cloud_run
+  cicd_runner: skip
+  include_data_ingestion: false
+  datastore: none
+  is_a2a: true

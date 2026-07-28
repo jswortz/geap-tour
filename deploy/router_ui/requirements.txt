@@ -1,0 +1,7 @@
+# Lean Cloud Run image for the Router Cost Visualizer A2A/A2UI service.
+# (ui_builder + cost_model are pure stdlib; these cover the A2A server + agent card.)
+a2a-sdk[http-server]==0.3.26
+fastapi>=0.115
+uvicorn[standard]>=0.30
+google-cloud-aiplatform>=1.162.0
+requests>=2.32

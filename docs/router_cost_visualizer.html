@@ -1,0 +1,163 @@
+<!doctype html><html><head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<link href='https://fonts.googleapis.com/css2?family=Google+Sans:wght@500;700&family=Roboto:wght@400;500;700&display=swap' rel='stylesheet'>
+<style>
+*{box-sizing:border-box} html,body{margin:0;background:#f8f9fa;color:#202124;
+font-family:'Roboto',-apple-system,Segoe UI,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:840px;margin:0 auto;padding:18px}
+.hero{background:linear-gradient(120deg,#1a73e8 0%,#1967d2 60%,#174ea6 100%);color:#fff;
+border-radius:16px;padding:18px 22px;box-shadow:0 12px 30px -14px rgba(26,115,232,.55)}
+.hero .chip{font-family:'Google Sans';font-weight:700;font-size:12px;background:rgba(255,255,255,.22);
+padding:4px 11px;border-radius:8px;letter-spacing:.04em}
+.hero h1{font-family:'Google Sans';font-weight:700;font-size:22px;margin:10px 0 3px}
+.hero .sub{font-size:13px;opacity:.95}
+.kpis{display:flex;gap:12px;margin:14px 0}
+.kpi{flex:1;background:#fff;border:1px solid #eceff5;border-top:3px solid #1a73e8;border-radius:12px;
+padding:12px 14px;box-shadow:0 6px 18px -12px rgba(16,24,40,.25)}
+.kpi.win{border-top-color:#137333}
+.kpi .lab{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5f6368}
+.kpi .val{font-family:'Google Sans';font-weight:700;font-size:26px;margin-top:5px;line-height:1}
+.kpi.win .val{color:#137333}
+.kpi .foot{font-size:11px;color:#5f6368;margin-top:4px}
+.card{background:#fff;border:1px solid #eceff5;border-radius:14px;padding:14px 16px;margin:14px 0;
+box-shadow:0 8px 24px -16px rgba(16,24,40,.3)}
+.card h2{font-family:'Google Sans';font-weight:700;font-size:14px;margin:0 0 10px;
+padding-left:9px;border-left:4px solid #1a73e8}
+.legend{display:flex;gap:16px;font-size:12px;color:#5f6368;margin-top:2px}
+.legend b{color:#202124} .lg{display:inline-block;width:22px;height:0;border-top:3px solid;vertical-align:middle;margin-right:5px}
+.trow{display:flex;align-items:center;gap:12px;margin:8px 0;font-size:13px}
+.tname{width:78px;font-weight:600;display:flex;align-items:center;gap:7px}
+.tdot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.tbar{flex:1;height:9px;border-radius:999px;background:#eef1f8;overflow:hidden}
+.tbar>span{display:block;height:100%;border-radius:999px}
+.tmeta{width:150px;text-align:right;font-size:12px;color:#5f6368}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;color:#5f6368;font-weight:500;font-size:11px;text-transform:uppercase;
+letter-spacing:.03em;padding:6px 8px;border-bottom:2px solid #eceff5}
+td{padding:7px 8px;border-bottom:1px solid #f1f3f4}
+td.num{color:#5f6368;width:26px} td.pr{color:#202124}
+td.mono,.mono{font-family:'Roboto Mono',monospace;font-size:11.5px;color:#3c4043}
+td.money{text-align:right;font-variant-numeric:tabular-nums} td.tot{font-weight:700;color:#1967d2}
+.chip{font-size:11px;font-weight:600;padding:2px 9px;border-radius:11px}
+.foot-note{font-size:11.5px;color:#5f6368;text-align:center;padding:8px 0 2px}
+</style></head><body><div class='wrap'>
+  <div class='hero'>
+    <span class='chip'>MULTI-MODEL ROUTER</span>
+    <h1>Cost accrual: Smart Router vs all-Opus</h1>
+    <div class='sub'>A Flash-Lite micro-classifier scores each prompt's complexity and routes it to the
+    cheapest capable tier — frontier dollars are spent only where they're earned.</div>
+  </div>
+  <div class='kpis'>
+    <div class='kpi'><div class='lab'>Prompts</div><div class='val'>12</div><div class='foot'>4 routed to Opus</div></div>
+    <div class='kpi'><div class='lab'>Smart Router</div><div class='val'>$0.1639</div><div class='foot'>classified + routed</div></div>
+    <div class='kpi'><div class='lab'>All-Opus baseline</div><div class='val'>$0.4860</div><div class='foot'>every prompt on frontier</div></div>
+    <div class='kpi win'><div class='lab'>Savings</div><div class='val'>66.3%</div><div class='foot'>vs all-Opus</div></div>
+  </div>
+  <div class='card'>
+    <h2>Cumulative cost as prompts arrive</h2>
+    <svg width='100%' viewBox='0 0 760 300' font-family='Roboto,Inter,sans-serif'>
+<polygon points='64,260.0 64.0,259.9 125.6,259.8 187.3,259.8 248.9,259.7 310.5,259.6 372.2,259.4 433.8,259.3 495.5,259.1 557.1,240.5 618.7,221.8 680.4,203.1 742.0,184.4 742.0,260.0' fill='#1a73e8' opacity='0.06'/>
+<line x1='64' y1='260.0' x2='742' y2='260.0' stroke='#eef1f5' stroke-width='1'/><text x='56' y='264.0' text-anchor='end' font-size='11' fill='#5f6368'>$0.0000</text><line x1='64' y1='199.5' x2='742' y2='199.5' stroke='#eef1f5' stroke-width='1'/><text x='56' y='203.5' text-anchor='end' font-size='11' fill='#5f6368'>$0.1312</text><line x1='64' y1='139.0' x2='742' y2='139.0' stroke='#eef1f5' stroke-width='1'/><text x='56' y='143.0' text-anchor='end' font-size='11' fill='#5f6368'>$0.2624</text><line x1='64' y1='78.5' x2='742' y2='78.5' stroke='#eef1f5' stroke-width='1'/><text x='56' y='82.5' text-anchor='end' font-size='11' fill='#5f6368'>$0.3937</text><line x1='64' y1='18.0' x2='742' y2='18.0' stroke='#eef1f5' stroke-width='1'/><text x='56' y='22.0' text-anchor='end' font-size='11' fill='#5f6368'>$0.5249</text>
+<polyline points='64.0,241.3 125.6,222.7 187.3,204.0 248.9,185.3 310.5,166.6 372.2,148.0 433.8,129.3 495.5,110.6 557.1,91.9 618.7,73.3 680.4,54.6 742.0,35.9' fill='none' stroke='#c5221f' stroke-width='2.5' stroke-dasharray='6 5' stroke-linejoin='round'/>
+<polyline points='64.0,259.9 125.6,259.8 187.3,259.8 248.9,259.7 310.5,259.6 372.2,259.4 433.8,259.3 495.5,259.1 557.1,240.5 618.7,221.8 680.4,203.1 742.0,184.4' fill='none' stroke='#1a73e8' stroke-width='3' stroke-linejoin='round'/>
+<circle cx='742.0' cy='35.9' r='4' fill='#c5221f'/>
+<circle cx='742.0' cy='184.4' r='4' fill='#1a73e8'/>
+<text x='736.0' y='27.9' text-anchor='end' font-size='12' font-weight='700' fill='#c5221f'>all-Opus $0.4860</text>
+<text x='736.0' y='200.4' text-anchor='end' font-size='12' font-weight='700' fill='#1967d2'>Smart Router $0.1639</text>
+<text x='64' y='294' font-size='11' fill='#5f6368'>Prompt #  →  cumulative cost (USD)</text>
+</svg>
+    <div class='legend'><span><span class='lg' style='border-color:#1a73e8'></span><b>Smart Router</b></span>
+    <span><span class='lg' style='border-color:#c5221f;border-top-style:dashed'></span><b>all-Opus</b> baseline</span></div>
+  </div>
+  <div class='card'>
+    <h2>Where the traffic went (by tier)</h2>
+    <div class='trow'>
+          <div class='tname'><span class='tdot' style='background:#34a853'></span>Lite</div>
+          <div class='tbar'><span style='width:42%;background:#34a853'></span></div>
+          <div class='tmeta'>5 req · $0.0009</div></div><div class='trow'>
+          <div class='tname'><span class='tdot' style='background:#1a73e8'></span>Flash</div>
+          <div class='tbar'><span style='width:25%;background:#1a73e8'></span></div>
+          <div class='tmeta'>3 req · $0.0010</div></div><div class='trow'>
+          <div class='tname'><span class='tdot' style='background:#d93025'></span>Opus</div>
+          <div class='tbar'><span style='width:33%;background:#d93025'></span></div>
+          <div class='tmeta'>4 req · $0.1620</div></div>
+  </div>
+  <div class='card'>
+    <h2>Per-prompt routing &amp; running total</h2>
+    <table><thead><tr><th>#</th><th>Prompt</th><th>Complexity</th><th>Model</th><th style='text-align:right'>Req cost</th><th style='text-align:right'>Running</th></tr></thead>
+    <tbody><tr>
+          <td class='num'>1</td>
+          <td class='pr'>Find flights from SFO to JFK</td>
+          <td><span class='chip' style='color:#34a853;background:#34a8531a'>Low</span></td>
+          <td class='mono'>gemini-3.1-flash-lite</td>
+          <td class='money'>$0.0002</td>
+          <td class='money tot'>$0.0002</td></tr><tr>
+          <td class='num'>2</td>
+          <td class='pr'>What&#x27;s the expense policy for meals?</td>
+          <td><span class='chip' style='color:#34a853;background:#34a8531a'>Low</span></td>
+          <td class='mono'>gemini-3.1-flash-lite</td>
+          <td class='money'>$0.0002</td>
+          <td class='money tot'>$0.0003</td></tr><tr>
+          <td class='num'>3</td>
+          <td class='pr'>Search hotels in Chicago under $200</td>
+          <td><span class='chip' style='color:#34a853;background:#34a8531a'>Low</span></td>
+          <td class='mono'>gemini-3.1-flash-lite</td>
+          <td class='money'>$0.0002</td>
+          <td class='money tot'>$0.0005</td></tr><tr>
+          <td class='num'>4</td>
+          <td class='pr'>How much can I spend on meals per day while traveling?</td>
+          <td><span class='chip' style='color:#34a853;background:#34a8531a'>Low</span></td>
+          <td class='mono'>gemini-3.1-flash-lite</td>
+          <td class='money'>$0.0002</td>
+          <td class='money tot'>$0.0007</td></tr><tr>
+          <td class='num'>5</td>
+          <td class='pr'>Check if a $50 transport expense is within policy</td>
+          <td><span class='chip' style='color:#34a853;background:#34a8531a'>Low</span></td>
+          <td class='mono'>gemini-3.1-flash-lite</td>
+          <td class='money'>$0.0002</td>
+          <td class='money tot'>$0.0009</td></tr><tr>
+          <td class='num'>6</td>
+          <td class='pr'>Find flights to NYC and compare the cheapest options by airline</td>
+          <td><span class='chip' style='color:#1a73e8;background:#1a73e81a'>Medium</span></td>
+          <td class='mono'>gemini-3.5-flash</td>
+          <td class='money'>$0.0003</td>
+          <td class='money tot'>$0.0012</td></tr><tr>
+          <td class='num'>7</td>
+          <td class='pr'>Search hotels in Boston, then check if the nightly rate fits our lodgi…</td>
+          <td><span class='chip' style='color:#1a73e8;background:#1a73e81a'>Medium</span></td>
+          <td class='mono'>gemini-3.5-flash</td>
+          <td class='money'>$0.0003</td>
+          <td class='money tot'>$0.0015</td></tr><tr>
+          <td class='num'>8</td>
+          <td class='pr'>Show my expense history and flag any items that exceeded policy limits</td>
+          <td><span class='chip' style='color:#1a73e8;background:#1a73e81a'>Medium</span></td>
+          <td class='mono'>gemini-3.5-flash</td>
+          <td class='money'>$0.0003</td>
+          <td class='money tot'>$0.0019</td></tr><tr>
+          <td class='num'>9</td>
+          <td class='pr'>Plan a 5-day Tokyo trip for 4: flights, hotels near Shibuya, meal + en…</td>
+          <td><span class='chip' style='color:#d93025;background:#d930251a'>High</span></td>
+          <td class='mono'>claude-opus-4-6</td>
+          <td class='money'>$0.0405</td>
+          <td class='money tot'>$0.0424</td></tr><tr>
+          <td class='num'>10</td>
+          <td class='pr'>Compare individual vs group flight bookings for the Denver retreat wit…</td>
+          <td><span class='chip' style='color:#d93025;background:#d930251a'>High</span></td>
+          <td class='mono'>claude-opus-4-6</td>
+          <td class='money'>$0.0405</td>
+          <td class='money tot'>$0.0829</td></tr><tr>
+          <td class='num'>11</td>
+          <td class='pr'>Analyze EMP001&#x27;s expense history, draft a policy recommendation, and s…</td>
+          <td><span class='chip' style='color:#d93025;background:#d930251a'>High</span></td>
+          <td class='mono'>claude-opus-4-6</td>
+          <td class='money'>$0.0405</td>
+          <td class='money tot'>$0.1234</td></tr><tr>
+          <td class='num'>12</td>
+          <td class='pr'>Book cheapest SFO-JFK, find a nearby hotel, cross-reference ratings, c…</td>
+          <td><span class='chip' style='color:#d93025;background:#d930251a'>High</span></td>
+          <td class='mono'>claude-opus-4-6</td>
+          <td class='money'>$0.0405</td>
+          <td class='money tot'>$0.1639</td></tr></tbody></table>
+  </div>
+  <div class='foot-note'>Pricing mirrors src/router/cost_tracker.py · assumes 200 in / 500 out tokens per request + classifier overhead.</div>
+</div></body></html>
