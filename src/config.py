@@ -68,5 +68,5 @@ CLASSIFIER_MODEL = os.environ.get("CLASSIFIER_MODEL", "gemini-3.1-flash-lite")
 # Evaluation
 EVAL_OUTPUT_DIR = os.environ.get("EVAL_OUTPUT_DIR", "eval_outputs")
 BQ_EVAL_DATASET = os.environ.get("BQ_EVAL_DATASET", "geap_workshop_logs")
-AGENT_ENGINE_ID = os.environ.get("AGENT_ENGINE_ID", "5598638991600517120")
-ROUTER_ENGINE_ID = os.environ.get("ROUTER_ENGINE_ID", "7261593154007072768")
+AGENT_ENGINE_ID = os.environ.get("AGENT_ENGINE_ID", "5895016748914049024")   # coordinator_agent (live)
+ROUTER_ENGINE_ID = os.environ.get("ROUTER_ENGINE_ID", "2985691389632708608")  # router_agent (live)

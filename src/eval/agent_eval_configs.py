@@ -480,8 +480,10 @@ def get_multi_turn_metrics(agent_name: str) -> list:
     from src.eval.metric_registry import MULTI_TURN_RUBRIC_METRICS
 
     metrics = list(MULTI_TURN_RUBRIC_METRICS)
-    # SAFETY is meaningful across turns too; keep it if the SDK exposes it.
-    safety = getattr(types.RubricMetric, "SAFETY", None)
-    if safety is not None:
-        metrics.append(safety)
+    # Use the MULTI_TURN safety rater (the single-turn SAFETY rubric needs a
+    # `{prompt}` variable that multi-turn AgentData doesn't provide, which errors
+    # the evaluate call). Only add it if the SDK exposes it.
+    mt_safety = getattr(types.RubricMetric, "MULTI_TURN_SAFETY", None)
+    if mt_safety is not None:
+        metrics.append(mt_safety)
     return metrics

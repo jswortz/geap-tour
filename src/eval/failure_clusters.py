@@ -1,11 +1,24 @@
 """Failure cluster analysis — group failure patterns from evaluation results.
 
-Runs a quick evaluation against the deployed agent, then analyzes the
-results with generate_loss_clusters() to identify systemic failure patterns.
+Auto-loss analysis (``generate_loss_clusters``) requires a **multi-turn**
+evaluation result — one that carries ``AgentData`` with conversation turns — so
+this module runs the *simulated* (user-simulator) pipeline against the deployed
+agent, then clusters the failures on the multi-turn metrics that support loss
+analysis (Task Success, Tool Use Quality) and maps each cluster onto the
+predefined loss taxonomy.
+
+    generate_conversation_scenarios → run_inference (user simulator) →
+    evaluate (multi-turn rubric metrics) → generate_loss_clusters
+
+Note: a single-turn batch result (prompt→response) is rejected by the API with
+"EvaluationResult must contain AgentData with conversation turns", which is why
+we use the multi-turn path here.
+
+Doc: https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/view-results
 
 Usage:
-    uv run python -m src.eval.failure_clusters <agent-engine-id>
-    uv run python -m src.eval.failure_clusters 4709107696450666496
+    uv run python -m src.eval.failure_clusters <agent-engine-id> [agent_name]
+    uv run python -m src.eval.failure_clusters 5598638991600517120 coordinator_agent
 """
 
 import json
@@ -18,12 +31,9 @@ from vertexai import Client, types
 
 from src.config import EVAL_OUTPUT_DIR, GCP_PROJECT_ID, GCP_REGION, GCP_STAGING_BUCKET
 from src.eval.loss_taxonomy import map_cluster_to_taxonomy
-from src.eval.setup_online_monitors import QUICK_EVAL_CASES
 
-EVAL_METRICS = [
-    types.RubricMetric.FINAL_RESPONSE_QUALITY,
-    types.RubricMetric.SAFETY,
-]
+# Multi-turn metrics that support auto-loss analysis (each maps to a loss taxonomy).
+_CLUSTER_METRIC_NAMES = ["MULTI_TURN_TASK_SUCCESS", "MULTI_TURN_TOOL_USE_QUALITY"]
 
 
 def _resolve_agent_resource_name(agent_id: str) -> str:
@@ -46,7 +56,7 @@ def three_level_triage(eval_result, clusters_by_metric: dict | None = None) -> d
 
     Returns a JSON-serializable dict.
     """
-    # --- Level 1: aggregate summary metrics (handle dict or list shapes) ---
+    # --- Level 1: aggregate summary metrics (handle dict, list, or SDK shapes) ---
     summary: dict[str, float] = {}
     sm = getattr(eval_result, "summary_metrics", None)
     if isinstance(sm, dict):
@@ -60,12 +70,17 @@ def three_level_triage(eval_result, clusters_by_metric: dict | None = None) -> d
                     summary[str(metric_name)] = 0.0
     elif isinstance(sm, list):
         for item in sm:
-            if isinstance(item, dict):
+            name = getattr(item, "metric_name", None)
+            mean = getattr(item, "mean_score", None)
+            if name is not None:
+                try:
+                    summary[str(name)] = float(mean) if mean is not None else 0.0
+                except (TypeError, ValueError):
+                    summary[str(name)] = 0.0
+            elif isinstance(item, dict):
                 metric_name = item.get("metric", item.get("name", "unknown"))
                 try:
-                    summary[str(metric_name)] = float(
-                        item.get("score", item.get("mean", 0))
-                    )
+                    summary[str(metric_name)] = float(item.get("score", item.get("mean", 0)))
                 except (TypeError, ValueError):
                     summary[str(metric_name)] = 0.0
 
@@ -97,8 +112,13 @@ def three_level_triage(eval_result, clusters_by_metric: dict | None = None) -> d
     }
 
 
-def analyze_failure_clusters(agent_id: str):
-    """Run evaluation and analyze failure clusters."""
+def analyze_failure_clusters(
+    agent_id: str,
+    agent_name: str = "coordinator_agent",
+    scenario_count: int = 6,
+    max_turns: int = 4,
+):
+    """Run a multi-turn simulated eval and analyze its failure (loss) clusters."""
     agent_resource = _resolve_agent_resource_name(agent_id)
 
     vertexai.init(
@@ -108,41 +128,62 @@ def analyze_failure_clusters(agent_id: str):
     )
     client = Client(project=GCP_PROJECT_ID, location=GCP_REGION)
 
-    import pandas as pd
+    from src.config import FLASH_MODEL
+    from src.eval.agent_eval_configs import build_agent_info, get_multi_turn_metrics
+    from src.eval.simulated_eval import ENVIRONMENT_CONTEXTS, GENERATION_INSTRUCTIONS
 
-    rows = [
-        {
-            "prompt": case,
-            "session_inputs": types.evals.SessionInput(user_id="cluster-analysis-user"),
-        }
-        for case in QUICK_EVAL_CASES
-    ]
-    eval_df = pd.DataFrame(rows)
+    agent_info = build_agent_info(agent_name)
 
-    print(f"[1/3] Running inference against {agent_resource}...")
+    print(f"[1/4] Generating {scenario_count} multi-turn scenarios for {agent_name}...")
+    eval_dataset = client.evals.generate_conversation_scenarios(
+        agent_info=agent_info,
+        config={
+            "count": scenario_count,
+            "generation_instruction": GENERATION_INSTRUCTIONS.get(
+                agent_name, GENERATION_INSTRUCTIONS["coordinator_agent"]
+            ),
+            "environment_context": ENVIRONMENT_CONTEXTS.get(
+                agent_name, ENVIRONMENT_CONTEXTS["coordinator_agent"]
+            ),
+        },
+        allow_cross_region_model=True,
+    )
+
+    print(f"[2/4] Running multi-turn inference (user simulator, max {max_turns} turns)...")
     t0 = time.time()
-    inference_result = client.evals.run_inference(agent=agent_resource, src=eval_df)
+    traces = client.evals.run_inference(
+        agent=agent_resource,
+        src=eval_dataset,
+        config={
+            "user_simulator_config": {"max_turn": max_turns, "model_name": FLASH_MODEL},
+            # FLASH_MODEL (the user-simulator model) is global-only; allow routing
+            # outside the request region so multi-turn inference can run.
+            "allow_cross_region_model": True,
+        },
+    )
     print(f"  Inference done in {time.time() - t0:.1f}s")
 
-    print("[2/3] Evaluating with metrics...")
+    print("[3/4] Evaluating with multi-turn metrics...")
     eval_result = client.evals.evaluate(
-        dataset=inference_result,
-        metrics=EVAL_METRICS,
+        dataset=traces,
+        metrics=get_multi_turn_metrics(agent_name),
     )
     print("  Evaluation complete")
 
-    print("[3/3] Analyzing failure clusters...")
+    cluster_metrics = [
+        m for name in _CLUSTER_METRIC_NAMES
+        if (m := getattr(types.RubricMetric, name, None)) is not None
+    ]
+
+    print("[4/4] Analyzing failure clusters (auto-loss analysis)...")
     clusters_by_metric: dict[str, list] = {}
-    for metric in EVAL_METRICS:
+    for metric in cluster_metrics:
         metric_name = str(metric.value) if hasattr(metric, "value") else str(metric)
         print(f"\n--- Clusters for {metric_name} ---")
         try:
-            clusters = client.evals.generate_loss_clusters(
-                eval_result=eval_result,
-                metric=metric,
-            )
+            clusters = client.evals.generate_loss_clusters(eval_result=eval_result, metric=metric)
             if not clusters:
-                print("  No failure clusters found (all cases passed)")
+                print("  No failure clusters found (no failing turns for this metric)")
                 continue
             clusters_by_metric[metric_name] = list(clusters)
             for i, cluster in enumerate(clusters, 1):
@@ -157,7 +198,7 @@ def analyze_failure_clusters(agent_id: str):
                 if score is not None:
                     print(f"    Avg score: {score:.2f}")
                 print(f"    Taxonomy: {taxonomy['category']} / {taxonomy['pattern']}")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             print(f"  Error: {e}")
 
     triage = three_level_triage(eval_result, clusters_by_metric)
@@ -166,12 +207,15 @@ def analyze_failure_clusters(agent_id: str):
     with open(triage_path, "w") as fh:
         json.dump(triage, fh, indent=2)
     print(f"\nTriage report written to {triage_path}")
+    total = sum(len(v) for v in clusters_by_metric.values())
+    print(f"Total failure clusters: {total}")
 
     return eval_result
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python -m src.eval.failure_clusters <agent-engine-id>")
+        print("Usage: python -m src.eval.failure_clusters <agent-engine-id> [agent_name]")
         sys.exit(1)
-    analyze_failure_clusters(sys.argv[1])
+    agent_name = sys.argv[2] if len(sys.argv) > 2 else "coordinator_agent"
+    analyze_failure_clusters(sys.argv[1], agent_name=agent_name)

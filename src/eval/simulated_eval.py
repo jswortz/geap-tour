@@ -197,6 +197,9 @@ def run_simulated_eval(
                 "max_turn": max_turns,
                 "model_name": FLASH_MODEL,
             },
+            # FLASH_MODEL (user-simulator model) is global-only; allow cross-region
+            # routing so multi-turn inference isn't blocked when running in-region.
+            "allow_cross_region_model": True,
         },
     )
     print("  Inference complete")
