@@ -117,8 +117,8 @@
         </div>
       </div>
       <div class="shot">
-        <div class="chrome"><i></i><i></i><i></i><span class="url">console.cloud.google.com/agent-platform/agent-evaluation</span></div>
-        <img src="screenshots/eval_console_evaluation.png" alt="Agent Platform Evaluation console">
+        <div class="chrome"><i></i><i></i><i></i><span class="url">…/agents › coordinator_agent › Traces</span></div>
+        <img src="screenshots/eval_console_agent_traces.png" alt="coordinator_agent traces: sessions with model calls, tool calls, and token usage">
       </div>
     </div>
   </section>
@@ -225,7 +225,7 @@
         <p class="sub">Don't just learn <i>that</i> the agent failed. Learn <i>why</i>, then fix it.</p>
         <ul>
           <li><b>Optimize</b>: refine root instructions with <b>GEPA</b> or <b>SimplePromptOptimizer</b>, or drive the whole loop from an assistant with <code>agents-cli eval</code>.</li>
-          <li><b>Built clean</b>: current Google clients from PyPI, <b>no monkey-patching</b>, and 161 passing tests.</li>
+          <li><b>Built clean</b>: current Google clients from PyPI, with 161 passing tests.</li>
         </ul>
         <div style="display:flex;gap:14px;flex-wrap:wrap">
           <a class="doclink" href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/view-results">Docs: Analyze results</a>
@@ -258,7 +258,7 @@
           <li><b>Scoring</b>: Online Monitors export every score as a Cloud Monitoring metric, visible in Metrics Explorer, dashboards, and drift alerts.</li>
           <li><b>Refinement</b>: optimize the agent's instructions with GEPA, SimplePromptOptimizer, or agents-cli, then re-evaluate. Repeat.</li>
         </ul>
-        <p class="sub">Built clean: current Google clients from PyPI, <b>no monkey-patching</b>, and 161 passing tests.</p>
+        <p class="sub">Built clean: current Google clients from PyPI, with 161 passing tests.</p>
         <div class="run"><span class="p">$</span> uv run python -m src.eval.demo.full_eval_demo --agent-id $AGENT_ENGINE_ID</div>
         <div style="margin-top:18px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
           <a class="doclink" href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/agent-evaluation">Docs: Optimize / Evaluation</a>
