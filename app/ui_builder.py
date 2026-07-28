@@ -37,6 +37,15 @@ class _Screen:
             "url": {"literalString": url}, "altText": {"literalString": alt}, "fit": "contain"}}})
         return cid
 
+    def canvas_trigger(self) -> str:
+        """A tiny WebFrameSrcdoc whose presence makes GE dock this surface in the side canvas panel
+        (rather than rendering inline). GE paints the WebFrame itself blank/zero-height, so it adds no
+        visible content — the Image is what shows in the panel."""
+        cid = self._id("wf")
+        self.components.append({"id": cid, "component": {"WebFrameSrcdoc": {
+            "htmlContent": {"literalString": "<!doctype html><title>panel</title>"}, "height": 1}}})
+        return cid
+
     def button(self, label: str, action: str, primary: bool = False) -> str:
         eid = self._id("btn")
         tid = f"txt_{eid}"
@@ -61,7 +70,8 @@ def build_dashboard_screen(acc: Accrual, image_url: str) -> List[dict]:
     img = sc.image(image_url, "Router cost accrual dashboard: Smart Router vs all-Opus")
     b1 = sc.button("🔬 Routing logic & scoring", "view_routing", primary=True)
     b2 = sc.button("↺ Reset session", "reset", primary=False)
-    return sc.build([img, b1, b2], DASHBOARD_SURFACE)
+    wf = sc.canvas_trigger()
+    return sc.build([img, b1, b2, wf], DASHBOARD_SURFACE)
 
 
 def build_routing_logic_screen(acc: Accrual, image_url: str) -> List[dict]:
@@ -70,4 +80,5 @@ def build_routing_logic_screen(acc: Accrual, image_url: str) -> List[dict]:
     img = sc.image(image_url, "Routing logic and scoring: score to model tier and token rates")
     b1 = sc.button("📊 Cost dashboard", "view_dashboard", primary=True)
     b2 = sc.button("↺ Reset session", "reset", primary=False)
-    return sc.build([img, b1, b2], ROUTING_SURFACE)
+    wf = sc.canvas_trigger()
+    return sc.build([img, b1, b2, wf], ROUTING_SURFACE)
