@@ -1,9 +1,9 @@
 """Tests for the GEAP 'Optimize > Evaluation' 100%-coverage feature.
 
 All offline (no live API): validates the new metric registry, multi-turn metrics,
-loss taxonomy, quality-drift policy, offline-trace fixture, the demo package, the
-notebook, the OTEL config, and that the coverage matrix in eval_operations.md maps
-every doc page to a file that actually exists.
+quality-drift policy, offline-trace fixture, the demo package, the notebook, the
+OTEL config, and that the coverage matrix in eval_operations.md maps every doc
+page to a file that actually exists.
 """
 
 import json
@@ -36,7 +36,7 @@ COVERAGE_ARTIFACTS = {
     "evaluate-simulated": ["src/eval/simulated_eval.py", "src/eval/env_simulation.py"],
     "evaluate-online": ["src/eval/setup_online_evaluators.py"],
     "manage-metrics": ["src/eval/metric_registry.py"],
-    "view-results": ["src/eval/failure_clusters.py", "src/eval/loss_taxonomy.py"],
+    "view-results": ["src/eval/demo/evaluation_demo.ipynb"],
     "quality-alerts": ["src/eval/quality_alerts.py", "src/eval/policies/quality_drift_policy.yaml"],
     "optimize-agent": ["src/eval/sdk_optimize.py", "src/eval/agents_cli_demo.sh", "src/optimize/run_optimize.py"],
 }
@@ -101,21 +101,6 @@ class TestMetricSelectionWiring:
         assert len(get_metrics("coordinator_agent", include_custom=False)) == 3
 
 
-class TestLossTaxonomy:
-    def test_taxonomies_non_empty(self):
-        from src.eval import loss_taxonomy as t
-
-        assert t.TASK_SUCCESS_TAXONOMY and t.TOOL_USE_QUALITY_TAXONOMY
-        assert len(t.ALL_PATTERNS) >= 20
-
-    def test_map_cluster_to_taxonomy(self):
-        from src.eval.loss_taxonomy import map_cluster_to_taxonomy
-
-        r = map_cluster_to_taxonomy({"title": "Incorrect Tool Selection", "description": ""})
-        assert r["category"] == "Tool Calling"
-        assert map_cluster_to_taxonomy({"title": "totally unrelated"})["pattern"] == "Uncategorized"
-
-
 class TestQualityDriftPolicy:
     def test_policy_yaml_exists_and_references_native_metric(self):
         path = EVAL_DIR / "policies" / "quality_drift_policy.yaml"
@@ -158,7 +143,6 @@ class TestDemoImports:
         "src.eval.metric_registry",
         "src.eval.offline_trace_eval",
         "src.eval.sdk_optimize",
-        "src.eval.loss_taxonomy",
         "src.eval.env_simulation",
     ])
     def test_module_imports(self, module):
@@ -171,7 +155,7 @@ class TestDemoImports:
 
         for fn in ["register_metrics", "rapid_eval", "testcase_eval", "simulate",
                    "environment_simulation", "offline_eval", "online_monitors",
-                   "analyze", "optimize", "quality_alerts"]:
+                   "optimize", "quality_alerts"]:
             assert callable(getattr(steps, fn))
 
 

@@ -9,7 +9,7 @@ Every step below links to (a) the official doc page it teaches and (b) the repo 
 runs it. For the full coverage matrix see [`eval_operations.md` §0](eval_operations.md#0-geap-optimize--evaluation-coverage-matrix).
 
 - **Run everything (live):** `uv run python -m src.eval.demo.full_eval_demo --agent-id $AGENT_ENGINE_ID`
-- **Notebook (with `.show()` visualizations):** `jupyter notebook src/eval/demo/evaluation_demo.ipynb`
+- **Notebook** — [view results](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/view-results) with `.show()` visualizations: `jupyter notebook src/eval/demo/evaluation_demo.ipynb`
 - **Emit JSON for reports/screenshots:** add `--emit-json eval_outputs/demo/full_demo.json`
 
 ---
@@ -24,7 +24,7 @@ six-step loop. The demo executes the loop end-to-end:
 | **Design** | 1. Define eval cases · 2. (plan user simulation) | `agent_eval_configs.py`, `simulated_eval.py` |
 | **Execution** | 3. Run inferences → generate traces | `multi_agent_batch_eval.py`, `simulated_eval.py`, `offline_trace_eval.py` |
 | **Scoring** | 4. Compute metrics | `metric_registry.py`, `agent_eval_configs.get_metrics` |
-| **Refinement** | 5. Analyze → 6. Optimize | `failure_clusters.py`, `loss_taxonomy.py`, `sdk_optimize.py`, `run_optimize.py` |
+| **Refinement** | 5. Optimize | `sdk_optimize.py`, `run_optimize.py` |
 
 ![Agent Platform — Evaluation console](screenshots/eval_console_evaluation.png)
 
@@ -157,25 +157,9 @@ shows a simulated quality-drift decline:
 
 ---
 
-## Phase 4 — Refinement: analyze failures, then optimize
+## Phase 4 — Refinement: optimize
 
-### 4a. Analyze — failure clusters, loss taxonomies, 3-level triage
-📖 [view-results](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/view-results)
-· 🛠️ [`src/eval/failure_clusters.py`](../src/eval/failure_clusters.py), [`src/eval/loss_taxonomy.py`](../src/eval/loss_taxonomy.py)
-
-`generate_loss_clusters()` groups failures into semantic clusters; the repo maps each cluster to
-the doc's named **loss-pattern taxonomies** (Task Success and Tool Use Quality) and produces a
-**3-level triage**: (1) summary metrics → (2) failure clusters + taxonomy → (3) individual traces.
-
-```bash
-uv run python -m src.eval.failure_clusters $AGENT_ENGINE_ID
-```
-
-In the notebook, `result.show()` and `loss_clusters.show()` render interactive score tables and
-cluster breakdowns.
-
-
-### 4b. Optimize — the flywheel closes
+### Optimize — the flywheel closes
 📖 [optimize-agent](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/optimize-agent)
 · 🛠️ [`src/optimize/run_optimize.py`](../src/optimize/run_optimize.py), [`src/eval/sdk_optimize.py`](../src/eval/sdk_optimize.py)
 

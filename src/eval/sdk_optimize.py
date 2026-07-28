@@ -7,8 +7,8 @@ GEAP's continuous-improvement loop has three phases:
   1. Evaluate  — run the agent over an eval dataset and score the traces with
                  rubric / LLM-as-judge / code metrics (see src/eval/batch_eval.py,
                  src/eval/metric_registry.py).
-  2. Analyze   — cluster the failing cases into systemic failure modes
-                 (see src/eval/failure_clusters.py -> generate_loss_clusters()).
+  2. Analyze   — review the scored results and summary metrics to find where the
+                 agent underperforms.
   3. Optimize  — feed the eval result + dataset back into a prompt optimizer so
                  the agent's instructions are auto-tuned against the metrics.
                  The improved agent is re-evaluated, closing the loop.

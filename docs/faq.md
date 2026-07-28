@@ -179,7 +179,7 @@ remote = client.agent_engines.create(
 
 **What is it?** — A three-tier evaluation system covering batch testing, continuous online monitoring, and CI/CD quality gates for the deployed agents.
 
-**How does it work?** — The first tier is batch evaluation: `one_time_eval.py` and `batch_eval.py` run 20 test cases across 11 categories using custom `PointwiseMetric` rubrics that score safety, quality, tool use, and policy compliance. The second tier is continuous online evaluation: `setup_online_evaluators.py` creates native Online Evaluators that run every 10 minutes against OTel traces, scoring them with 4 predefined metrics and 2 custom rubrics (GEAP Task Quality and GEAP Policy Compliance) registered in the Metric Registry. The third tier is CI/CD integration: `simulated_eval.py` runs in the `eval_ci.yaml` GitHub Actions workflow and blocks pull requests when scores fall below 3.0. Supporting tools include `failure_clusters.py` for grouping error patterns and `quality_alerts.py` for threshold-based notifications.
+**How does it work?** — The first tier is batch evaluation: `one_time_eval.py` and `batch_eval.py` run 20 test cases across 11 categories using custom `PointwiseMetric` rubrics that score safety, quality, tool use, and policy compliance. The second tier is continuous online evaluation: `setup_online_evaluators.py` creates native Online Evaluators that run every 10 minutes against OTel traces, scoring them with 4 predefined metrics and 2 custom rubrics (GEAP Task Quality and GEAP Policy Compliance) registered in the Metric Registry. The third tier is CI/CD integration: `simulated_eval.py` runs in the `eval_ci.yaml` GitHub Actions workflow and blocks pull requests when scores fall below 3.0. Supporting tools include `quality_alerts.py` for threshold-based notifications.
 
 **Why does it matter?** — Deploying agents without evaluation is flying blind. This pipeline ensures quality at every stage — pre-deployment testing, real-time production monitoring, and automated regression detection — closing the loop between development and production.
 
@@ -189,8 +189,6 @@ remote = client.agent_engines.create(
 - `src/eval/setup_online_evaluators.py` — Native Online Evaluators with custom rubrics (create, list, verify, cleanup)
 - `src/eval/simulated_eval.py` — CI/CD eval gate (blocks PRs below score 3.0)
 - `.github/workflows/eval_ci.yaml` — GitHub Actions workflow for eval-on-PR
-- `src/eval/failure_clusters.py` — Failure pattern clustering and analysis
-
 **How do I run the full 100%-coverage demo?** — Run `uv run python -m src.eval.demo.full_eval_demo --agent-id $AGENT_ENGINE_ID`, or step through `src/eval/demo/evaluation_demo.ipynb`. It exercises every feature in Google's [Optimize → Evaluation](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/agent-evaluation) docs in flywheel order. See [`docs/evaluation_demo.md`](evaluation_demo.md) and the coverage matrix in [`docs/eval_operations.md` §0](eval_operations.md).
 
 **Reference-based vs reference-free metrics?** — Reference-based metrics (e.g. Exact Match, `types.Metric("exact_match")`) compare the response to a supplied reference answer. Reference-free metrics (the rubric metrics, `types.RubricMetric.*`, and custom `LLMMetric`s) judge the trace on its own with no ground truth. Both are demonstrated in `src/eval/metric_registry.py`.
@@ -205,9 +203,7 @@ remote = client.agent_engines.create(
 - `src/eval/demo/` — orchestrator + notebook covering all 9 doc pages
 - `src/eval/metric_registry.py` — Metric Registry (predefined + custom LLM + custom code + exact-match)
 - `src/eval/offline_trace_eval.py` — offline eval over historical traces/sessions
-- `src/eval/env_simulation.py` — environment simulation (tool-call mocking + error injection)
-- `src/eval/loss_taxonomy.py` — loss-pattern taxonomies + 3-level triage
-- `src/eval/sdk_optimize.py` + `src/eval/agents_cli_demo.sh` — SDK / agents-cli optimization
+- `src/eval/env_simulation.py` — environment simulation (tool-call mocking + error injection)- `src/eval/sdk_optimize.py` + `src/eval/agents_cli_demo.sh` — SDK / agents-cli optimization
 
 ---
 

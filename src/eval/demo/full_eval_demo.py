@@ -74,11 +74,7 @@ def run_demo(agent_id: str = AGENT_ENGINE_ID, agent_name: str = "coordinator_age
     run("evaluate-online", lambda: steps.online_monitors(do_setup=not offline))
 
     # -- Phase 4: Refinement ----------------------------------------------
-    print("\n----- Phase 4: Refinement (analyze -> optimize) -----")
-    if not offline:
-        run("view-results", lambda: steps.analyze(agent_id))
-    else:
-        print("    (offline: skipping live failure-cluster analysis)")
+    print("\n----- Phase 4: Refinement (optimize) -----")
     run("optimize-agent", lambda: steps.optimize(client))
     run("quality-alerts", steps.quality_alerts)
 

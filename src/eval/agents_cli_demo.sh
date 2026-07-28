@@ -11,7 +11,6 @@
 #   dataset synthesize   -> generate synthetic multi-turn eval scenarios
 #   generate             -> run agent inference over eval cases -> traces
 #   grade                -> score traces against metrics
-#   analyze              -> cluster failure modes from a graded result
 #   compare              -> diff two eval result JSON files
 #   optimize             -> auto-tune the agent's prompts (GEPA)
 #
@@ -147,22 +146,7 @@ run_or_help "agents-cli eval grade  (grade traces against metrics)" -- \
     --output "$GRADE_DIR"
 
 # ---------------------------------------------------------------------------
-# 5. analyze — cluster the failing cases into systemic failure modes
-#    (loss clusters) from a graded eval result JSON.
-#    Real invocation:
-#      agents-cli eval analyze --eval-result "$EVAL_RESULT" \
-#        --top-k 5 --metric multi_turn_task_success \
-#        --output "$ARTIFACTS/clusters.json"
-# ---------------------------------------------------------------------------
-run_or_help "agents-cli eval analyze  (cluster failure modes)" -- \
-  agents-cli eval analyze \
-    --eval-result "$EVAL_RESULT" \
-    --top-k 5 \
-    --metric multi_turn_task_success \
-    --output "$ARTIFACTS/clusters.json"
-
-# ---------------------------------------------------------------------------
-# 6. compare — diff two eval result JSON files (BASELINE vs CANDIDATE). This is
+# 5. compare — diff two eval result JSON files (BASELINE vs CANDIDATE). This is
 #    purely in-process (no cloud), but needs two existing result files.
 #    Real invocation:
 #      agents-cli eval compare "$BASELINE" "$CANDIDATE"

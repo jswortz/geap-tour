@@ -26,7 +26,7 @@ Run the whole flywheel end-to-end:
 # One orchestrator that touches every doc feature (live against a deployed engine)
 uv run python -m src.eval.demo.full_eval_demo --agent-id $AGENT_ENGINE_ID
 
-# ...or step through the narrated notebook (adds result.show() / loss_clusters.show() viz)
+# ...or step through the narrated notebook (adds result.show() visualization)
 jupyter notebook src/eval/demo/evaluation_demo.ipynb
 ```
 
@@ -46,7 +46,7 @@ The live surface in the Google Cloud Console — **Agent Platform → Agents →
 | 4 | [evaluate-simulated](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-simulated) | Scenario gen, user simulation, environment simulation | `simulated_eval.py`, `env_simulation.py` | `python -m src.eval.simulated_eval <resource> --multi-turn` |
 | 5 | [evaluate-online](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-online) | Continuous eval with Online Monitors | `setup_online_evaluators.py`, `publish_metrics.py`, `verify_monitors.py` | `python -m src.eval.setup_online_evaluators create` |
 | 6 | [manage-metrics](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/manage-metrics) | Metric Registry: predefined, custom LLM, custom code | `metric_registry.py` | `python -m src.eval.metric_registry register` |
-| 7 | [view-results](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/view-results) | `.show()`, loss-pattern taxonomies, 3-level triage | `evaluation_demo.ipynb`, `failure_clusters.py`, `loss_taxonomy.py` | `python -m src.eval.failure_clusters <engine-id>` |
+| 7 | [view-results](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/view-results) | `result.show()` result visualization | `evaluation_demo.ipynb` | notebook |
 | 8 | [quality-alerts](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/quality-alerts) | Quality-drift alerts (3 paths incl. gcloud policy.yaml) | `quality_alerts.py`, `policies/quality_drift_policy.yaml` | `python -m src.eval.quality_alerts export-yaml` |
 | 9 | [optimize-agent](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/optimize-agent) | Quality Flywheel: GEPA, SimplePromptOptimizer, agents-cli | `run_optimize.py`, `sdk_optimize.py`, `agents_cli_demo.sh` | `python -m src.optimize.run_optimize src/agents/coordinator` |
 
@@ -1043,30 +1043,7 @@ multi-turn metric retries with the single-turn set rather than aborting the run)
 
 ---
 
-## 13. Loss-Pattern Taxonomies & 3-Level Triage
-
-📖 [view-results](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/view-results)
-· **Source:** [`src/eval/failure_clusters.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/failure_clusters.py),
-[`src/eval/loss_taxonomy.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/loss_taxonomy.py)
-
-`generate_loss_clusters()` groups failures into semantic clusters; each cluster is mapped to the
-doc's named **loss-pattern taxonomies** and surfaced through a **3-level triage**
-(summary metrics → failure clusters + taxonomy → individual traces).
-
-| Taxonomy | Categories |
-|----------|-----------|
-| **Agent Task Success** (`multi_turn_task_success_v1`) | Hallucination · Instruction Following · Tool Calling · Tool Output Handling · Tool Quality |
-| **Tool Use Quality** (`multi_turn_tool_use_quality_v1`) | Hallucination · Tool Calling · Tool Response |
-
-```bash
-uv run python -m src.eval.failure_clusters $AGENT_ENGINE_ID   # writes eval_outputs/failure_triage.json
-```
-
-In the notebook, `result.show()` and `loss_clusters.show()` render the interactive tables.
-
----
-
-## 14. Quality-Drift Alerts
+## 13. Quality-Drift Alerts
 
 📖 [quality-alerts](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/quality-alerts)
 · **Source:** [`src/eval/quality_alerts.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/quality_alerts.py),
@@ -1094,7 +1071,7 @@ uv run python -m src.eval.quality_alerts drift task_success 0.8
 
 ---
 
-## 15. SDK & agents-cli Optimization (Quality Flywheel)
+## 14. SDK & agents-cli Optimization (Quality Flywheel)
 
 📖 [optimize-agent](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/optimize-agent)
 · **Source:** [`src/optimize/run_optimize.py`](https://github.com/jswortz/geap-tour/blob/main/src/optimize/run_optimize.py),
@@ -1121,7 +1098,7 @@ bash src/eval/agents_cli_demo.sh          # generate → grade → analyze → o
 
 ---
 
-## 16. AI-Assistant Eval Skills
+## 15. AI-Assistant Eval Skills
 
 📖 [agent-evaluation](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/agent-evaluation)
 

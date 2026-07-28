@@ -180,17 +180,6 @@ def online_monitors(do_setup: bool = False) -> dict:
 # ---------------------------------------------------------------------------
 # Phase 4 — Refinement
 # ---------------------------------------------------------------------------
-def analyze(agent_id: str) -> dict:
-    """[view-results] Analyze — failure clusters mapped to loss-pattern taxonomies."""
-    try:
-        from src.eval.failure_clusters import analyze_failure_clusters
-        eval_result = analyze_failure_clusters(agent_id)
-        return _ok(8, "Analyze results & failure clusters (taxonomy + 3-level triage)",
-                   "view-results", raw=eval_result)
-    except Exception as e:  # noqa: BLE001
-        return _skipped(8, "Analyze results & failure clusters", "view-results", str(e))
-
-
 def optimize(client, agent_module_path: str = "src/agents/coordinator") -> dict:
     """[optimize-agent] Optimize — SDK optimizer path with ADK-GEPA fallback (Quality Flywheel)."""
     try:

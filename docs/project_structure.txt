@@ -38,7 +38,6 @@
 ./src/deploy/deploy_all.py
 ./src/deploy/deploy_mcp_servers.py
 ./src/eval/__init__.py
-./src/eval/failure_clusters.py
 ./src/eval/manage_monitors.py
 ./src/eval/one_time_eval.py
 ./src/eval/quality_alerts.py

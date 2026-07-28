@@ -260,7 +260,7 @@ config = {"identity_type": types.IdentityType.AGENT_IDENTITY}
 - Configure Agent Gateway egress/ingress policies for network governance
 - Run one-time, continuous, and simulated evaluations against deployed agents
 - Set up CI/CD quality gates using simulated evaluation
-- Analyze failure clusters and configure quality alerts
+- Configure quality alerts
 - Optimize agent instructions using the GEPA algorithm
 
 **Prerequisite:** Session 1 agents and MCP servers must be deployed.
@@ -806,7 +806,7 @@ gcloud beta network-security authz-policies list --location=${REGION}
 > [`docs/evaluation_demo.md`](evaluation_demo.md) and the coverage matrix in
 > [`docs/eval_operations.md` §0](eval_operations.md). New building blocks used below:
 > `metric_registry.py` (custom LLM + code + exact-match metrics), `offline_trace_eval.py`
-> (historical traces), `env_simulation.py`, `loss_taxonomy.py`, `sdk_optimize.py`.
+> (historical traces), `env_simulation.py`, `sdk_optimize.py`.
 
 ### 2.2 One-Time Evaluation (~15 min)
 
@@ -919,19 +919,7 @@ uv run python -m src.eval.simulated_eval <agent-resource-name> 3.0
 
 ---
 
-### 2.5 Failure Clusters & Quality Alerts (~10 min)
-
-#### Failure Clusters
-
-**Code**: [`src/eval/failure_clusters.py`](../src/eval/failure_clusters.py)
-
-Instead of reviewing failures individually, `generate_loss_clusters()` groups similar failure patterns:
-
-```bash
-uv run python -m src.eval.failure_clusters <eval-result-name>
-```
-
-Output shows clusters with titles, descriptions, sample counts, and average scores — enabling targeted improvements. Each cluster is mapped to the doc's named **loss-pattern taxonomies** (Agent Task Success + Tool Use Quality) via [`src/eval/loss_taxonomy.py`](../src/eval/loss_taxonomy.py), and a **3-level triage** (summary → clusters → traces) is written to `eval_outputs/failure_triage.json`.
+### 2.5 Quality Alerts (~10 min)
 
 #### Quality Alerts
 

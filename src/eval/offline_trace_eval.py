@@ -66,8 +66,7 @@ _FIXTURE_PATH = os.path.join(os.path.dirname(__file__), "sample_traces.jsonl")
 def _resolve_agent_resource_name(agent_id: str) -> str:
     """Expand a bare reasoning-engine id into a full resource name.
 
-    Mirrors the convention used across the repo (see failure_clusters.py and
-    setup_online_monitors.py).
+    Mirrors the convention used across the repo (see setup_online_monitors.py).
     """
     if agent_id.startswith("projects/"):
         return agent_id
@@ -218,7 +217,7 @@ def build_offline_dataset(records: list[dict]):
 
     Columns: ``prompt``, ``response`` (bring-your-own-response, so no new
     inference) and ``session_inputs`` — a ``types.evals.SessionInput`` per row,
-    keyed on the conversation id, matching the pattern in failure_clusters.py.
+    keyed on the conversation id, matching the pattern used across the eval modules.
     """
     import pandas as pd
     from vertexai import types
