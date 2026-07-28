@@ -1,6 +1,11 @@
 """Structural tests for the native A2UI screens (no network, no image assets)."""
 from app.cost_model import Accrual
-from app.ui_builder import SURFACE_ID, build_dashboard_screen, build_routing_logic_screen
+from app.ui_builder import (
+    DASHBOARD_SURFACE,
+    ROUTING_SURFACE,
+    build_dashboard_screen,
+    build_routing_logic_screen,
+)
 
 
 def _accrual_with_steps() -> Accrual:
@@ -31,12 +36,12 @@ def _ids_and_refs(commands: list):
     return su, ids, refs
 
 
-def _assert_valid_surface(commands, expect_actions):
+def _assert_valid_surface(commands, expect_actions, surface):
     assert isinstance(commands, list) and len(commands) == 2
     begin = next(c["beginRendering"] for c in commands if "beginRendering" in c)
-    assert begin["surfaceId"] == SURFACE_ID and begin["root"] == "root-layout"
+    assert begin["surfaceId"] == surface and begin["root"] == "root-layout"
     su, ids, refs = _ids_and_refs(commands)
-    assert su["surfaceId"] == SURFACE_ID
+    assert su["surfaceId"] == surface
     assert "root-layout" in ids
     # Referential integrity: every referenced child id is declared.
     missing = refs - ids
@@ -49,7 +54,7 @@ def _assert_valid_surface(commands, expect_actions):
 
 def test_dashboard_empty_state():
     cmds = build_dashboard_screen(Accrual())
-    _assert_valid_surface(cmds, {"view_routing"})
+    _assert_valid_surface(cmds, {"view_routing"}, DASHBOARD_SURFACE)
     # No VegaChart on the empty state.
     su = next(c["surfaceUpdate"] for c in cmds if "surfaceUpdate" in c)
     assert not any("VegaChart" in c["component"] for c in su["components"])
@@ -57,7 +62,7 @@ def test_dashboard_empty_state():
 
 def test_dashboard_with_steps_has_chart_and_buttons():
     cmds = build_dashboard_screen(_accrual_with_steps())
-    _assert_valid_surface(cmds, {"view_routing", "reset"})
+    _assert_valid_surface(cmds, {"view_routing", "reset"}, DASHBOARD_SURFACE)
     su = next(c["surfaceUpdate"] for c in cmds if "surfaceUpdate" in c)
     vegas = [c for c in su["components"] if "VegaChart" in c["component"]]
     assert len(vegas) == 1
@@ -67,7 +72,7 @@ def test_dashboard_with_steps_has_chart_and_buttons():
 
 def test_routing_logic_screen_structure():
     cmds = build_routing_logic_screen(_accrual_with_steps())
-    _assert_valid_surface(cmds, {"view_dashboard", "reset"})
+    _assert_valid_surface(cmds, {"view_dashboard", "reset"}, ROUTING_SURFACE)
     su = next(c["surfaceUpdate"] for c in cmds if "surfaceUpdate" in c)
     # The classifier's real reason for a routed prompt is surfaced somewhere in the text.
     blob = "".join(
@@ -79,6 +84,6 @@ def test_routing_logic_screen_structure():
 
 def test_routing_logic_empty_has_no_chart():
     cmds = build_routing_logic_screen(Accrual())
-    _assert_valid_surface(cmds, {"view_dashboard", "reset"})
+    _assert_valid_surface(cmds, {"view_dashboard", "reset"}, ROUTING_SURFACE)
     su = next(c["surfaceUpdate"] for c in cmds if "surfaceUpdate" in c)
     assert not any("VegaChart" in c["component"] for c in su["components"])

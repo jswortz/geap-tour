@@ -70,11 +70,12 @@ class RouterCostExecutor(AgentExecutor):
         action, text = _parse(context)
         low = text.lower().strip()
 
-        is_reset = action == "reset" or low in ("reset", "clear", "reset session", "start over")
-        is_routing = action == "view_routing" or ("routing" in low and ("logic" in low or "scor" in low)) \
-            or low in ("routing logic", "scoring", "routing logic and scoring")
-        is_dashboard = action == "view_dashboard" or low in (
-            "dashboard", "cost dashboard", "show dashboard", "show the router cost dashboard")
+        # Nav is detected by SUBSTRING (GE may reword/annotate the prompt text, so exact matches
+        # are unreliable) or by an explicit Button userAction.
+        is_reset = action == "reset" or "reset" in low or low in ("clear", "start over")
+        is_routing = action == "view_routing" or "routing logic" in low or "scoring" in low \
+            or ("rout" in low and "logic" in low)
+        is_dashboard = action == "view_dashboard" or "dashboard" in low or "cost dashboard" in low
 
         try:
             if is_reset:

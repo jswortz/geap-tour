@@ -19,7 +19,11 @@ from typing import List
 from app.cost_model import COST_RATES, Accrual
 from app.router_logic import THRESHOLDS, TIER_LABEL, TIER_MODEL
 
-SURFACE_ID = "router-cost"
+# Distinct surfaceId per screen so Gemini Enterprise renders each as its own surface (a repeated
+# surfaceId is updated in place / in the side canvas rather than re-rendered inline on tab switch).
+DASHBOARD_SURFACE = "router-cost"
+ROUTING_SURFACE = "router-logic"
+SURFACE_ID = DASHBOARD_SURFACE  # back-compat default
 
 # Colors for the Vega charts (Google-Cloud palette).
 C_ROUTER = "#1a73e8"
@@ -84,11 +88,11 @@ class _Screen:
         self.components.append({"id": tid, "component": {"Text": {"text": {"literalString": label}, "usageHint": "body"}}})
         return eid
 
-    def build(self, root_child_ids: List[str]) -> List[dict]:
+    def build(self, root_child_ids: List[str], surface_id: str = DASHBOARD_SURFACE) -> List[dict]:
         self.components.insert(0, {"id": "root-layout", "component": {"Column": {"children": {"explicitList": root_child_ids}}}})
         return [
-            {"beginRendering": {"surfaceId": SURFACE_ID, "root": "root-layout"}},
-            {"surfaceUpdate": {"surfaceId": SURFACE_ID, "components": self.components}},
+            {"beginRendering": {"surfaceId": surface_id, "root": "root-layout"}},
+            {"surfaceUpdate": {"surfaceId": surface_id, "components": self.components}},
         ]
 
 
@@ -161,7 +165,7 @@ def build_dashboard_screen(acc: Accrual) -> List[dict]:
         ])
         root.append(sc.card(empty))
         root.append(sc.button("🔬 Routing logic & scoring", "view_routing", primary=True))
-        return sc.build(root)
+        return sc.build(root, DASHBOARD_SURFACE)
 
     n = len(acc.steps)
     opus_n = acc.tier_counts.get("Opus", 0)
@@ -199,7 +203,7 @@ def build_dashboard_screen(acc: Accrual) -> List[dict]:
     root.append(sc.button("↺ Reset session", "reset", primary=False))
     root.append(sc.text(f"Frontier (Opus) was used for {opus_n} of {n} prompts. "
                         "Baseline = Opus rates on the same real token counts.", "caption"))
-    return sc.build(root)
+    return sc.build(root, DASHBOARD_SURFACE)
 
 
 # --- Screen 2: routing logic & scoring (tokenomics teaching) ----------------
@@ -252,4 +256,4 @@ def build_routing_logic_screen(acc: Accrual) -> List[dict]:
     root.append(sc.divider())
     root.append(sc.button("📊 Cost dashboard", "view_dashboard", primary=True))
     root.append(sc.button("↺ Reset session", "reset", primary=False))
-    return sc.build(root)
+    return sc.build(root, ROUTING_SURFACE)
