@@ -118,22 +118,22 @@ def _query_bigquery_traces(hours_back: int, limit: int) -> list[dict]:
 
     client = bigquery.Client(project=GCP_PROJECT_ID)
 
-    # The logging sink lands one table per resource type; a wildcard scan keeps
-    # this robust to the exact table name. We select rows carrying the gen_ai
-    # inference event, which holds the input/output messages we score offline.
+    # The logging sink lands the gen_ai inference events in per-day tables named
+    # gen_ai_client_inference_operation_details_YYYYMMDD; a table wildcard scans them all. The OTel
+    # gen_ai.* attributes are flattened into the log's `labels` record (dots -> underscores), e.g.
+    # `labels.gen_ai_input_messages`. (The whole-dataset `{dataset}.*` wildcard + json_payload was
+    # wrong — the dataset also holds reasoning_engine_stdout/build tables with no json_payload column.)
     query = f"""
     SELECT
         timestamp,
-        JSON_VALUE(json_payload, '$."gen_ai.conversation.id"')      AS conversation_id,
-        JSON_VALUE(json_payload, '$."gen_ai.agent.name"')           AS agent_name,
-        JSON_VALUE(json_payload, '$."gen_ai.input.messages"')       AS input_messages,
-        JSON_VALUE(json_payload, '$."gen_ai.output.messages"')      AS output_messages,
-        JSON_VALUE(json_payload, '$."gen_ai.tool.definitions"')     AS tool_definitions
-    FROM `{GCP_PROJECT_ID}.{BQ_EVAL_DATASET}.*`
+        labels.gen_ai_conversation_id  AS conversation_id,
+        labels.gen_ai_agent_name       AS agent_name,
+        labels.gen_ai_input_messages   AS input_messages,
+        labels.gen_ai_output_messages  AS output_messages,
+        labels.gen_ai_tool_definitions AS tool_definitions
+    FROM `{GCP_PROJECT_ID}.{BQ_EVAL_DATASET}.gen_ai_client_inference_operation_details_*`
     WHERE timestamp > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL {int(hours_back)} HOUR)
-      AND JSON_VALUE(json_payload, '$."event.name"')
-          = 'gen_ai.client.inference.operation.details'
-      AND JSON_VALUE(json_payload, '$."gen_ai.output.messages"') IS NOT NULL
+      AND labels.gen_ai_output_messages IS NOT NULL
     ORDER BY timestamp DESC
     LIMIT {int(limit)}
     """
