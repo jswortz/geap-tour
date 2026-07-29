@@ -574,6 +574,12 @@ simulated quality-drift decline (feed it with `uv run python -m src.eval.publish
 > Open ad hoc in **Monitoring → Metrics explorer** and query any `agent_eval/*` or
 > `online_evaluator/scores` metric; save charts to a dashboard for a persistent quality view.
 
+You can also **publish and pull these metrics programmatically** — the
+[`evaluation_sdk_demo.ipynb`](https://github.com/jswortz/geap-tour/blob/main/src/eval/demo/evaluation_sdk_demo.ipynb)
+notebook writes each rubric score with `monitoring_v3.MetricServiceClient().create_time_series`
+(→ `custom.googleapis.com/agent_eval/*`) and reads it back from Metrics Explorer with
+`list_time_series` (use a wide time window; Cloud Monitoring has a few-seconds ingestion lag).
+
 ### Evaluator Setup
 
 > **Source:** [`src/eval/setup_online_evaluators.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/setup_online_evaluators.py)
