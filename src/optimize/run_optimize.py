@@ -99,6 +99,12 @@ def run_optimize(
     app_name = os.path.basename(agent_module_path)
     agents_dir = os.path.dirname(agent_module_path)
 
+    # The sampler configs use the deterministic `response_match_score` metric ONLY. LLM/rubric judges
+    # (final_response_match_v2, safety_v1) can return a None score on a flaky case, and the installed
+    # ADK crashes the whole GEPA run on it — google/adk/optimization/local_eval_sampler.py::
+    # _extract_eval_data does `round(eval_metric_result.score, 2)` with no None guard
+    # ("TypeError: type NoneType doesn't define __round__"). response_match_score always returns a float
+    # (every eval case has a reference), so it avoids that upstream bug.
     with open(sampler_config_path, "r") as f:
         sampler_config = LocalEvalSamplerConfig.model_validate_json(f.read())
 
