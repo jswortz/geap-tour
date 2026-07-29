@@ -98,6 +98,30 @@ Requests targeting deployed agents flow through a logical client URN mapped in t
    ```
 
 
+## Gemini Enterprise Agent — Router Cost Visualizer
+
+The **multi-model router** is published to **Gemini Enterprise** as an A2A/A2UI agent. Business users
+chat with it in the GE console; every prompt is classified, routed to the cheapest capable model tier,
+and executed, while a **Live Cost Dashboard** renders in the side canvas (KPIs, cumulative cost vs an
+all-Opus baseline, spend by tier, and per-prompt routing).
+
+![Gemini Enterprise — Router Cost Visualizer live in the GE canvas](docs/screenshots/ge_router_live_canvas_dashboard.png)
+
+**Try it in Gemini Enterprise**
+- Open the agent: [GEAP Router Cost Visualizer in GE](https://vertexaisearch.cloud.google.com/home/cid/c4da98d6-1b97-4e31-bb6a-ba979e363c26/r/agent/14432326554756478249)
+- Ask a workload prompt (e.g. *"Plan a 5-day Tokyo trip for 4 with a budget"*) and watch the dashboard accrue cost; use **Routing logic & scoring** to see how each prompt is scored and tiered.
+
+**Deploy / (re)register it yourself**
+```bash
+# Deploys the A2A/A2UI service to Cloud Run and registers/updates the GE agent
+set -a; source .env; set +a
+bash scripts/deploy_router_ui.sh
+```
+- A2A agent card: `https://geap-router-cost-ui-679926387543.us-east1.run.app/a2a/app/.well-known/agent-card.json`
+- Backend + UI: [`app/`](app/) · registration: [`scripts/register_router_ui_agent.py`](scripts/register_router_ui_agent.py)
+- How routing + cost work: [`docs/multi_model_cost_comparison.md`](docs/multi_model_cost_comparison.md)
+
+
 ## Screenshots
 
 All screenshots are captured from real deployed GCP resources:
