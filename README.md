@@ -35,6 +35,7 @@ A hands-on workshop demonstrating the full Gemini Enterprise Agent Platform (GEA
 | [Evaluation Demo Walkthrough](docs/evaluation_demo.md) | End-to-end Quality Flywheel demo (100% doc coverage) — `python -m src.eval.demo.full_eval_demo` |
 | [Evaluation Slides](docs/eval_slides.html) ([.pptx](docs/eval_slides.pptx)) | 5-slide Google Cloud–style teach-in on agent evals (real console screenshots + code deep links) |
 | [Cost Comparison](docs/multi_model_cost_comparison.md) | Multi-model routing cost analysis |
+| [Publish Agents to Gemini Enterprise](docs/publishing_agents_to_gemini_enterprise.md) | How-to: register the **coordinator + router** agents *directly* to a GE app (ADK reasoning-engine registration) — `agents-cli` + repo script, with live console evidence |
 | [Slides](docs/slides.pptx) | Workshop deck (34 slides) |
 
 ## Reference Documentation
@@ -122,6 +123,29 @@ bash scripts/deploy_router_ui.sh
 - How routing + cost work: [`docs/multi_model_cost_comparison.md`](docs/multi_model_cost_comparison.md)
 
 
+## Publish the Two Agents Directly to Gemini Enterprise
+
+Beyond the A2A Router Cost Visualizer above, the workshop's two first-class ADK agents —
+**`coordinator_agent`** and **`router_agent`** — can be published **directly** to Gemini Enterprise by
+registering their Agent Runtime **reasoning engines** (ADK registration via
+`adkAgentDefinition` → `provisionedReasoningEngine`). No Cloud Run wrapper is needed; GE invokes the
+reasoning engine natively. In the GE Agents table they appear as type **Agent Engine** (contrast the
+Router Cost Visualizer's **A2A (Custom)**).
+
+![Coordinator + router published directly to Gemini Enterprise](docs/screenshots/ge_two_agents_published.png)
+
+**Publish both yourself** (idempotent — re-runs update the registration in place):
+```bash
+set -a; source .env; set +a
+uv run python scripts/publish_agents_to_ge.py     # REST publisher (requests + google-auth only)
+# ...or the official CLI wrapper:
+bash scripts/publish_agents_to_ge.sh              # agents-cli publish gemini-enterprise (ADK mode)
+```
+- Full how-to: [`docs/publishing_agents_to_gemini_enterprise.md`](docs/publishing_agents_to_gemini_enterprise.md)
+- Publisher: [`scripts/publish_agents_to_ge.py`](scripts/publish_agents_to_ge.py) · CLI wrapper: [`scripts/publish_agents_to_ge.sh`](scripts/publish_agents_to_ge.sh)
+- Live in GE (engine `gemini-enterprise-17634901_1763490144996`): **GEAP Corporate Travel & Expense Assistant** (`3686131016255017939`) · **GEAP Multi-Model Cost Router** (`13895830063069432068`) — both **Enabled**
+
+
 ## Screenshots
 
 All screenshots are captured from real deployed GCP resources:
@@ -146,6 +170,7 @@ All screenshots are captured from real deployed GCP resources:
 | ![Business Policies](docs/screenshots/session3_business_policies.png) | Semantic Governance Policies (SGP) |
 | ![Metrics Explorer Out-of-Spec](docs/screenshots/session5_metrics_explorer_out_of_spec.png) | Cloud Monitoring Metrics Explorer showing evaluation scores drop |
 | ![Quality Alert Firing](docs/screenshots/session5_monitoring_alert_firing.png) | Cloud Monitoring Alerting Policy in FIRING state |
+| ![Two agents in Gemini Enterprise](docs/screenshots/ge_two_agents_published.png) | Coordinator + router published directly to Gemini Enterprise (type **Agent Engine**, Enabled) |
 
 ## Workshop Guide
 
