@@ -187,15 +187,32 @@ def _client():
     return Client(project=GCP_PROJECT_ID, location=GCP_REGION)
 
 
+def _existing_by_display_name(client) -> dict:
+    """Map ``display_name`` → registry resource name for metrics already published.
+
+    ``create_evaluation_metric`` uses each metric's ``name`` as its ``display_name``,
+    so this lets us make registration idempotent and resolve resource names for delete.
+    """
+    resp = client.evals.list_evaluation_metrics()
+    return {m.display_name: m.name for m in (resp.evaluation_metrics or [])}
+
+
 def register_all(client=None) -> dict:
     """Register every custom metric via `client.evals.create_evaluation_metric()`.
 
-    Returns a mapping of metric name → registered resource path (or an error string).
+    Idempotent: a metric whose ``display_name`` is already in the registry is reused,
+    not duplicated. Returns a mapping of metric name → registered resource path
+    (or an error string).
     """
     client = client or _client()
+    existing = _existing_by_display_name(client)
     registered = {}
     for metric in custom_metrics():
         name = getattr(metric, "name", metric.__class__.__name__)
+        if name in existing:
+            registered[name] = existing[name]
+            print(f"  = {name} already registered → {existing[name]}")
+            continue
         try:
             path = client.evals.create_evaluation_metric(metric=metric)
             registered[name] = str(path)
@@ -210,24 +227,26 @@ def list_registered(client=None) -> list:
     """List metrics currently in the registry."""
     client = client or _client()
     try:
-        metrics = list(client.evals.list_evaluation_metrics())
+        metrics = list(client.evals.list_evaluation_metrics().evaluation_metrics or [])
     except Exception as e:  # noqa: BLE001
         print(f"  (could not list metrics: {e})")
         return []
     for m in metrics:
-        print(f"  - {getattr(m, 'name', m)}")
+        print(f"  - {m.display_name} → {m.name}")
     return metrics
 
 
 def delete_registered(client=None) -> None:
-    """Delete the GEAP custom metrics from the registry."""
+    """Delete the GEAP custom metrics from the registry (by resolved resource name)."""
     client = client or _client()
+    existing = _existing_by_display_name(client)
     for metric in custom_metrics():
         name = getattr(metric, "name", None)
-        if not name:
+        resource = existing.get(name)
+        if not resource:
             continue
         try:
-            client.evals.delete_evaluation_metric(name=name)
+            client.evals.delete_evaluation_metric(metric_resource_name=resource)
             print(f"  ✓ deleted {name}")
         except Exception as e:  # noqa: BLE001
             print(f"  ✗ {name}: {e}")
