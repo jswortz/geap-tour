@@ -802,7 +802,7 @@ gcloud beta network-security authz-policies list --location=${REGION}
 > complete, end-to-end **Quality Flywheel** demo with 100% coverage of Google's
 > [Optimize → Evaluation](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/agent-evaluation)
 > docs, run `uv run python -m src.eval.demo.full_eval_demo --agent-id $AGENT_ENGINE_ID` (or the
-> notebook `src/eval/demo/evaluation_demo.ipynb`). See the guided walkthrough in
+> notebook `src/eval/demo/evaluation_sdk_demo.ipynb`). See the guided walkthrough in
 > [`docs/evaluation_demo.md`](evaluation_demo.md) and the coverage matrix in
 > [`docs/eval_operations.md` §0](eval_operations.md). New building blocks used below:
 > `metric_registry.py` (custom LLM + code + exact-match metrics), `offline_trace_eval.py`

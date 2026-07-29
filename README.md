@@ -27,7 +27,7 @@ A hands-on workshop demonstrating the full Gemini Enterprise Agent Platform (GEA
 
 | Document | Description |
 |----------|-------------|
-| ▶ **[Interactive Evaluation Notebook](src/eval/demo/evaluation_demo.ipynb)** | **Start here for evals** — flat & **SDK-first**: every Quality-Flywheel phase calls `client.evals.*` / `vertexai.types.*` **inline** (custom code is explicitly called out), scored against the deployed agent. Headless: `python -m src.eval.demo.full_eval_demo` |
+| ▶ **[Interactive Evaluation Notebook](src/eval/demo/evaluation_sdk_demo.ipynb)** | **Start here for evals** — flat & **SDK-first**: every Quality-Flywheel phase calls `client.evals.*` / `vertexai.types.*` **inline** (custom code is explicitly called out), scored against the deployed agent. Headless: `python -m src.eval.demo.full_eval_demo` |
 | [Workshop Guide](docs/workshop_guide.md) | Full 4-session hands-on walkthrough |
 | [Monitoring Guide](docs/monitoring_integration_guide.md) | Quality alerts and custom metrics bridge guide |
 | [Component FAQ](docs/faq.md) | What each component does and why it matters |

@@ -27,7 +27,7 @@ Run the whole flywheel end-to-end:
 uv run python -m src.eval.demo.full_eval_demo --agent-id $AGENT_ENGINE_ID
 
 # ...or step through the narrated notebook (adds result.show() visualization)
-jupyter notebook src/eval/demo/evaluation_demo.ipynb
+jupyter notebook src/eval/demo/evaluation_sdk_demo.ipynb
 ```
 
 See **[evaluation_demo.md](evaluation_demo.md)** for the guided, screenshot-backed walkthrough.
@@ -46,7 +46,7 @@ The live surface in the Google Cloud Console — **Agent Platform → Agents →
 | 4 | [evaluate-simulated](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-simulated) | Scenario gen, user simulation, environment simulation | `simulated_eval.py`, `env_simulation.py` | `python -m src.eval.simulated_eval <resource> --multi-turn` |
 | 5 | [evaluate-online](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-online) | Continuous eval with Online Monitors | `setup_online_evaluators.py`, `publish_metrics.py`, `verify_monitors.py` | `python -m src.eval.setup_online_evaluators create` |
 | 6 | [manage-metrics](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/manage-metrics) | Metric Registry: predefined, custom LLM, custom code | `metric_registry.py` | `python -m src.eval.metric_registry register` |
-| 7 | [view-results](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/view-results) | `result.show()` result visualization | `evaluation_demo.ipynb` | notebook |
+| 7 | [view-results](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/view-results) | `result.show()` result visualization | `evaluation_sdk_demo.ipynb` | notebook |
 | 8 | [quality-alerts](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/quality-alerts) | Quality-drift alerts (3 paths incl. gcloud policy.yaml) | `quality_alerts.py`, `policies/quality_drift_policy.yaml` | `python -m src.eval.quality_alerts export-yaml` |
 | 9 | [optimize-agent](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/optimize-agent) | Quality Flywheel: GEPA, SimplePromptOptimizer, agents-cli | `run_optimize.py`, `sdk_optimize.py`, `agents_cli_demo.sh` | `python -m src.optimize.run_optimize src/agents/coordinator` |
 
@@ -1132,7 +1132,7 @@ for a runnable walkthrough of its subcommands.
 | Set up alerts | `uv run python -m src.eval.quality_alerts all` | [`src/eval/quality_alerts.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/quality_alerts.py) |
 | Run unit tests | `uv run --extra dev python -m pytest tests/test_multi_agent_eval.py -v` | |
 | **Full flywheel demo** | `uv run python -m src.eval.demo.full_eval_demo --agent-id $AGENT_ENGINE_ID` | [`src/eval/demo/full_eval_demo.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/demo/full_eval_demo.py) |
-| Demo notebook | `jupyter notebook src/eval/demo/evaluation_demo.ipynb` | [`src/eval/demo/evaluation_demo.ipynb`](https://github.com/jswortz/geap-tour/blob/main/src/eval/demo/evaluation_demo.ipynb) |
+| Demo notebook | `jupyter notebook src/eval/demo/evaluation_sdk_demo.ipynb` | [`src/eval/demo/evaluation_sdk_demo.ipynb`](https://github.com/jswortz/geap-tour/blob/main/src/eval/demo/evaluation_sdk_demo.ipynb) |
 | Register custom metrics | `uv run python -m src.eval.metric_registry register` | [`src/eval/metric_registry.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/metric_registry.py) |
 | Offline trace eval | `uv run python -m src.eval.offline_trace_eval coordinator_agent` | [`src/eval/offline_trace_eval.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/offline_trace_eval.py) |
 | Simulated multi-turn eval | `uv run python -m src.eval.simulated_eval <resource> --multi-turn` | [`src/eval/simulated_eval.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/simulated_eval.py) |

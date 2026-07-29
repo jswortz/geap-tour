@@ -9,7 +9,7 @@ Every step below links to (a) the official doc page it teaches and (b) the repo 
 runs it. For the full coverage matrix see [`eval_operations.md` §0](eval_operations.md#0-geap-optimize--evaluation-coverage-matrix).
 
 - **Run everything (live):** `uv run python -m src.eval.demo.full_eval_demo --agent-id $AGENT_ENGINE_ID`
-- **Notebook** — [view results](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/view-results) with `.show()` visualizations: `jupyter notebook src/eval/demo/evaluation_demo.ipynb`
+- **Notebook** — [view results](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/view-results) with `.show()` visualizations: `jupyter notebook src/eval/demo/evaluation_sdk_demo.ipynb`
 - **Emit JSON for reports/screenshots:** add `--emit-json eval_outputs/demo/full_demo.json`
 
 ---

@@ -189,7 +189,7 @@ remote = client.agent_engines.create(
 - `src/eval/setup_online_evaluators.py` — Native Online Evaluators with custom rubrics (create, list, verify, cleanup)
 - `src/eval/simulated_eval.py` — CI/CD eval gate (blocks PRs below score 3.0)
 - `.github/workflows/eval_ci.yaml` — GitHub Actions workflow for eval-on-PR
-**How do I run the full 100%-coverage demo?** — Run `uv run python -m src.eval.demo.full_eval_demo --agent-id $AGENT_ENGINE_ID`, or step through `src/eval/demo/evaluation_demo.ipynb`. It exercises every feature in Google's [Optimize → Evaluation](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/agent-evaluation) docs in flywheel order. See [`docs/evaluation_demo.md`](evaluation_demo.md) and the coverage matrix in [`docs/eval_operations.md` §0](eval_operations.md).
+**How do I run the full 100%-coverage demo?** — Run `uv run python -m src.eval.demo.full_eval_demo --agent-id $AGENT_ENGINE_ID`, or step through `src/eval/demo/evaluation_sdk_demo.ipynb`. It exercises every feature in Google's [Optimize → Evaluation](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/agent-evaluation) docs in flywheel order. See [`docs/evaluation_demo.md`](evaluation_demo.md) and the coverage matrix in [`docs/eval_operations.md` §0](eval_operations.md).
 
 **Reference-based vs reference-free metrics?** — Reference-based metrics (e.g. Exact Match, `types.Metric("exact_match")`) compare the response to a supplied reference answer. Reference-free metrics (the rubric metrics, `types.RubricMetric.*`, and custom `LLMMetric`s) judge the trace on its own with no ground truth. Both are demonstrated in `src/eval/metric_registry.py`.
 
