@@ -8,20 +8,21 @@ documentation:
   content: "## GEAP Agent Quality Drift\n\nThe agent's `task_success` online-evaluation\
     \ score has dropped below 0.8. Configuring an Online Monitor auto-exports numeric\
     \ evaluation scores to the Cloud Monitoring metric type `aiplatform.googleapis.com/online_evaluator/scores`,\
-    \ labelled by `evaluation_metric_name`. A sustained drop in the mean score is\
+    \ labelled by `evaluation_metric_name`. A sustained drop in the median score is\
     \ a signal of quality drift \u2014 the deployed agent is regressing relative to\
     \ its evaluated baseline.\n\n**What to check:** recent online-evaluation traces\
     \ for failing sessions, model/prompt/tool changes deployed in the alert window,\
     \ and upstream data or MCP tool availability."
 conditions:
-- displayName: task_success online_evaluator score below 0.8
+- displayName: task_success online_evaluator median score below 0.8
   conditionThreshold:
-    filter: metric.type="aiplatform.googleapis.com/online_evaluator/scores" AND metric.labels.evaluation_metric_name="task_success"
+    filter: resource.type="aiplatform.googleapis.com/OnlineEvaluator" AND metric.type="aiplatform.googleapis.com/online_evaluator/scores"
+      AND metric.labels.evaluation_metric_name="task_success"
     comparison: COMPARISON_LT
     thresholdValue: 0.8
     duration: 1800s
     aggregations:
-    - alignmentPeriod: 60s
-      perSeriesAligner: ALIGN_MEAN
+    - alignmentPeriod: 1800s
+      perSeriesAligner: ALIGN_PERCENTILE_50
 combiner: OR
 enabled: true

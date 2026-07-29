@@ -36,7 +36,7 @@ COVERAGE_ARTIFACTS = {
     "evaluate-simulated": ["src/eval/simulated_eval.py", "src/eval/env_simulation.py"],
     "evaluate-online": ["src/eval/setup_online_evaluators.py"],
     "manage-metrics": ["src/eval/metric_registry.py"],
-    "view-results": ["src/eval/demo/evaluation_demo.ipynb"],
+    "view-results": ["src/eval/demo/evaluation_sdk_demo.ipynb"],
     "quality-alerts": ["src/eval/quality_alerts.py", "src/eval/policies/quality_drift_policy.yaml"],
     "optimize-agent": ["src/eval/sdk_optimize.py", "src/eval/agents_cli_demo.sh", "src/optimize/run_optimize.py"],
 }
@@ -161,7 +161,7 @@ class TestDemoImports:
 
 class TestNotebookValidity:
     def test_notebook_parses_and_has_cells(self):
-        path = EVAL_DIR / "demo" / "evaluation_demo.ipynb"
+        path = EVAL_DIR / "demo" / "evaluation_sdk_demo.ipynb"
         assert path.exists()
         nb = json.loads(path.read_text())
         assert nb.get("nbformat") == 4

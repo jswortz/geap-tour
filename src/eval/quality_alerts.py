@@ -8,8 +8,11 @@ Two families of alert are supported:
 2. Native GEAP Online Monitor scores. Configuring an Online Monitor
    auto-exports numeric evaluation scores to the Cloud Monitoring metric type
    ``aiplatform.googleapis.com/online_evaluator/scores``, labelled by
-   ``evaluation_metric_name``. A sustained drop in the mean score is a signal
-   of *quality drift*.
+   ``evaluation_metric_name``. The metric is a DELTA DISTRIBUTION on the
+   ``aiplatform.googleapis.com/OnlineEvaluator`` resource, so alert conditions
+   restrict ``resource.type`` and align it with a percentile aligner
+   (``ALIGN_PERCENTILE_50`` = median). A sustained drop in the median score is a
+   signal of *quality drift*.
 
 Google documents three ways to turn those online-evaluator scores into an
 alerting policy:
@@ -145,7 +148,7 @@ def _drift_documentation(metric_name: str, threshold: float) -> str:
         f"{threshold}. Configuring an Online Monitor auto-exports numeric "
         "evaluation scores to the Cloud Monitoring metric type "
         "`aiplatform.googleapis.com/online_evaluator/scores`, labelled by "
-        "`evaluation_metric_name`. A sustained drop in the mean score is a "
+        "`evaluation_metric_name`. A sustained drop in the median score is a "
         "signal of quality drift — the deployed agent is regressing relative "
         "to its evaluated baseline.\n\n"
         "**What to check:** recent online-evaluation traces for failing "
@@ -176,10 +179,14 @@ def _build_drift_policy_dict(
         },
         "conditions": [
             {
-                "displayName": f"{metric_name} online_evaluator score below {threshold}",
+                "displayName": f"{metric_name} online_evaluator median score below {threshold}",
                 "conditionThreshold": {
+                    # DELTA DISTRIBUTION on the OnlineEvaluator resource: restrict
+                    # resource.type and use a percentile aligner (ALIGN_MEAN is invalid
+                    # for a distribution) — P50 gives the median score in the window.
                     "filter": (
-                        f'metric.type="{metric_type}" '
+                        'resource.type="aiplatform.googleapis.com/OnlineEvaluator" '
+                        f'AND metric.type="{metric_type}" '
                         f'AND metric.labels.evaluation_metric_name="{metric_name}"'
                     ),
                     "comparison": "COMPARISON_LT",
@@ -187,8 +194,8 @@ def _build_drift_policy_dict(
                     "duration": f"{duration_seconds}s",
                     "aggregations": [
                         {
-                            "alignmentPeriod": "60s",
-                            "perSeriesAligner": "ALIGN_MEAN",
+                            "alignmentPeriod": f"{duration_seconds}s",
+                            "perSeriesAligner": "ALIGN_PERCENTILE_50",
                         }
                     ],
                 },
@@ -326,10 +333,15 @@ def create_drift_alert_from_online_evaluator(
         project_name = f"projects/{GCP_PROJECT_ID}"
 
         condition = monitoring_v3.AlertPolicy.Condition(
-            display_name=f"{metric_name} online_evaluator score below {threshold}",
+            display_name=f"{metric_name} online_evaluator median score below {threshold}",
             condition_threshold=monitoring_v3.AlertPolicy.Condition.MetricThreshold(
+                # online_evaluator/scores is a DELTA DISTRIBUTION on the
+                # aiplatform.googleapis.com/OnlineEvaluator resource; the filter MUST
+                # restrict resource.type, and a distribution needs a percentile aligner
+                # (ALIGN_MEAN is rejected for DISTRIBUTION) — P50 is the median score.
                 filter=(
-                    'metric.type="aiplatform.googleapis.com/online_evaluator/scores" '
+                    'resource.type="aiplatform.googleapis.com/OnlineEvaluator" '
+                    'AND metric.type="aiplatform.googleapis.com/online_evaluator/scores" '
                     f'AND metric.labels.evaluation_metric_name="{metric_name}"'
                 ),
                 comparison=monitoring_v3.ComparisonType.COMPARISON_LT,
@@ -337,8 +349,8 @@ def create_drift_alert_from_online_evaluator(
                 duration=duration_pb2.Duration(seconds=3600),
                 aggregations=[
                     monitoring_v3.Aggregation(
-                        alignment_period=duration_pb2.Duration(seconds=60),
-                        per_series_aligner=monitoring_v3.Aggregation.Aligner.ALIGN_MEAN,
+                        alignment_period=duration_pb2.Duration(seconds=3600),
+                        per_series_aligner=monitoring_v3.Aggregation.Aligner.ALIGN_PERCENTILE_50,
                     )
                 ],
             ),
