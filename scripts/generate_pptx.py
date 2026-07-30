@@ -1101,7 +1101,7 @@ def build_deck():
              "Quality Alerts",
              "Cloud Monitoring alert policies fire when eval scores drop below threshold. "
              "10-minute aggregation window with custom metric: agent_eval/{metric_name}.", RED)
-    add_repo_link(s, "src/eval/failure_clusters.py")
+    add_repo_link(s, "src/eval/quality_alerts.py")
     add_logo(s)
     add_notes(s, "Failure cluster analysis is the bridge between raw eval results and actionable insights. "
               "Instead of reviewing 20+ individual failure traces, clusters group semantically similar failures: "
@@ -1111,7 +1111,7 @@ def build_deck():
               "Cloud Monitoring alert policies fire when the custom metric "
               "agent_eval/{metric_name} drops below your threshold. "
               "The 10-minute aggregation window catches quality degradation before users notice. "
-              "Code: src/eval/failure_clusters.py and src/eval/quality_alerts.py")
+              "Code: src/eval/quality_alerts.py — loss clusters via client.evals.generate_loss_clusters()")
 
     # ===== SLIDE 18: CONSOLE — CLOUD TRACE =====
     s = prs.slides.add_slide(blank)
@@ -1369,6 +1369,32 @@ def build_deck():
               "Optimize (GEPA). Each pillar connects to the others — "
               "this is an integrated platform, not a collection of standalone tools.")
 
+    # ===== SLIDE 27b: HANDS-ON NOTEBOOKS =====
+    s = prs.slides.add_slide(blank)
+    add_text(s, Inches(0.8), Inches(0.3), Inches(11), Inches(0.8),
+             "Hands-On: Two SDK-First Notebooks", 36, bold=True)
+    add_text(s, Inches(0.8), Inches(1.1), Inches(11), Inches(0.5),
+             "Learn the platform by running L1-SDK code — build first, then measure quality",
+             20, color=GRAY)
+    add_card(s, Inches(0.8), Inches(2.0), Inches(5.6), Inches(3.1),
+             "① Build → Deploy → Register",
+             "src/deploy/demo/platform_sdk_demo.ipynb — MCP tools → ADK agents → run → deploy to "
+             "Agent Engine → register to Gemini Enterprise → multi-model routing & cost. Mutating "
+             "steps are guarded (GEAP_RUN_DEPLOY / GEAP_PUBLISH).", BLUE)
+    add_card(s, Inches(6.9), Inches(2.0), Inches(5.6), Inches(3.1),
+             "② Evaluate — the Quality Flywheel",
+             "src/eval/demo/evaluation_sdk_demo.ipynb — every phase calls client.evals.* / "
+             "vertexai.types.* inline: metrics, rapid/regression/simulated/offline scoring, online "
+             "monitors, optimization, and quality alerts.", GREEN)
+    add_text(s, Inches(0.8), Inches(5.4), Inches(11), Inches(0.6),
+             "Both are flat, SDK-first, and validated end-to-end via nbconvert; custom/infra code is marked 🔧.",
+             16, color=DARK)
+    add_repo_link(s, "src/")
+    add_logo(s)
+    add_notes(s, "Point attendees at the two notebooks. The build notebook takes them from tools to a "
+              "registered Gemini Enterprise agent; the eval notebook is the Quality Flywheel. Both are "
+              "SDK-first so learners see exactly which client.* / ADK calls do the work — no hidden framework.")
+
     # ===== SLIDE 28: RESOURCES =====
     s = prs.slides.add_slide(blank)
     set_bg_gradient(s, DARK_BLUE, BLUE)
@@ -1379,6 +1405,8 @@ def build_deck():
     resources = [
         "Workshop repo:  https://github.com/jswortz/geap-tour",
         "Workshop guide:  docs/workshop_guide.md",
+        "Build notebook:  src/deploy/demo/platform_sdk_demo.ipynb",
+        "Eval notebook:  src/eval/demo/evaluation_sdk_demo.ipynb",
         "Agent Development Kit:  google.github.io/adk-docs",
         "MCP Protocol:  modelcontextprotocol.io",
         "Agent Platform:  cloud.google.com/agent-platform",
