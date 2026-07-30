@@ -1,12 +1,13 @@
 """Multi-model agent definitions — 5-tier router by prompt complexity.
 
-Routes to: Lite → Flash → Pro → Sonnet → Opus based on classifier score.
+Routes by ascending classifier score: Lite → Flash → Sonnet → Pro → Opus.
+(Sonnet sits at 0.45–0.60, *below* Pro at 0.60–0.80 — see
+``complexity.score_to_model_tier`` for the exact thresholds.)
 """
 
 from google.adk.agents import LlmAgent
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.models.lite_llm import LiteLlm
-from google.adk.tools.agent_tool import AgentTool
 from google.adk.tools.preload_memory_tool import PreloadMemoryTool
 from google.genai.types import Content
 

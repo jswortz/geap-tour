@@ -160,7 +160,7 @@ echo ""
 # This step is best-effort: if the project lacks private preview enrollment,
 # the LRO will fail with INTERNAL and the script continues.
 
-AGENT_ENGINE_ID="${COORINDATOR_AGENT_ID:-${AGENT_ENGINE_ID:-2479350891879071744}}"
+AGENT_ENGINE_ID="${COORDINATOR_AGENT_ID:-${COORINDATOR_AGENT_ID:-${AGENT_ENGINE_ID:-2479350891879071744}}}"
 ROUTER_ENGINE_ID="${ROUTER_ENGINE_ID:-${AGENT_ENGINE_ID:-6023683798619652096}}"
 INGRESS_GW="projects/${PROJECT_ID}/locations/${REGION}/agentGateways/${GATEWAY_NAME}"
 

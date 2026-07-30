@@ -56,7 +56,7 @@ OTEL_ENV_VARS = {
 
 AGENT_MODEL = os.environ.get("AGENT_MODEL", "gemini-3.5-flash")
 
-# Multi-model router (5-tier: lite → flash → pro → sonnet → opus)
+# Multi-model router (5-tier by ascending complexity: lite → flash → sonnet → pro → opus)
 LITE_MODEL = os.environ.get("LITE_MODEL", "gemini-3.1-flash-lite")
 FLASH_MODEL = os.environ.get("FLASH_MODEL", "gemini-3.5-flash")
 PRO_MODEL = os.environ.get("PRO_MODEL", "gemini-3.1-pro-preview")
