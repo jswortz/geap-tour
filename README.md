@@ -25,17 +25,21 @@ A hands-on workshop demonstrating the full Gemini Enterprise Agent Platform (GEA
 
 ## Documentation
 
+**Two ways in.** New to the platform? Follow the **[Workshop Guide](docs/workshop_guide.md)** (4 sessions). Prefer to learn by running code? Start with the two **SDK-first notebooks** — first [build & deploy](src/deploy/demo/platform_sdk_demo.ipynb), then [evaluate](src/eval/demo/evaluation_sdk_demo.ipynb). A [docs index](docs/README.md) maps everything else.
+
 | Document | Description |
 |----------|-------------|
+| ▶ **[Build → Deploy → Register Notebook](src/deploy/demo/platform_sdk_demo.ipynb)** | **Start here to build** — SDK-first companion: MCP tools → ADK agents → run → deploy to Agent Engine → register to Gemini Enterprise → multi-model routing & cost. Mutating steps are guarded (`GEAP_RUN_DEPLOY=1` / `GEAP_PUBLISH=1`). |
 | ▶ **[Interactive Evaluation Notebook](src/eval/demo/evaluation_sdk_demo.ipynb)** | **Start here for evals** — flat & **SDK-first**: every Quality-Flywheel phase calls `client.evals.*` / `vertexai.types.*` **inline** (custom code is explicitly called out), scored against the deployed agent. Headless: `python -m src.eval.demo.full_eval_demo` |
 | [Workshop Guide](docs/workshop_guide.md) | Full 4-session hands-on walkthrough |
 | [Monitoring Guide](docs/monitoring_integration_guide.md) | Quality alerts and custom metrics bridge guide |
 | [Component FAQ](docs/faq.md) | What each component does and why it matters |
 | [Evaluation Guide](docs/eval_operations.md) | Evaluation pipeline operations + **coverage matrix** for the GEAP Optimize → Evaluation docs |
 | [Evaluation Demo Walkthrough](docs/evaluation_demo.md) | End-to-end Quality Flywheel demo (100% doc coverage) — `python -m src.eval.demo.full_eval_demo` |
-| [Evaluation Slides](docs/eval_slides.html) ([.pptx](docs/eval_slides.pptx)) | 5-slide Google Cloud–style teach-in on agent evals (real console screenshots + code deep links) |
+| [Evaluation Slides](docs/eval_slides.html) ([.pptx](docs/eval_slides.pptx)) | 7-slide Google Cloud–style teach-in on agent evals (real console screenshots + code deep links) |
 | [Cost Comparison](docs/multi_model_cost_comparison.md) | Multi-model routing cost analysis |
 | [Publish Agents to Gemini Enterprise](docs/publishing_agents_to_gemini_enterprise.md) | How-to: register the **coordinator + router** agents *directly* to a GE app (ADK reasoning-engine registration) — `agents-cli` + repo script, with live console evidence |
+| [Agents Overview](agent.md) | Quick reference for the coordinator + router agents (engine IDs, env vars) |
 | [Slides](docs/slides.pptx) | Workshop deck (34 slides) |
 
 ## Reference Documentation
@@ -220,16 +224,17 @@ In our workshop, agents use SPIFFE-based workload identity (ID-2) with attestati
 
 ```
 src/
-├── agents/          # ADK agent definitions
+├── agents/          # ADK agent definitions (coordinator + travel/expense specialists)
 ├── armor/           # Model Armor config + guardrail callbacks
 ├── mcp_servers/     # FastMCP tool servers (search, booking, expense)
-├── deploy/          # Deployment scripts for Cloud Run + Agent Runtime
-├── eval/            # Evaluation pipeline (one-time, online, simulated)
+├── deploy/          # Deploy to Cloud Run + Agent Runtime  (+ demo/platform_sdk_demo.ipynb)
+├── eval/            # Evaluation pipeline (one-time, online, simulated)  (+ demo/evaluation_sdk_demo.ipynb)
 ├── optimize/        # Agent optimization (GEPA algorithm)
-├── router/          # Multi-model complexity router
+├── router/          # Multi-model complexity router (standalone deploy package)
 └── traffic/         # Traffic generation for OTel traces
-scripts/             # Shell scripts for identity, gateway, registry setup
+app/                 # Router Cost Visualizer — A2A/A2UI service (Cloud Run → Gemini Enterprise)
+scripts/             # Shell scripts: identity, gateway, registry, deploy, publish
 diagrams/            # Paper Banana architectural diagrams
-docs/                # Workshop guide
+docs/                # Workshop guide, evaluation guides, slides, screenshots (see docs/README.md)
 tests/               # Unit and integration tests
 ```
