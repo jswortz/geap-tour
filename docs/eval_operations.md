@@ -66,7 +66,7 @@ features added for full doc coverage.
 
 ## Architecture Overview
 
-![Eval Pipeline Architecture](screenshots/fig-eval-architecture.svg)
+![Eval Pipeline Architecture](../diagrams/outputs/03_eval_pipeline.png)
 
 <details>
 <summary>Generate with paperbanana</summary>
@@ -216,8 +216,6 @@ for agent_name in ["coordinator_agent", "travel_agent", "expense_agent", "router
 ## 2. Complexity Routing & Multi-Model Cost Comparison
 
 The multi-model router uses a [Gemini Flash Lite](https://cloud.google.com/vertex-ai/generative-ai/docs/models/gemini/2-0-flash-lite) micro-judge to classify prompt complexity (low/medium/high) and route to the appropriate model tier:
-
-![Multi-Model Routing Architecture](screenshots/fig-routing-architecture.svg)
 
 <details>
 <summary>Generate with paperbanana</summary>
@@ -663,7 +661,7 @@ ALL_MONITORED_METRICS = [
 
 > **Docs:** [Workload Identity Federation for GitHub Actions](https://cloud.google.com/iam/docs/workload-identity-federation-with-deployment-pipelines#github-actions) | [`google-github-actions/auth`](https://github.com/google-github-actions/auth)
 
-![Workload Identity Federation Flow](screenshots/fig-wif-auth.svg)
+![Workload Identity Federation Flow](../diagrams/outputs/04_agent_identity_gateway.png)
 
 <details>
 <summary>Generate with paperbanana</summary>
@@ -798,7 +796,7 @@ gcloud iam service-accounts add-iam-policy-binding \
 
 ### Pipeline Flow
 
-![CI/CD Eval Pipeline Flow](screenshots/fig-pipeline-flow.svg)
+![CI/CD Eval Pipeline Flow](../diagrams/outputs/06_ci_cd_flow.png)
 
 <details>
 <summary>Generate with paperbanana</summary>
