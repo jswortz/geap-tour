@@ -23,6 +23,18 @@ A hands-on workshop demonstrating the full Gemini Enterprise Agent Platform (GEA
 | **CI/CD** | GitHub Actions workflow running simulated evals on PRs |
 | **Diagrams** | Architecture diagrams generated with Paper Banana |
 
+## 📓 Interactive Notebooks
+
+Five SDK-first notebooks — flat, L1-SDK-native, with mutating/infra steps guarded behind `GEAP_RUN_*` env flags (they run clean end-to-end with guards off):
+
+| Notebook | What you'll run |
+|----------|-----------------|
+| ▶ [Build → Deploy → Register](src/deploy/demo/platform_sdk_demo.ipynb) | MCP tools → ADK agents → run → deploy to Agent Engine → register to Gemini Enterprise → routing & cost. **Start here.** |
+| ▶ [Evaluation — Quality Flywheel](src/eval/demo/evaluation_sdk_demo.ipynb) | Metrics, rapid/regression/simulated/offline scoring, online monitors, optimization, and quality alerts — all via `client.evals.*`. |
+| [Agent Gateway](src/deploy/demo/gateway_sdk_demo.ipynb) | Dual-mode (ingress/egress) config, create gateways, attach at deploy, and the three policy layers (IAM/CEL, Semantic Governance, IAP + Model Armor). |
+| [Agent Registry — hub & spoke](src/deploy/demo/registry_sdk_demo.ipynb) | Register/discover, bindings, and **cross-project hub-and-spoke** discovery via App Hub + `agent-registry agents search`. |
+| [MCP — create & monitor](src/mcp_servers/demo/mcp_sdk_demo.ipynb) | Author a FastMCP tool, deploy, register, then monitor with Cloud Run metrics, logs, traces, and alerts. |
+
 ## Documentation
 
 **Two ways in.** New to the platform? Follow the **[Workshop Guide](docs/workshop_guide.md)** (4 sessions). Prefer to learn by running code? Start with the two **SDK-first notebooks** — first [build & deploy](src/deploy/demo/platform_sdk_demo.ipynb), then [evaluate](src/eval/demo/evaluation_sdk_demo.ipynb) — then go deeper with the **Gateway**, **Registry (hub-and-spoke)**, and **MCP create+monitor** deep-dive notebooks below. A [docs index](docs/README.md) maps everything else.
