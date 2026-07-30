@@ -23,7 +23,34 @@ import google.auth.transport.requests
 import requests
 
 from src.config import GCP_PROJECT_ID, GCP_REGION, PROJECT_NUMBER
-API_BASE = f"https://{GCP_REGION}-aiplatform.googleapis.com/v1beta1/projects/{PROJECT_NUMBER}/locations/{GCP_REGION}"
+
+_PROJECT_NUMBER_CACHE = PROJECT_NUMBER or None
+
+
+def _project_number() -> str:
+    """Numeric project number (these v1beta1 REST APIs require it, not the project ID).
+
+    Resolved lazily via Resource Manager when ``PROJECT_NUMBER`` is not set in the
+    environment/config, then cached — so importing this module never makes a network call.
+    """
+    global _PROJECT_NUMBER_CACHE
+    if not _PROJECT_NUMBER_CACHE:
+        creds, _ = google.auth.default()
+        creds.refresh(google.auth.transport.requests.Request())
+        resp = requests.get(
+            f"https://cloudresourcemanager.googleapis.com/v3/projects/{GCP_PROJECT_ID}",
+            headers={"Authorization": f"Bearer {creds.token}"},
+        )
+        resp.raise_for_status()
+        _PROJECT_NUMBER_CACHE = resp.json()["name"].split("/")[-1]
+    return _PROJECT_NUMBER_CACHE
+
+
+def _api_base() -> str:
+    return (
+        f"https://{GCP_REGION}-aiplatform.googleapis.com/v1beta1"
+        f"/projects/{_project_number()}/locations/{GCP_REGION}"
+    )
 
 import os
 COORDINATOR_ENGINE_ID = os.environ.get("COORDINATOR_AGENT_ID", "8296365537139621888")
@@ -167,12 +194,12 @@ def _get_headers():
 
 
 def _agent_resource(engine_id: str) -> str:
-    return f"projects/{PROJECT_NUMBER}/locations/{GCP_REGION}/reasoningEngines/{engine_id}"
+    return f"projects/{_project_number()}/locations/{GCP_REGION}/reasoningEngines/{engine_id}"
 
 
 def _list_registered_metrics(headers) -> dict[str, str]:
     """Return {metric_name_suffix: full_resource_name} for all registered metrics."""
-    resp = requests.get(f"{API_BASE}/evaluationMetrics", headers=headers)
+    resp = requests.get(f"{_api_base()}/evaluationMetrics", headers=headers)
     if resp.status_code != 200:
         return {}
     result = {}
@@ -199,7 +226,7 @@ def register_custom_metrics() -> list[str]:
 
         print(f"  Registering '{display_name}'...")
         resp = requests.post(
-            f"{API_BASE}/evaluationMetrics",
+            f"{_api_base()}/evaluationMetrics",
             headers=headers,
             json=metric_def,
         )
@@ -238,7 +265,7 @@ def _build_evaluator_config(
 
 def list_evaluators():
     headers = _get_headers()
-    resp = requests.get(f"{API_BASE}/onlineEvaluators", headers=headers)
+    resp = requests.get(f"{_api_base()}/onlineEvaluators", headers=headers)
     resp.raise_for_status()
     evaluators = resp.json().get("onlineEvaluators", [])
 
@@ -285,7 +312,7 @@ def create_evaluators():
         n_metrics = len(config["metricSources"])
         print(f"  Creating '{config['displayName']}' with {n_metrics} metrics...")
 
-        resp = requests.post(f"{API_BASE}/onlineEvaluators", headers=headers, json=config)
+        resp = requests.post(f"{_api_base()}/onlineEvaluators", headers=headers, json=config)
         if resp.status_code == 200:
             result = resp.json()
             print(f"  Operation: {result.get('name', '')}")
@@ -302,7 +329,7 @@ def verify_evaluators():
     print("=" * 60)
     print("CHECK 1: Online Evaluator Status")
     print("=" * 60)
-    resp = requests.get(f"{API_BASE}/onlineEvaluators", headers=headers)
+    resp = requests.get(f"{_api_base()}/onlineEvaluators", headers=headers)
     resp.raise_for_status()
     evaluators = resp.json().get("onlineEvaluators", [])
 
@@ -380,7 +407,7 @@ def delete_evaluator(evaluator_id: str):
     headers = _get_headers()
     print(f"Deleting evaluator {evaluator_id}...")
     resp = requests.delete(
-        f"{API_BASE}/onlineEvaluators/{evaluator_id}", headers=headers
+        f"{_api_base()}/onlineEvaluators/{evaluator_id}", headers=headers
     )
     if resp.status_code == 200:
         print("  Deleted successfully")
@@ -393,7 +420,7 @@ def cleanup():
     headers = _get_headers()
 
     print("=== Cleaning up Online Evaluators ===")
-    resp = requests.get(f"{API_BASE}/onlineEvaluators", headers=headers)
+    resp = requests.get(f"{_api_base()}/onlineEvaluators", headers=headers)
     resp.raise_for_status()
     evaluators = resp.json().get("onlineEvaluators", [])
 
@@ -411,7 +438,7 @@ def cleanup():
         if display_name in metric_names:
             mid = resource_name.split("/")[-1]
             print(f"Deleting metric '{display_name}' ({mid})...")
-            resp = requests.delete(f"{API_BASE}/evaluationMetrics/{mid}", headers=headers)
+            resp = requests.delete(f"{_api_base()}/evaluationMetrics/{mid}", headers=headers)
             if resp.status_code == 200:
                 print("  Deleted")
             else:

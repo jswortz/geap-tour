@@ -11,6 +11,9 @@ dist/
 # diagrams/outputs/*.jpeg
 .uv/
 *.pdf
+# ...except the committed slide-deck exports:
+!docs/slides.pdf
+!docs/eval_slides.pdf
 .playwright-mcp/
 .pytest_cache/
 
@@ -34,3 +37,4 @@ docs/verification/*.json
 *~
 eval_outputs/
 eval_results_*.json
+.claude/

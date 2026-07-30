@@ -10,24 +10,14 @@ except Exception:
 
 from google.adk.agents import LlmAgent
 from google.adk.agents.callback_context import CallbackContext
-from google.adk.models.lite_llm import LiteLlm
-from google.adk.tools.agent_tool import AgentTool
 from google.adk.tools.preload_memory_tool import PreloadMemoryTool
 
 from src.config import AGENT_MODEL, SEARCH_MCP_SERVER
 from src.registry import get_mcp_tools
 from src.armor.config import get_armored_generate_config, input_guardrail_callback
+from src.agents._shared import resolve_model
 from src.agents.travel_agent import travel_agent
 from src.agents.expense_agent import expense_agent
-
-
-def _resolve_model(model_str: str):
-    """Resolve model string — Gemini 3.x and Claude need location=global."""
-    if model_str.startswith(("gemini-2", "models/")):
-        return model_str
-    if not model_str.startswith("vertex_ai/"):
-        model_str = f"vertex_ai/{model_str}"
-    return LiteLlm(model=model_str, vertex_location="global")
 
 
 INSTRUCTION = """\
@@ -70,7 +60,7 @@ async def save_memories_callback(callback_context: CallbackContext):
         pass
     return None
 coordinator_agent = LlmAgent(
-    model=_resolve_model(AGENT_MODEL),
+    model=resolve_model(AGENT_MODEL),
     name="coordinator_agent",
     instruction=INSTRUCTION,
     tools=[

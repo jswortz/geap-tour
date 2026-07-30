@@ -44,10 +44,10 @@ from src.config import (
 )
 
 REQUIREMENTS = [
-    "google-cloud-aiplatform[adk,agent-engines,evaluation]>=1.152.0",
-    "google-genai>=1.66.0",
+    "google-cloud-aiplatform[adk,agent-engines,evaluation]>=1.162.0",
+    "google-genai>=2.14.0",
     "google-auth>=2.52.0",
-    "google-adk[a2a,agent-identity]>=1.33.0",
+    "google-adk[a2a,agent-identity]>=2.5.0",
     "fastmcp>=2.0.0",
     "python-dotenv>=1.0.0",
     "litellm>=1.83.14",
@@ -129,7 +129,7 @@ def _build_config(agent, display_name: str | None = None) -> dict:
         "display_name": display_name or agent.name,
         "env_vars": env_vars,
         "extra_packages": ["src"],
-        "labels": {"agent": "payroll", "org": "hr"},
+        "labels": {"app": "geap-workshop", "component": "agent"},
     }
 
     if ENABLE_AGENT_IDENTITY:
@@ -189,7 +189,12 @@ def update_agent(agent, engine_id: str, display_name: str | None = None) -> str:
     return resource_name
 
 
-COORDINATOR_ENGINE_ID = os.environ.get("COORINDATOR_AGENT_ID", "")
+COORDINATOR_ENGINE_ID = (
+    os.environ.get("COORDINATOR_AGENT_ID")
+    or os.environ.get("COORINDATOR_AGENT_ID")   # legacy misspelling — kept for back-compat
+    or os.environ.get("COORDINATOR_ENGINE_ID")
+    or os.environ.get("AGENT_ENGINE_ID", "")
+)
 ROUTER_ENGINE_ID_ENV = os.environ.get("ROUTER_ENGINE_ID", os.environ.get("AGENT_ENGINE_ID", ""))
 
 AGENT_SETS = {
@@ -224,7 +229,7 @@ def run_deploy(agent_set: str = "all", update: bool = False) -> dict[str, str]:
         if update:
             engine_id = entry["engine_id"]
             if not engine_id:
-                print(f"  No engine ID for {name} — set COORINDATOR_AGENT_ID or ROUTER_ENGINE_ID in .env")
+                print(f"  No engine ID for {name} — set COORDINATOR_AGENT_ID / AGENT_ENGINE_ID or ROUTER_ENGINE_ID in .env")
                 continue
             deployed[agent.name] = update_agent(agent, engine_id)
         else:

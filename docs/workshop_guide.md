@@ -260,7 +260,7 @@ config = {"identity_type": types.IdentityType.AGENT_IDENTITY}
 - Configure Agent Gateway egress/ingress policies for network governance
 - Run one-time, continuous, and simulated evaluations against deployed agents
 - Set up CI/CD quality gates using simulated evaluation
-- Analyze failure clusters and configure quality alerts
+- Configure quality alerts
 - Optimize agent instructions using the GEPA algorithm
 
 **Prerequisite:** Session 1 agents and MCP servers must be deployed.
@@ -798,6 +798,16 @@ gcloud beta network-security authz-policies list --location=${REGION}
 
 ---
 
+> **📋 Full coverage demo & matrix.** Sections 2.2–2.6 walk individual eval features. For the
+> complete, end-to-end **Quality Flywheel** demo with 100% coverage of Google's
+> [Optimize → Evaluation](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/agent-evaluation)
+> docs, run `uv run python -m src.eval.demo.full_eval_demo --agent-id $AGENT_ENGINE_ID` (or the
+> notebook `src/eval/demo/evaluation_sdk_demo.ipynb`). See the guided walkthrough in
+> [`docs/evaluation_demo.md`](evaluation_demo.md) and the coverage matrix in
+> [`docs/eval_operations.md` §0](eval_operations.md). New building blocks used below:
+> `metric_registry.py` (custom LLM + code + exact-match metrics), `offline_trace_eval.py`
+> (historical traces), `env_simulation.py`, `sdk_optimize.py`.
+
 ### 2.2 One-Time Evaluation (~15 min)
 
 **Code**: [`src/eval/one_time_eval.py:79`](../src/eval/one_time_eval.py) | **Docs**: [Vertex AI Evaluation](https://cloud.google.com/vertex-ai/generative-ai/docs/evaluation/overview)
@@ -897,25 +907,19 @@ eval_result = client.evals.evaluate(
 uv run python -m src.eval.simulated_eval <agent-resource-name> 3.0
 ```
 
+> **Multi-turn autoraters & environment simulation.** Add `--multi-turn` to score with
+> `MULTI_TURN_TASK_SUCCESS / _TOOL_USE_QUALITY / _TRAJECTORY_QUALITY`, and `--load-from-agent` to
+> build `AgentInfo` from the live ADK agent. Scenario generation is grounded by an
+> `environment_context`. To stress-test resilience, `src/eval/env_simulation.py` intercepts tool
+> calls to inject mocked data and simulated 503s — run `uv run python -m src.eval.env_simulation`.
+
 **Console tour**: Show a GitHub Actions run with the eval results.
 
 **Diagram**: `diagrams/outputs/06_ci_cd_flow.png`
 
 ---
 
-### 2.5 Failure Clusters & Quality Alerts (~10 min)
-
-#### Failure Clusters
-
-**Code**: [`src/eval/failure_clusters.py`](../src/eval/failure_clusters.py)
-
-Instead of reviewing failures individually, `generate_loss_clusters()` groups similar failure patterns:
-
-```bash
-uv run python -m src.eval.failure_clusters <eval-result-name>
-```
-
-Output shows clusters with titles, descriptions, sample counts, and average scores — enabling targeted improvements.
+### 2.5 Quality Alerts (~10 min)
 
 #### Quality Alerts
 
@@ -929,7 +933,14 @@ uv run python -m src.eval.quality_alerts helpfulness 3.0
 
 # List existing alerts
 uv run python -m src.eval.quality_alerts list
+
+# Quality-drift alert on the NATIVE online-evaluator metric, plus a gcloud policy file
+uv run python -m src.eval.quality_alerts drift task_success 0.8
+uv run python -m src.eval.quality_alerts export-yaml src/eval/policies/quality_drift_policy.yaml
+gcloud monitoring policies create --policy-from-file=src/eval/policies/quality_drift_policy.yaml
 ```
+
+> **Three alert paths** (per the [quality-alerts](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/quality-alerts) doc): per-monitor "Create alerting policy", dashboard "Recommended Alerts", and programmatic `gcloud`/`monitoring_v3` on `aiplatform.googleapis.com/online_evaluator/scores`.
 
 **Console tour**: Navigate to Cloud Monitoring -> Alerting. Show the alert policy, condition, and notification channel configuration.
 
@@ -967,6 +978,11 @@ uv run python -m src.optimize.run_optimize src.agents.travel_agent
 ```
 
 This produces optimized system instructions that can be compared to the original.
+
+> **Alternatives.** `run_optimize.py --optimizer simple` uses ADK's non-GEPA `SimplePromptOptimizer`.
+> `src/eval/sdk_optimize.py` targets the documented `client.optimizer.optimize(...)` SDK call and
+> falls back to GEPA when the SDK doesn't expose it. `bash src/eval/agents_cli_demo.sh` drives the
+> same flywheel (generate → grade → analyze → optimize) via the `agents-cli eval` subcommands.
 
 **Console tour**: Show the optimization results — original vs. optimized instructions, and score improvements.
 

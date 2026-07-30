@@ -12,9 +12,61 @@ This guide covers the end-to-end evaluation pipeline: batch evals, complexity ro
 
 ---
 
+## 0. GEAP "Optimize → Evaluation" Coverage Matrix
+
+This repo ships a **working, end-to-end demo with 100% coverage** of the features in Google's
+Gemini Enterprise Agent Platform **[Optimize → Evaluation](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/agent-evaluation)**
+documentation. The doc set frames evaluation as a **Quality Flywheel** across four phases —
+**Design → Execution → Scoring → Refinement** — and a six-step loop (define eval cases → run
+inferences → generate traces → compute metrics → analyze → optimize).
+
+Run the whole flywheel end-to-end:
+
+```bash
+# One orchestrator that touches every doc feature (live against a deployed engine)
+uv run python -m src.eval.demo.full_eval_demo --agent-id $AGENT_ENGINE_ID
+
+# ...or step through the narrated notebook (adds result.show() visualization)
+jupyter notebook src/eval/demo/evaluation_sdk_demo.ipynb
+```
+
+See **[evaluation_demo.md](evaluation_demo.md)** for the guided, screenshot-backed walkthrough.
+
+The live surface in the Google Cloud Console — **Agent Platform → Agents → Evaluation**
+(`console.cloud.google.com/agent-platform/agent-evaluation`) — with its **Experiments**,
+**Metrics**, and **Online monitors** tabs:
+
+![Agent Platform — Evaluation console](screenshots/eval_console_evaluation.png)
+
+| # | Doc page | What it covers | Demonstrated by | Command |
+|---|----------|----------------|-----------------|---------|
+| 1 | [agent-evaluation](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/agent-evaluation) | Overview: 4 phases, 6-step loop, capabilities | `src/eval/demo/full_eval_demo.py`, [`evaluation_demo.md`](evaluation_demo.md) | `python -m src.eval.demo.full_eval_demo` |
+| 2 | [evaluate-agents](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-agents) | Rapid / Test-Case / Online eval, SDK flow | `one_time_eval.py`, `multi_agent_batch_eval.py`, `sdk_optimize.py` | `python -m src.eval.multi_agent_batch_eval` |
+| 3 | [evaluate-offline](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-offline) | Offline eval over historical Traces/Sessions | `offline_trace_eval.py` + OTEL upload vars in `config.py` | `python -m src.eval.offline_trace_eval` |
+| 4 | [evaluate-simulated](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-simulated) | Scenario gen, user simulation, environment simulation | `simulated_eval.py`, `env_simulation.py` | `python -m src.eval.simulated_eval <resource> --multi-turn` |
+| 5 | [evaluate-online](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-online) | Continuous eval with Online Monitors | `setup_online_evaluators.py`, `publish_metrics.py`, `verify_monitors.py` | `python -m src.eval.setup_online_evaluators create` |
+| 6 | [manage-metrics](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/manage-metrics) | Metric Registry: predefined, custom LLM, custom code | `metric_registry.py` | `python -m src.eval.metric_registry register` |
+| 7 | [view-results](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/view-results) | `result.show()` result visualization | `evaluation_sdk_demo.ipynb` | notebook |
+| 8 | [quality-alerts](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/quality-alerts) | Quality-drift alerts (3 paths incl. gcloud policy.yaml) | `quality_alerts.py`, `policies/quality_drift_policy.yaml` | `python -m src.eval.quality_alerts export-yaml` |
+| 9 | [optimize-agent](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/optimize-agent) | Quality Flywheel: GEPA, SimplePromptOptimizer, agents-cli | `run_optimize.py`, `sdk_optimize.py`, `agents_cli_demo.sh` | `python -m src.optimize.run_optimize src/agents/coordinator` |
+
+**Cross-cutting features also covered:** reference-based (Exact Match) vs reference-free metrics,
+adaptive vs static rubrics (§10), single- and multi-turn autoraters (§4), and the two installable
+AI-assistant eval skills (§16):
+
+```bash
+npx skills add https://github.com/google/agents-cli --skill google-agents-cli-eval
+npx skills add https://github.com/google/skills --skill agent-platform-eval-flywheel
+```
+
+Sections **1–9** below document the pre-existing pipeline; sections **10–16** document the
+features added for full doc coverage.
+
+---
+
 ## Architecture Overview
 
-![Eval Pipeline Architecture](screenshots/fig-eval-architecture.svg)
+![Eval Pipeline Architecture](../diagrams/outputs/03_eval_pipeline.png)
 
 <details>
 <summary>Generate with paperbanana</summary>
@@ -164,8 +216,6 @@ for agent_name in ["coordinator_agent", "travel_agent", "expense_agent", "router
 ## 2. Complexity Routing & Multi-Model Cost Comparison
 
 The multi-model router uses a [Gemini Flash Lite](https://cloud.google.com/vertex-ai/generative-ai/docs/models/gemini/2-0-flash-lite) micro-judge to classify prompt complexity (low/medium/high) and route to the appropriate model tier:
-
-![Multi-Model Routing Architecture](screenshots/fig-routing-architecture.svg)
 
 <details>
 <summary>Generate with paperbanana</summary>
@@ -499,6 +549,35 @@ adk eval_set generate_eval_cases src/agents/coordinator eval_set_coordinator_gen
 
 [Online evaluators](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/evaluate#online-evaluation) continuously score agent responses using [Cloud Trace](https://cloud.google.com/trace/docs/overview) OTel telemetry on a 10-minute cycle. Results appear in the Agent Engine Evaluation tab, [Cloud Logging](https://cloud.google.com/logging/docs/overview), and [Cloud Monitoring](https://cloud.google.com/monitoring/docs/monitoring-overview).
 
+Live online monitors in the console (**Evaluation → Online monitors**) — active monitors on the
+coordinator and router agents at 100% sampling:
+
+![Online monitors (live console)](screenshots/eval_console_online_monitors.png)
+
+### Metrics visibility — Metrics Explorer & dashboards
+
+Every evaluation score is exported as a **first-class Cloud Monitoring metric**, so you can chart,
+compare, and alert on model quality in **Metrics Explorer** and dashboards:
+
+- `aiplatform.googleapis.com/online_evaluator/scores` — emitted by Online Monitors.
+- `custom.googleapis.com/agent_eval/*` — `helpfulness`, `tool_use_accuracy`, `safety`,
+  `groundedness`, `geap_task_quality`, `policy_compliance`, `complexity_routing_accuracy`, bridged
+  from eval logs by [`src/eval/publish_metrics.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/publish_metrics.py).
+
+The bundled **"GEAP Agent Performance & Quality Dashboard"** charts these metrics — here showing a
+simulated quality-drift decline (feed it with `uv run python -m src.eval.publish_metrics [--simulate-out-of-spec]`):
+
+![GEAP quality metrics dashboard — Cloud Monitoring (live console)](screenshots/eval_console_metrics_dashboard.png)
+
+> Open ad hoc in **Monitoring → Metrics explorer** and query any `agent_eval/*` or
+> `online_evaluator/scores` metric; save charts to a dashboard for a persistent quality view.
+
+You can also **publish and pull these metrics programmatically** — the
+[`evaluation_sdk_demo.ipynb`](https://github.com/jswortz/geap-tour/blob/main/src/eval/demo/evaluation_sdk_demo.ipynb)
+notebook writes each rubric score with `monitoring_v3.MetricServiceClient().create_time_series`
+(→ `custom.googleapis.com/agent_eval/*`) and reads it back from Metrics Explorer with
+`list_time_series` (use a wide time window; Cloud Monitoring has a few-seconds ingestion lag).
+
 ### Evaluator Setup
 
 > **Source:** [`src/eval/setup_online_evaluators.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/setup_online_evaluators.py)
@@ -582,7 +661,7 @@ ALL_MONITORED_METRICS = [
 
 > **Docs:** [Workload Identity Federation for GitHub Actions](https://cloud.google.com/iam/docs/workload-identity-federation-with-deployment-pipelines#github-actions) | [`google-github-actions/auth`](https://github.com/google-github-actions/auth)
 
-![Workload Identity Federation Flow](screenshots/fig-wif-auth.svg)
+![Workload Identity Federation Flow](../diagrams/outputs/04_agent_identity_gateway.png)
 
 <details>
 <summary>Generate with paperbanana</summary>
@@ -717,7 +796,7 @@ gcloud iam service-accounts add-iam-policy-binding \
 
 ### Pipeline Flow
 
-![CI/CD Eval Pipeline Flow](screenshots/fig-pipeline-flow.svg)
+![CI/CD Eval Pipeline Flow](../diagrams/outputs/06_ci_cd_flow.png)
 
 <details>
 <summary>Generate with paperbanana</summary>
@@ -849,6 +928,199 @@ The report includes:
 
 ---
 
+## 10. Metric Registry & Custom Metrics
+
+📖 [manage-metrics](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/manage-metrics)
+· **Source:** [`src/eval/metric_registry.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/metric_registry.py)
+
+The **Metric Registry** lets you define a metric once and reuse it across offline runs and online
+monitors. This repo demonstrates all three metric types plus the reference-based/reference-free
+distinction.
+
+Live in the console (**Evaluation → Metrics**) — the predefined rubric metrics (single- and
+multi-turn) alongside the repo's registered custom metrics (`GEAP Task Quality`, `GEAP Policy
+Compliance`):
+
+![Evaluation Metrics tab (live console)](screenshots/eval_console_metrics_tab.png)
+
+| Metric type | SDK | Reference? | Example |
+|-------------|-----|-----------|---------|
+| Predefined rubric (adaptive) | `types.RubricMetric.FINAL_RESPONSE_QUALITY`, `TOOL_USE_QUALITY` | reference-free | auto-generates per-case criteria |
+| Predefined rubric (static) | `types.RubricMetric.HALLUCINATION`, `SAFETY` | reference-free | fixed criteria, 0–1 score |
+| Multi-turn rubric | `types.RubricMetric.MULTI_TURN_TASK_SUCCESS / _TOOL_USE_QUALITY / _TRAJECTORY_QUALITY` | reference-free | full-conversation autoraters |
+| Custom LLM-as-judge | `types.LLMMetric(name, prompt_template, ...)` | reference-free | `policy_compliance`, `geap_tool_use` |
+| Custom code | `types.CodeExecutionMetric(name, custom_function)` | reference-free | `policy_limit_exact` |
+| Computation | `types.Metric("exact_match")` | **reference-based** | `exact_match` |
+
+```python
+from vertexai import types
+
+# Custom deterministic metric — custom_function is a SERVER-EXECUTED code string
+# that must define `def evaluate(instance) -> float`.
+policy_limit_exact = types.CodeExecutionMetric(name="policy_limit_exact", custom_function="""
+def evaluate(instance: dict) -> float:
+    ...  # returns 1.0 when the response cites the correct policy dollar limit
+""")
+
+# Register in the Metric Registry (reusable across offline + online):
+metric_path = client.evals.create_evaluation_metric(metric=policy_limit_exact)
+```
+
+```bash
+uv run python -m src.eval.metric_registry register   # register all custom metrics
+uv run python -m src.eval.metric_registry list        # list what's registered
+```
+
+> **Adaptive vs static rubric:** adaptive rubrics auto-generate criteria per case and return a
+> pass/fail per criterion (score = passing rate); static rubrics apply fixed criteria and return a
+> single 0–1 score. Custom metrics are wired per agent in
+> [`agent_eval_configs.get_metrics()`](https://github.com/jswortz/geap-tour/blob/main/src/eval/agent_eval_configs.py);
+> `get_metrics(agent, include_custom=False)` (or `GEAP_EVAL_BASE_ONLY=1`) restores base-only mode for CI.
+
+---
+
+## 11. Offline Evaluation over Historical Traces/Sessions
+
+📖 [evaluate-offline](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-offline)
+· **Source:** [`src/eval/offline_trace_eval.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/offline_trace_eval.py)
+
+Offline evaluation scores **already-recorded** Traces (single execution path) or Sessions (full
+multi-turn conversation) retroactively — **no new inference**. This differs from
+[§1 Batch Evaluations](#1-batch-evaluations), which re-runs inference.
+
+The deployed agents with **Telemetry collection: Enabled** (the OTel gen_ai signals offline eval
+reads), and the BigQuery log sink (`geap_workshop_logs`, `eval_rubric_results`, and the reasoning-
+engine tables) those traces land in:
+
+![Agent deployments — telemetry enabled (live console)](screenshots/eval_console_agent_engines.png)
+
+![BigQuery — geap_workshop_logs / eval_rubric_results (live console)](screenshots/eval_console_bigquery.png)
+
+It reads the gen_ai OpenTelemetry signals emitted by deployed agents:
+`gen_ai.agent.name/description`, `gen_ai.conversation.id`, and the
+`gen_ai.client.inference.operation.details` event
+(`gen_ai.input.messages`, `gen_ai.output.messages`, `gen_ai.system_instructions`,
+`gen_ai.tool.definitions`) — landed in BigQuery (`geap_workshop_logs`). For multimodal inputs, the
+media-upload OTEL vars were added to [`src/config.py`](https://github.com/jswortz/geap-tour/blob/main/src/config.py):
+
+```python
+"OTEL_INSTRUMENTATION_GENAI_UPLOAD_FORMAT": "jsonl",
+"OTEL_INSTRUMENTATION_GENAI_COMPLETION_HOOK": "upload",
+"OTEL_INSTRUMENTATION_GENAI_UPLOAD_BASE_PATH": f"gs://{GCP_STAGING_BUCKET}/otel-genai",
+```
+
+```bash
+uv run python -m src.eval.offline_trace_eval coordinator_agent
+```
+
+> **Console:** *Agent Platform → Agents → Evaluation → New evaluation →* **Traces** or **Sessions**
+> tab, filter by version/time, write results to a Cloud Storage bucket. When BigQuery has no gen_ai
+> rows yet, the module falls back to a bundled fixture so the demo always produces output.
+
+---
+
+## 12. Environment & User Simulation (Multi-Turn)
+
+📖 [evaluate-simulated](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-simulated)
+· **Source:** [`src/eval/simulated_eval.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/simulated_eval.py),
+[`src/eval/env_simulation.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/env_simulation.py)
+
+`simulated_eval.py` auto-generates multi-turn scenarios (a starting prompt + a hidden conversation
+plan) grounded by `environment_context`, simulates the user, and scores with the **multi-turn
+autoraters**. `env_simulation.py` intercepts tool calls to inject mocked data and simulated failures
+(HTTP 503) so you can test resilience without touching production backends.
+
+```bash
+# Multi-turn eval (MULTI_TURN_TASK_SUCCESS / _TOOL_USE_QUALITY / _TRAJECTORY_QUALITY)
+uv run python -m src.eval.simulated_eval <agent-resource-name> --agent-name coordinator_agent --multi-turn
+
+# Build AgentInfo from the live ADK agent instead of the manual builder
+uv run python -m src.eval.simulated_eval <agent-resource-name> --load-from-agent
+
+# Environment simulation (tool-call interception + injected 503s)
+uv run python -m src.eval.env_simulation
+```
+
+Key additions: `environment_context` in `generate_conversation_scenarios(config=...)`,
+`types.evals.AgentInfo.load_from_agent(agent=...)`, and per-metric fault tolerance (a failing
+multi-turn metric retries with the single-turn set rather than aborting the run).
+
+---
+
+## 13. Quality-Drift Alerts
+
+📖 [quality-alerts](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/quality-alerts)
+· **Source:** [`src/eval/quality_alerts.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/quality_alerts.py),
+[`src/eval/policies/quality_drift_policy.yaml`](https://github.com/jswortz/geap-tour/blob/main/src/eval/policies/quality_drift_policy.yaml)
+
+Quality **drift** is a slow score decline even with an unchanged model. Online Monitors export
+scores to Cloud Monitoring metric `aiplatform.googleapis.com/online_evaluator/scores`
+(label `evaluation_metric_name`); alert policies fire when scores drop. Three creation paths:
+
+Live in Cloud Monitoring → Alerting — the GEAP quality alert policies (`complexity_routing_accuracy`,
+`policy_compliance`, `tool_use_accuracy`, `helpfulness`), all enabled:
+
+![Cloud Monitoring alert policies (live console)](screenshots/eval_console_monitoring_alerts.png)
+
+1. **Per-monitor** — *Online monitors → ⋮ → Create alerting policy* in the console.
+2. **Recommended Alerts** — *Dashboard → Evaluation → Recommended Alerts*.
+3. **Programmatic** — `gcloud` or the `monitoring_v3` SDK:
+
+```bash
+uv run python -m src.eval.quality_alerts export-yaml src/eval/policies/quality_drift_policy.yaml
+gcloud monitoring policies create --policy-from-file=src/eval/policies/quality_drift_policy.yaml
+# or, directly on the native online-evaluator metric:
+uv run python -m src.eval.quality_alerts drift task_success 0.8
+```
+
+---
+
+## 14. SDK & agents-cli Optimization (Quality Flywheel)
+
+📖 [optimize-agent](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/optimize-agent)
+· **Source:** [`src/optimize/run_optimize.py`](https://github.com/jswortz/geap-tour/blob/main/src/optimize/run_optimize.py),
+[`src/eval/sdk_optimize.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/sdk_optimize.py),
+[`src/eval/agents_cli_demo.sh`](https://github.com/jswortz/geap-tour/blob/main/src/eval/agents_cli_demo.sh)
+
+The flywheel closes by refining root system instructions against the eval suite.
+
+```bash
+# ADK GEPA (default) and the non-GEPA sequential optimizer
+uv run python -m src.optimize.run_optimize src/agents/coordinator
+uv run python -m src.optimize.run_optimize src/agents/coordinator --optimizer simple
+
+# SDK flywheel wrapper — feature-detects client.optimizer.optimize(...), else falls back to GEPA
+uv run python -m src.eval.sdk_optimize src/agents/coordinator
+
+# Drive the loop from an AI assistant via agents-cli
+bash src/eval/agents_cli_demo.sh          # generate → grade → analyze → optimize
+```
+
+> **Note:** the documented `client.optimizer.optimize(targets=["system_prompt"], benchmark=…, tests=…)`
+> is not present in the pinned `google-cloud-aiplatform`; `sdk_optimize.py` feature-detects it and
+> transparently falls back to the ADK GEPA optimizer so the before/after run still completes.
+
+---
+
+## 15. AI-Assistant Eval Skills
+
+📖 [agent-evaluation](https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/agent-evaluation)
+
+Two installable skills teach this methodology to coding assistants (Gemini CLI, Claude Code, …):
+
+```bash
+# CLI-driven eval/optimize flow for ADK agents
+npx skills add https://github.com/google/agents-cli --skill google-agents-cli-eval
+# SDK-driven GenAI Evaluation "flywheel" playbook
+npx skills add https://github.com/google/skills --skill agent-platform-eval-flywheel
+```
+
+The `google-agents-cli-eval` skill is already available in this workspace; see
+[`src/eval/agents_cli_demo.sh`](https://github.com/jswortz/geap-tour/blob/main/src/eval/agents_cli_demo.sh)
+for a runnable walkthrough of its subcommands.
+
+---
+
 ## Quick Reference
 
 | Task | Command | Source |
@@ -863,6 +1135,15 @@ The report includes:
 | Check monitors | `uv run python -m src.eval.verify_monitors --format json` | [`src/eval/verify_monitors.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/verify_monitors.py) |
 | Set up alerts | `uv run python -m src.eval.quality_alerts all` | [`src/eval/quality_alerts.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/quality_alerts.py) |
 | Run unit tests | `uv run --extra dev python -m pytest tests/test_multi_agent_eval.py -v` | |
+| **Full flywheel demo** | `uv run python -m src.eval.demo.full_eval_demo --agent-id $AGENT_ENGINE_ID` | [`src/eval/demo/full_eval_demo.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/demo/full_eval_demo.py) |
+| Demo notebook | `jupyter notebook src/eval/demo/evaluation_sdk_demo.ipynb` | [`src/eval/demo/evaluation_sdk_demo.ipynb`](https://github.com/jswortz/geap-tour/blob/main/src/eval/demo/evaluation_sdk_demo.ipynb) |
+| Register custom metrics | `uv run python -m src.eval.metric_registry register` | [`src/eval/metric_registry.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/metric_registry.py) |
+| Offline trace eval | `uv run python -m src.eval.offline_trace_eval coordinator_agent` | [`src/eval/offline_trace_eval.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/offline_trace_eval.py) |
+| Simulated multi-turn eval | `uv run python -m src.eval.simulated_eval <resource> --multi-turn` | [`src/eval/simulated_eval.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/simulated_eval.py) |
+| Export drift alert policy | `uv run python -m src.eval.quality_alerts export-yaml` | [`src/eval/quality_alerts.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/quality_alerts.py) |
+| SDK/GEPA optimize | `uv run python -m src.eval.sdk_optimize src/agents/coordinator` | [`src/eval/sdk_optimize.py`](https://github.com/jswortz/geap-tour/blob/main/src/eval/sdk_optimize.py) |
+| agents-cli eval walkthrough | `bash src/eval/agents_cli_demo.sh` | [`src/eval/agents_cli_demo.sh`](https://github.com/jswortz/geap-tour/blob/main/src/eval/agents_cli_demo.sh) |
+| Capture eval screenshots (VNC) | `bash scripts/vnc_setup.sh && uv run python scripts/capture_eval_console.py` | [`scripts/capture_eval_console.py`](https://github.com/jswortz/geap-tour/blob/main/scripts/capture_eval_console.py) |
 
 ---
 

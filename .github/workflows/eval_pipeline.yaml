@@ -8,6 +8,7 @@ on:
       - 'src/eval/**'
       - 'src/router/**'
       - 'src/mcp_servers/**'
+      - '.github/workflows/**'
   workflow_dispatch:
     inputs:
       agent_id:
@@ -51,6 +52,9 @@ jobs:
   batch-evals:
     name: Batch Evaluations
     needs: unit-tests
+    # Requires GCP auth — skip (don't fail) when WIF isn't configured (e.g. forks / repos
+    # without the WIF_PROVIDER + WIF_SERVICE_ACCOUNT repo variables set).
+    if: ${{ vars.WIF_PROVIDER != '' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -117,6 +121,8 @@ jobs:
   complexity-evals:
     name: Complexity Routing Evaluation
     needs: unit-tests
+    # Requires GCP auth — skip (don't fail) when WIF isn't configured.
+    if: ${{ vars.WIF_PROVIDER != '' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -176,7 +182,8 @@ jobs:
   monitor-check:
     name: Monitor Verification
     needs: [batch-evals]
-    if: ${{ !inputs.batch_only }}
+    # Requires GCP auth — skip when WIF isn't configured (also gated by batch_only).
+    if: ${{ !inputs.batch_only && vars.WIF_PROVIDER != '' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read

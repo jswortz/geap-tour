@@ -23,15 +23,38 @@ A hands-on workshop demonstrating the full Gemini Enterprise Agent Platform (GEA
 | **CI/CD** | GitHub Actions workflow running simulated evals on PRs |
 | **Diagrams** | Architecture diagrams generated with Paper Banana |
 
+## 📓 Interactive Notebooks
+
+Five SDK-first notebooks — flat, L1-SDK-native, with mutating/infra steps guarded behind `GEAP_RUN_*` env flags (they run clean end-to-end with guards off):
+
+| Notebook | What you'll run |
+|----------|-----------------|
+| ▶ [Build → Deploy → Register](src/deploy/demo/platform_sdk_demo.ipynb) | MCP tools → ADK agents → run → deploy to Agent Engine → register to Gemini Enterprise → routing & cost. **Start here.** |
+| ▶ [Evaluation — Quality Flywheel](src/eval/demo/evaluation_sdk_demo.ipynb) | Metrics, rapid/regression/simulated/offline scoring, online monitors, optimization, and quality alerts — all via `client.evals.*`. |
+| [Agent Gateway](src/deploy/demo/gateway_sdk_demo.ipynb) | Dual-mode (ingress/egress) config, create gateways, attach at deploy, and the three policy layers (IAM/CEL, Semantic Governance, IAP + Model Armor). |
+| [Agent Registry — hub & spoke](src/deploy/demo/registry_sdk_demo.ipynb) | Register/discover, bindings, and **cross-project hub-and-spoke** discovery via App Hub + `agent-registry agents search`. |
+| [MCP — create & monitor](src/mcp_servers/demo/mcp_sdk_demo.ipynb) | Author a FastMCP tool, deploy, register, then monitor with Cloud Run metrics, logs, traces, and alerts. |
+
 ## Documentation
+
+**Two ways in.** New to the platform? Follow the **[Workshop Guide](docs/workshop_guide.md)** (4 sessions). Prefer to learn by running code? Start with the two **SDK-first notebooks** — first [build & deploy](src/deploy/demo/platform_sdk_demo.ipynb), then [evaluate](src/eval/demo/evaluation_sdk_demo.ipynb) — then go deeper with the **Gateway**, **Registry (hub-and-spoke)**, and **MCP create+monitor** deep-dive notebooks below. A [docs index](docs/README.md) maps everything else.
 
 | Document | Description |
 |----------|-------------|
+| ▶ **[Build → Deploy → Register Notebook](src/deploy/demo/platform_sdk_demo.ipynb)** | **Start here to build** — SDK-first companion: MCP tools → ADK agents → run → deploy to Agent Engine → register to Gemini Enterprise → multi-model routing & cost. Mutating steps are guarded (`GEAP_RUN_DEPLOY=1` / `GEAP_PUBLISH=1`). |
+| ▶ **[Interactive Evaluation Notebook](src/eval/demo/evaluation_sdk_demo.ipynb)** | **Start here for evals** — flat & **SDK-first**: every Quality-Flywheel phase calls `client.evals.*` / `vertexai.types.*` **inline** (custom code is explicitly called out), scored against the deployed agent. Headless: `python -m src.eval.demo.full_eval_demo` |
+| **Deep-dive: [Agent Gateway](src/deploy/demo/gateway_sdk_demo.ipynb)** | Govern traffic + attach policies — dual-mode config (live), create gateways, attach at deploy, and the 3 policy layers (IAM/CEL, Semantic Governance, IAP + Model Armor). Guarded via `GEAP_RUN_GATEWAY`. |
+| **Deep-dive: [Agent Registry (hub-and-spoke)](src/deploy/demo/registry_sdk_demo.ipynb)** | Register/discover + **cross-project hub-and-spoke** (App Hub boundary → `agent-registry agents search` across a spoke project), bindings, cross-project metrics scoping. Guarded via `GEAP_RUN_REGISTRY`. |
+| **Deep-dive: [MCP Server create + monitor](src/mcp_servers/demo/mcp_sdk_demo.ipynb)** | Author a FastMCP server (live), deploy, register, then monitor — Cloud Run request metrics (`monitoring_v3`), logs, trace spans, and a health alert. Guarded via `GEAP_RUN_DEPLOY`. |
 | [Workshop Guide](docs/workshop_guide.md) | Full 4-session hands-on walkthrough |
 | [Monitoring Guide](docs/monitoring_integration_guide.md) | Quality alerts and custom metrics bridge guide |
 | [Component FAQ](docs/faq.md) | What each component does and why it matters |
-| [Evaluation Guide](docs/eval_operations.md) | Evaluation pipeline operations |
+| [Evaluation Guide](docs/eval_operations.md) | Evaluation pipeline operations + **coverage matrix** for the GEAP Optimize → Evaluation docs |
+| [Evaluation Demo Walkthrough](docs/evaluation_demo.md) | End-to-end Quality Flywheel demo (100% doc coverage) — `python -m src.eval.demo.full_eval_demo` |
+| [Evaluation Slides](docs/eval_slides.html) ([.pptx](docs/eval_slides.pptx)) | 7-slide Google Cloud–style teach-in on agent evals (real console screenshots + code deep links) |
 | [Cost Comparison](docs/multi_model_cost_comparison.md) | Multi-model routing cost analysis |
+| [Publish Agents to Gemini Enterprise](docs/publishing_agents_to_gemini_enterprise.md) | How-to: register the **coordinator + router** agents *directly* to a GE app (ADK reasoning-engine registration) — `agents-cli` + repo script, with live console evidence |
+| [Agents Overview](agent.md) | Quick reference for the coordinator + router agents (engine IDs, env vars) |
 | [Slides](docs/slides.pptx) | Workshop deck (34 slides) |
 
 ## Reference Documentation
@@ -95,6 +118,53 @@ Requests targeting deployed agents flow through a logical client URN mapped in t
    ```
 
 
+## Gemini Enterprise Agent — Router Cost Visualizer
+
+The **multi-model router** is published to **Gemini Enterprise** as an A2A/A2UI agent. Business users
+chat with it in the GE console; every prompt is classified, routed to the cheapest capable model tier,
+and executed, while a **Live Cost Dashboard** renders in the side canvas (KPIs, cumulative cost vs an
+all-Opus baseline, spend by tier, and per-prompt routing).
+
+![Gemini Enterprise — Router Cost Visualizer live in the GE canvas](docs/screenshots/ge_router_live_canvas_dashboard.png)
+
+**Try it in Gemini Enterprise**
+- Open the agent: [GEAP Router Cost Visualizer in GE](https://vertexaisearch.cloud.google.com/home/cid/c4da98d6-1b97-4e31-bb6a-ba979e363c26/r/agent/14432326554756478249)
+- Ask a workload prompt (e.g. *"Plan a 5-day Tokyo trip for 4 with a budget"*) and watch the dashboard accrue cost; use **Routing logic & scoring** to see how each prompt is scored and tiered.
+
+**Deploy / (re)register it yourself**
+```bash
+# Deploys the A2A/A2UI service to Cloud Run and registers/updates the GE agent
+set -a; source .env; set +a
+bash scripts/deploy_router_ui.sh
+```
+- A2A agent card: `https://geap-router-cost-ui-679926387543.us-east1.run.app/a2a/app/.well-known/agent-card.json`
+- Backend + UI: [`app/`](app/) · registration: [`scripts/register_router_ui_agent.py`](scripts/register_router_ui_agent.py)
+- How routing + cost work: [`docs/multi_model_cost_comparison.md`](docs/multi_model_cost_comparison.md)
+
+
+## Publish the Two Agents Directly to Gemini Enterprise
+
+Beyond the A2A Router Cost Visualizer above, the workshop's two first-class ADK agents —
+**`coordinator_agent`** and **`router_agent`** — can be published **directly** to Gemini Enterprise by
+registering their Agent Runtime **reasoning engines** (ADK registration via
+`adkAgentDefinition` → `provisionedReasoningEngine`). No Cloud Run wrapper is needed; GE invokes the
+reasoning engine natively. In the GE Agents table they appear as type **Agent Engine** (contrast the
+Router Cost Visualizer's **A2A (Custom)**).
+
+![Coordinator + router published directly to Gemini Enterprise](docs/screenshots/ge_two_agents_published.png)
+
+**Publish both yourself** (idempotent — re-runs update the registration in place):
+```bash
+set -a; source .env; set +a
+uv run python scripts/publish_agents_to_ge.py     # REST publisher (requests + google-auth only)
+# ...or the official CLI wrapper:
+bash scripts/publish_agents_to_ge.sh              # agents-cli publish gemini-enterprise (ADK mode)
+```
+- Full how-to: [`docs/publishing_agents_to_gemini_enterprise.md`](docs/publishing_agents_to_gemini_enterprise.md)
+- Publisher: [`scripts/publish_agents_to_ge.py`](scripts/publish_agents_to_ge.py) · CLI wrapper: [`scripts/publish_agents_to_ge.sh`](scripts/publish_agents_to_ge.sh)
+- Live in GE (engine `gemini-enterprise-17634901_1763490144996`): **GEAP Corporate Travel & Expense Assistant** (`3686131016255017939`) · **GEAP Multi-Model Cost Router** (`13895830063069432068`) — both **Enabled**
+
+
 ## Screenshots
 
 All screenshots are captured from real deployed GCP resources:
@@ -109,12 +179,17 @@ All screenshots are captured from real deployed GCP resources:
 | ![Trace Spans](docs/screenshots/session2_agent_trace_spans.png) | Trace spans — individual trace view |
 | ![Model Armor](docs/screenshots/session4_model_armor.png) | Input/output screening |
 | ![Evaluation](docs/screenshots/session2_evaluation_pipeline.png) | Three-tier eval pipeline |
+| ![Evaluation Console](docs/screenshots/eval_console_evaluation.png) | Agent Platform → Agents → Evaluation (Experiments / Metrics / Online monitors) |
+| ![Metrics Console](docs/screenshots/eval_console_metrics_tab.png) | Evaluation → Metrics — predefined + registered GEAP custom metrics |
+| ![Online Monitors Console](docs/screenshots/eval_console_online_monitors.png) | Evaluation → Online monitors — active continuous evaluators |
+| ![Alerting Console](docs/screenshots/eval_console_monitoring_alerts.png) | Cloud Monitoring → Alerting — GEAP quality-drift alert policies |
 | ![Agent Registry](docs/screenshots/session3_agent_registry_mcp.png) | MCP servers in Agent Registry |
 | ![BigQuery Sink](docs/screenshots/session2_bigquery_sink.png) | Log Router sinks to BigQuery |
 | ![Policies](docs/screenshots/session3_policies_iam.png) | IAM Allow governance policies |
 | ![Business Policies](docs/screenshots/session3_business_policies.png) | Semantic Governance Policies (SGP) |
 | ![Metrics Explorer Out-of-Spec](docs/screenshots/session5_metrics_explorer_out_of_spec.png) | Cloud Monitoring Metrics Explorer showing evaluation scores drop |
 | ![Quality Alert Firing](docs/screenshots/session5_monitoring_alert_firing.png) | Cloud Monitoring Alerting Policy in FIRING state |
+| ![Two agents in Gemini Enterprise](docs/screenshots/ge_two_agents_published.png) | Coordinator + router published directly to Gemini Enterprise (type **Agent Engine**, Enabled) |
 
 ## Workshop Guide
 
@@ -164,16 +239,17 @@ In our workshop, agents use SPIFFE-based workload identity (ID-2) with attestati
 
 ```
 src/
-├── agents/          # ADK agent definitions
+├── agents/          # ADK agent definitions (coordinator + travel/expense specialists)
 ├── armor/           # Model Armor config + guardrail callbacks
 ├── mcp_servers/     # FastMCP tool servers (search, booking, expense)
-├── deploy/          # Deployment scripts for Cloud Run + Agent Runtime
-├── eval/            # Evaluation pipeline (one-time, online, simulated)
+├── deploy/          # Deploy to Cloud Run + Agent Runtime  (+ demo/platform_sdk_demo.ipynb)
+├── eval/            # Evaluation pipeline (one-time, online, simulated)  (+ demo/evaluation_sdk_demo.ipynb)
 ├── optimize/        # Agent optimization (GEPA algorithm)
-├── router/          # Multi-model complexity router
+├── router/          # Multi-model complexity router (standalone deploy package)
 └── traffic/         # Traffic generation for OTel traces
-scripts/             # Shell scripts for identity, gateway, registry setup
+app/                 # Router Cost Visualizer — A2A/A2UI service (Cloud Run → Gemini Enterprise)
+scripts/             # Shell scripts: identity, gateway, registry, deploy, publish
 diagrams/            # Paper Banana architectural diagrams
-docs/                # Workshop guide
+docs/                # Workshop guide, evaluation guides, slides, screenshots (see docs/README.md)
 tests/               # Unit and integration tests
 ```

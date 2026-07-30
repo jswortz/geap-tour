@@ -1,19 +1,9 @@
 """Expense Agent — submits expenses and checks corporate policy via MCP tool server."""
 
 from google.adk.agents import LlmAgent
-from google.adk.models.lite_llm import LiteLlm
 
 from src.config import AGENT_MODEL, EXPENSE_MCP_SERVER
-
-
-def _resolve_model(model_str: str):
-    """Resolve model string — Gemini 3.x and Claude need location=global."""
-    if model_str.startswith(("gemini-2", "models/")):
-        return model_str
-    if not model_str.startswith("vertex_ai/"):
-        model_str = f"vertex_ai/{model_str}"
-    return LiteLlm(model=model_str, vertex_location="global")
-    
+from src.agents._shared import resolve_model
 from src.armor.config import get_armored_generate_config, input_guardrail_callback
 from src.registry import get_mcp_tools
 
@@ -48,7 +38,7 @@ and they should ask the travel assistant.\
 """
 
 expense_agent = LlmAgent(
-    model=_resolve_model(AGENT_MODEL),
+    model=resolve_model(AGENT_MODEL),
     name="expense_agent",
     instruction=INSTRUCTION,
     tools=[

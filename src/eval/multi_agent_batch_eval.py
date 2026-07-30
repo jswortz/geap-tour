@@ -17,9 +17,9 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-import pandas as pd
 import vertexai
 from vertexai import Client, types
+from google.genai import types as g_types
 
 from src.config import (
     GCP_PROJECT_ID,
@@ -31,32 +31,12 @@ from src.config import (
 from src.eval.agent_eval_configs import (
     ALL_AGENTS,
     get_eval_cases,
-    get_metrics,
 )
-
-GCS_EVAL_DEST = f"gs://{GCP_STAGING_BUCKET}/eval-results/"
-MAX_POLL_SECONDS = 600
-
 
 def _resolve_agent_resource_name(agent_id: str) -> str:
     if agent_id.startswith("projects/"):
         return agent_id
     return f"projects/{GCP_PROJECT_ID}/locations/{GCP_REGION}/reasoningEngines/{agent_id}"
-
-
-def _build_eval_dataset(cases: list[dict]) -> pd.DataFrame:
-    session_inputs = types.evals.SessionInput(user_id="eval-batch-user", state={})
-    rows = []
-    for case in cases:
-        rows.append({
-            "prompt": case["prompt"],
-            "session_inputs": session_inputs,
-            "eval_category": case["category"],
-            "expected_tool": case["expected_tool"],
-            "expected_signals": json.dumps(case["expected_signals"]),
-            "case_description": case["description"],
-        })
-    return pd.DataFrame(rows)
 
 
 def _run_single_agent_eval(
@@ -65,117 +45,71 @@ def _run_single_agent_eval(
     agent_resource_name: str,
     score_threshold: float,
 ) -> dict:
-    """Run batch evaluation for a single agent."""
-    cases = get_eval_cases(agent_name)
-    metrics = get_metrics(agent_name)
+    """Run batch (regression) evaluation for a single agent.
 
+    Inference is run explicitly (``agent_engines.stream_query``) and scored with
+    ``client.evals.evaluate`` using prebuilt ``RubricMetric`` autoraters. This avoids two
+    google-cloud-aiplatform 1.162 bugs that otherwise make this eval report FAILED even when the
+    agent answers correctly: ``run_inference`` rejects Agent Engine event fields
+    (``AgentData`` is ``extra="forbid"``), and the managed ``create_evaluation_run`` result can't be
+    loaded client-side (``EvaluationItemResult`` validation errors). See ``src/eval/one_time_eval.py``.
+    No monkeypatching.
+    """
+    from vertexai import agent_engines
+    from src.eval.one_time_eval import METRICS, _agent_response_text
+
+    cases = get_eval_cases(agent_name)
     print(f"\n{'─' * 60}")
     print(f"  Agent: {agent_name} ({len(cases)} test cases)")
-    print(f"  Metrics: {', '.join(getattr(m, 'name', str(m)) for m in metrics)}")
+    print(f"  Metrics: {', '.join(getattr(m, 'name', str(m)) for m in METRICS)}")
     print(f"{'─' * 60}")
 
-    eval_df = _build_eval_dataset(cases)
-
-    # Run inference
-    print("  Running inference...")
+    print("  Running inference (querying the deployed agent)...")
     t0 = time.time()
-    inference_result = client.evals.run_inference(
-        agent=agent_resource_name,
-        src=eval_df,
-    )
+    agent_engine = agent_engines.get(agent_resource_name)
+    eval_cases = []
+    for case in cases:
+        prompt = case["prompt"]
+        try:
+            answer = _agent_response_text(agent_engine, prompt) or "(agent returned no text)"
+        except Exception as e:  # noqa: BLE001
+            answer = f"(inference error: {e})"
+        eval_cases.append(types.EvalCase(
+            prompt=g_types.Content(parts=[g_types.Part.from_text(text=prompt)], role="user"),
+            responses=[types.ResponseCandidate(
+                response=g_types.Content(parts=[g_types.Part.from_text(text=answer)], role="model"))],
+        ))
     elapsed = time.time() - t0
     print(f"  Inference complete in {elapsed:.1f}s")
 
-    # Run evaluation
     print("  Running evaluation...")
-    evaluation_run = client.evals.create_evaluation_run(
-        dataset=inference_result,
-        agent=agent_resource_name,
-        metrics=metrics,
-        dest=GCS_EVAL_DEST,
+    eval_result = client.evals.evaluate(
+        dataset=types.EvaluationDataset(eval_cases=eval_cases),
+        metrics=METRICS,
     )
-
-    print(f"  Eval run: {evaluation_run.name}")
-    print("  Polling", end="", flush=True)
-    poll_start = time.time()
-    while time.time() - poll_start < MAX_POLL_SECONDS:
-        evaluation_run = client.evals.get_evaluation_run(name=evaluation_run.name)
-        state = str(getattr(evaluation_run, "state", ""))
-        if "SUCCEEDED" in state or "FAILED" in state or "CANCELLED" in state:
-            break
-        print(".", end="", flush=True)
-        time.sleep(15)
-    print(f" {state}")
-
-    if "FAILED" in state:
-        err = getattr(evaluation_run, "error", None)
-        print(f"  ERROR: {err}")
-        return {
-            "agent": agent_name,
-            "status": "FAILED",
-            "error": str(err),
-            "test_cases": len(cases),
-        }
-
-    # Retrieve full results
-    evaluation_run = client.evals.get_evaluation_run(
-        name=evaluation_run.name,
-        include_evaluation_items=True,
-    )
-
-    # Extract metrics — summary_metrics is a SummaryMetric pydantic model
-    # with .metrics (dict) and .total_items attributes
-    raw_metrics: dict = {}
-    total_items = 0
-    try:
-        run_results = getattr(evaluation_run, "evaluation_run_results", None)
-        if run_results:
-            sm = getattr(run_results, "summary_metrics", None)
-            if sm:
-                total_items = getattr(sm, "total_items", 0) or 0
-                nested = getattr(sm, "metrics", None)
-                if nested:
-                    raw_metrics = dict(nested) if not isinstance(nested, dict) else nested
-    except Exception as e:
-        print(f"  Warning: could not extract summary metrics: {e}")
 
     metric_results = {}
     all_pass = True
-    metrics_dict = raw_metrics.get("metrics", raw_metrics)
-    for metric_name, value in metrics_dict.items():
-        if isinstance(value, dict):
-            avg = value.get("mean", value.get("average", 0))
-        elif isinstance(value, (int, float)):
-            avg = value
-        else:
-            avg = 0
-        avg_scaled = avg * 5.0 if avg <= 1.0 else avg
+    for r in (eval_result.summary_metrics or []):
+        avg = r.mean_score if r.mean_score is not None else 0.0
+        avg_scaled = avg * 5.0 if avg <= 1.0 else avg  # SDK returns 0-1; rescale to the 1-5 threshold
         passed = avg_scaled >= score_threshold
         if not passed:
             all_pass = False
-        metric_results[metric_name] = {
-            "score": avg_scaled,
+        metric_results[r.metric_name] = {
+            "score": round(avg_scaled, 3),
             "threshold": score_threshold,
             "passed": passed,
+            "errors": getattr(r, "num_cases_error", 0),
         }
 
-    # Per-item details
-    items = []
-    try:
-        if hasattr(evaluation_run, "evaluation_items"):
-            for item in evaluation_run.evaluation_items or []:
-                items.append(dict(item) if not isinstance(item, dict) else item)
-    except Exception:
-        pass
-
-    # Print agent summary
-    print(f"\n  Results for {agent_name} ({total_items} items):")
+    print(f"\n  Results for {agent_name} ({len(cases)} items):")
     for mname, detail in sorted(metric_results.items()):
         status = "PASS" if detail["passed"] else "FAIL"
         marker = "" if detail["passed"] else "  <<<"
-        print(f"    {mname:50s} {detail['score']:.2f} / {detail['threshold']:.2f}  [{status}]{marker}")
+        print(f"    {mname:40s} {detail['score']:.2f} / {detail['threshold']:.2f}  [{status}]{marker}")
     if not metric_results:
-        print(f"    (no metrics returned — check eval run: {getattr(evaluation_run, 'name', 'N/A')})")
+        print("    (no metrics returned)")
 
     return {
         "agent": agent_name,
@@ -183,10 +117,6 @@ def _run_single_agent_eval(
         "test_cases": len(cases),
         "inference_seconds": round(elapsed, 1),
         "metrics": metric_results,
-        "summary_raw": raw_metrics,
-        "evaluation_run_name": getattr(evaluation_run, "name", None),
-        "item_count": len(items),
-        "items": items,
     }
 
 

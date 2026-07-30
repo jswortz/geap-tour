@@ -6,90 +6,84 @@ from google.genai import types as g_types
 
 from src.config import GCP_PROJECT_ID, GCP_REGION
 
-HELPFULNESS_METRIC = types.LLMMetric(
-    name="helpfulness",
-    prompt_template=types.MetricPromptBuilder(
-        instruction="Rate the agent's response for helpfulness.",
-        criteria={
-            "relevance": "Does the response provide helpful, relevant, and actionable information for the user's travel or expense request?"
-        },
-        rating_scores={
-            "5": "Very helpful — exceeds expectations with proactive suggestions",
-            "4": "Helpful — fully addresses the request with clear information",
-            "3": "Moderately helpful — addresses the request with minor gaps",
-            "2": "Slightly helpful — addresses the request but with significant gaps",
-            "1": "Not helpful — ignores the request or provides irrelevant information",
-        }
-    )
-)
+# Rapid eval uses the SDK's PREBUILT rubric metrics (LLM-as-judge). We deliberately avoid hand-built
+# ``LLMMetric`` + ``MetricPromptBuilder`` metrics here: on google-cloud-aiplatform 1.162 their autorater
+# returns a markdown "## Evaluation / Rating Score" assessment that the eval API cannot parse as JSON
+# (400 INVALID_ARGUMENT), so every case errors. The predefined ``RubricMetric`` autoraters return
+# structured scores reliably. Custom LLM-as-judge and code metrics are still demonstrated in
+# ``src/eval/metric_registry.py`` (the "manage-metrics" step) and ``src/eval/batch_eval.py``.
+METRICS = [
+    types.RubricMetric.FINAL_RESPONSE_QUALITY,
+    types.RubricMetric.INSTRUCTION_FOLLOWING,
+    types.RubricMetric.GENERAL_QUALITY,
+]
 
-TOOL_USE_METRIC = types.LLMMetric(
-    name="tool_use_accuracy",
-    prompt_template=types.MetricPromptBuilder(
-        instruction="Rate the agent's tool usage accuracy.",
-        criteria={
-            "accuracy": "Does the agent correctly use the available MCP tools to fulfill the request? Are the right tools called with appropriate parameters?"
-        },
-        rating_scores={
-            "5": "Optimal tool use with well-formed parameters and good error handling",
-            "4": "Correct tool with appropriate parameters",
-            "3": "Correct tool but with parameter issues",
-            "2": "Wrong tool or badly formed parameters",
-            "1": "No tool use or completely wrong tool",
-        }
-    )
-)
 
-POLICY_COMPLIANCE_METRIC = types.LLMMetric(
-    name="policy_compliance",
-    prompt_template=types.MetricPromptBuilder(
-        instruction="Rate the agent's corporate policy compliance.",
-        criteria={
-            "compliance": "Does the agent correctly enforce corporate expense policies? Does it flag over-limit expenses and guide the user appropriately?"
-        },
-        rating_scores={
-            "5": "Proactively checks policy before submission and provides clear guidance",
-            "4": "Correctly applies policy and informs the user",
-            "3": "Applies policy but doesn't guide the user",
-            "2": "Mentions policy but applies it incorrectly",
-            "1": "Ignores policy limits entirely",
-        }
-    )
-)
+PROMPTS = [
+    "Find flights from SFO to JFK on June 15",
+    "Search hotels in New York under $300",
+    "Submit a $500 entertainment expense for user EMP001",
+    "Check if a $50 meal expense is within policy",
+    "Book flight FL001 for Jane Doe",
+]
+
+
+def _agent_response_text(agent_engine, prompt: str, user_id: str = "one-time-eval") -> str:
+    """Query a deployed Agent Engine and return its final response text.
+
+    We run inference explicitly here instead of via ``client.evals.run_inference``: on
+    google-cloud-aiplatform 1.162 that helper parses the Agent Engine's streamed events into the
+    ``AgentData``/``ConversationTurn``/``AgentEvent`` models, which are ``extra="forbid"`` and reject
+    the extra fields Agent Engine returns (``model_version``, ``usage_metadata``, ``actions`` …),
+    raising "Failed to parse agent run response … to agent data: 'text'"; the resulting garbage
+    response then breaks the autorater (400, non-JSON). Reading the response ourselves avoids that
+    (SDK issue #6785) with no monkeypatching — ``EvalCase.responses`` carries the clean text.
+    """
+    texts = []
+    for event in agent_engine.stream_query(message=prompt, user_id=user_id):
+        if isinstance(event, dict):
+            content = event.get("content") or {}
+            for part in (content.get("parts") or []):
+                if isinstance(part, dict) and part.get("text"):
+                    texts.append(part["text"])
+    return "\n".join(t for t in texts if t).strip()
 
 
 def run_one_time_eval(agent_resource_name: str):
     """Run one-time evaluation against a deployed agent."""
+    from vertexai import agent_engines
+
     vertexai.init(project=GCP_PROJECT_ID, location=GCP_REGION)
     client = Client(
         project=GCP_PROJECT_ID,
         location=GCP_REGION,
     )
 
-    eval_dataset = types.EvaluationDataset(
-        eval_cases=[
-            types.EvalCase(prompt=g_types.Content(parts=[g_types.Part.from_text(text="Find flights from SFO to JFK on June 15")], role="user")),
-            types.EvalCase(prompt=g_types.Content(parts=[g_types.Part.from_text(text="Search hotels in New York under $300")], role="user")),
-            types.EvalCase(prompt=g_types.Content(parts=[g_types.Part.from_text(text="Submit a $500 entertainment expense for user EMP001")], role="user")),
-            types.EvalCase(prompt=g_types.Content(parts=[g_types.Part.from_text(text="Check if a $50 meal expense is within policy")], role="user")),
-            types.EvalCase(prompt=g_types.Content(parts=[g_types.Part.from_text(text="Book flight FL001 for Jane Doe")], role="user")),
-        ]
-    )
-
     print(f"Running one-time eval on {agent_resource_name}...")
-    print("  Dataset: 5 prompts")
-    print("  Metrics: helpfulness, tool_use_accuracy, policy_compliance")
+    print(f"  Dataset: {len(PROMPTS)} prompts")
+    print("  Metrics: final_response_quality, instruction_following, general_quality")
 
-    print("  Running inference...")
-    inference_result = client.evals.run_inference(
-        src=eval_dataset,
-        agent=agent_resource_name,
-    )
+    print("  Running inference (querying the deployed agent)...")
+    agent_engine = agent_engines.get(agent_resource_name)
+    eval_cases = []
+    for prompt in PROMPTS:
+        try:
+            answer = _agent_response_text(agent_engine, prompt) or "(agent returned no text)"
+        except Exception as e:  # noqa: BLE001 — record the failure as the response so eval still runs
+            answer = f"(inference error: {e})"
+        eval_cases.append(
+            types.EvalCase(
+                prompt=g_types.Content(parts=[g_types.Part.from_text(text=prompt)], role="user"),
+                responses=[types.ResponseCandidate(
+                    response=g_types.Content(parts=[g_types.Part.from_text(text=answer)], role="model"))],
+            )
+        )
+    eval_dataset = types.EvaluationDataset(eval_cases=eval_cases)
 
     print("  Running evaluation...")
     eval_result = client.evals.evaluate(
-        dataset=inference_result,
-        metrics=[HELPFULNESS_METRIC, TOOL_USE_METRIC, POLICY_COMPLIANCE_METRIC],
+        dataset=eval_dataset,
+        metrics=METRICS,
     )
 
     print("\n=== Evaluation Results ===")

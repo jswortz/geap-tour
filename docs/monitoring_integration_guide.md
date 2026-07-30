@@ -27,7 +27,7 @@ This guide walks you through setting up a complete observability and alerting pi
 
 ## 🛠️ Step 1: Deploy Agents with OpenTelemetry Enabled
 
-To enable OpenTelemetry tracing in your ADK agents, configure the Agent Engine deployment with the required environment variables (defined in [config.py:L33-37](file:///usr/local/google/home/jwortz/geap-tour/src/config.py#L33-L37) and used in [deploy_agents.py:L93-113](file:///usr/local/google/home/jwortz/geap-tour/src/deploy/deploy_agents.py#L93-L113)):
+To enable OpenTelemetry tracing in your ADK agents, configure the Agent Engine deployment with the required environment variables (defined in [config.py:L33-37](https://github.com/jswortz/geap-tour/blob/main/src/config.py) and used in [deploy_agents.py:L93-113](https://github.com/jswortz/geap-tour/blob/main/src/deploy/deploy_agents.py)):
 
 ```python
 # snippet from src/config.py
@@ -61,7 +61,7 @@ Traces and logs will automatically flow to Cloud Logging.
 
 ## 📥 Step 2: Sink Traces to BigQuery
 
-To store logs and traces permanently in BigQuery, set up a **Logging Sink** pointing to a BigQuery dataset. You can automate this configuration using [setup_logging_sink.sh](file:///usr/local/google/home/jwortz/geap-tour/scripts/setup_logging_sink.sh):
+To store logs and traces permanently in BigQuery, set up a **Logging Sink** pointing to a BigQuery dataset. You can automate this configuration using [setup_logging_sink.sh](https://github.com/jswortz/geap-tour/blob/main/scripts/setup_logging_sink.sh):
 
 1. Create a BigQuery dataset named `geap_workshop_logs`.
 2. Create a Logging Sink targeting the dataset with the following filter:
@@ -76,7 +76,7 @@ To store logs and traces permanently in BigQuery, set up a **Logging Sink** poin
 
 Online Evaluators perform automated, LLM-as-a-judge assessments on your agent's live traces. 
 
-Create an Online Evaluator configuration (configured in [_build_evaluator_config](file:///usr/local/google/home/jwortz/geap-tour/src/eval/setup_online_evaluators.py#L215-L234) within [setup_online_evaluators.py](file:///usr/local/google/home/jwortz/geap-tour/src/eval/setup_online_evaluators.py)) specifying the target agent, predefined metrics, and your custom evaluation rubrics:
+Create an Online Evaluator configuration (configured in [_build_evaluator_config](https://github.com/jswortz/geap-tour/blob/main/src/eval/setup_online_evaluators.py) within [setup_online_evaluators.py](https://github.com/jswortz/geap-tour/blob/main/src/eval/setup_online_evaluators.py)) specifying the target agent, predefined metrics, and your custom evaluation rubrics:
 
 ```python
 # snippet from src/eval/setup_online_evaluators.py
@@ -102,7 +102,7 @@ def _build_evaluator_config(
     }
 ```
 
-Submit this configuration via the Vertex AI API to activate background evaluation (implemented in [create_evaluators](file:///usr/local/google/home/jwortz/geap-tour/src/eval/setup_online_evaluators.py#L266-L295)).
+Submit this configuration via the Vertex AI API to activate background evaluation (implemented in [create_evaluators](https://github.com/jswortz/geap-tour/blob/main/src/eval/setup_online_evaluators.py)).
 
 ---
 
@@ -138,7 +138,7 @@ A custom metric configuration is defined as a JSON object containing a prompt te
 Custom metrics are registered via a `POST` request to the Vertex AI API endpoint:
 `https://{GCP_REGION}-aiplatform.googleapis.com/v1beta1/projects/{PROJECT_NUMBER}/locations/{GCP_REGION}/evaluationMetrics`
 
-For an implementation of listing and registering custom metrics, see [setup_online_evaluators.py](file:///usr/local/google/home/jwortz/geap-tour/src/eval/setup_online_evaluators.py#L185-L212):
+For an implementation of listing and registering custom metrics, see [setup_online_evaluators.py](https://github.com/jswortz/geap-tour/blob/main/src/eval/setup_online_evaluators.py):
 
 ```python
 # snippet from src/eval/setup_online_evaluators.py
@@ -160,9 +160,9 @@ Once registered, you can include the metric's resource name (URN) inside the Onl
 
 ## 🌉 Step 4: Publish Evaluation Metrics to Cloud Monitoring
 
-Online evaluation results are written to Cloud Logging as structured logs. To query and plot these scores in Cloud Monitoring, we use a Metric Publisher Bridge (implemented in [publish_metrics.py](file:///usr/local/google/home/jwortz/geap-tour/src/eval/publish_metrics.py)):
+Online evaluation results are written to Cloud Logging as structured logs. To query and plot these scores in Cloud Monitoring, we use a Metric Publisher Bridge (implemented in [publish_metrics.py](https://github.com/jswortz/geap-tour/blob/main/src/eval/publish_metrics.py)):
 
-1. Create a custom **Metric Descriptor** for each quality metric (implemented in [create_metric_descriptors](file:///usr/local/google/home/jwortz/geap-tour/src/eval/publish_metrics.py#L41-L82)):
+1. Create a custom **Metric Descriptor** for each quality metric (implemented in [create_metric_descriptors](https://github.com/jswortz/geap-tour/blob/main/src/eval/publish_metrics.py)):
    ```python
    # snippet from src/eval/publish_metrics.py
         descriptor = {
@@ -181,7 +181,7 @@ Online evaluation results are written to Cloud Logging as structured logs. To qu
         }
         client.create_metric_descriptor(name=project_name, metric_descriptor=descriptor)
    ```
-2. Periodically query Cloud Logging for evaluation results (`labels."event.name"="gen_ai.evaluation.result"`) and write them to Cloud Monitoring using the TimeSeries API (implemented in [publish_metrics_to_monitoring](file:///usr/local/google/home/jwortz/geap-tour/src/eval/publish_metrics.py#L120-L188)).
+2. Periodically query Cloud Logging for evaluation results (`labels."event.name"="gen_ai.evaluation.result"`) and write them to Cloud Monitoring using the TimeSeries API (implemented in [publish_metrics_to_monitoring](https://github.com/jswortz/geap-tour/blob/main/src/eval/publish_metrics.py)).
 
 ---
 
@@ -199,7 +199,7 @@ The screenshot below shows a real-time visualization of a simulated drop in agen
 ![Metrics Explorer showing custom metric going out of spec](./screenshots/session5_metrics_explorer_out_of_spec.png)
 
 ### Custom Quality Dashboard
-We have deployed a custom Cloud Monitoring dashboard named **"GEAP Agent Performance & Quality Dashboard"** (configured via [dashboard.json](file:///usr/local/google/home/jwortz/geap-tour/scratch/dashboard.json) and deployed with ID `d29ccca2-75be-439b-bfe8-81bf7df8f129`) which aggregates and visualizes all 7 custom metrics in real-time charts:
+We have deployed a custom Cloud Monitoring dashboard named **"GEAP Agent Performance & Quality Dashboard"** (configured via [dashboard.json](https://github.com/jswortz/geap-tour/blob/main/scratch/dashboard.json) and deployed with ID `d29ccca2-75be-439b-bfe8-81bf7df8f129`) which aggregates and visualizes all 7 custom metrics in real-time charts:
 - **GEAP Agent Task Quality & Policy Compliance** (aggregating Task Quality and Compliance metrics)
 - **Helpfulness & Groundedness** (aggregating helpfulness and groundedness scores)
 - **Safety & Tool Use Accuracy** (aggregating safety and accuracy metrics)
@@ -213,7 +213,7 @@ To view it:
 
 ## 🚨 Step 6: Configure Quality Alert Policies
 
-To get notified when agent performance drops (e.g. below a score of `3.0` for 10 minutes), create a Cloud Monitoring Alert Policy (implemented in [create_quality_alert](file:///usr/local/google/home/jwortz/geap-tour/src/eval/quality_alerts.py#L9-L53) within [quality_alerts.py](file:///usr/local/google/home/jwortz/geap-tour/src/eval/quality_alerts.py)):
+To get notified when agent performance drops (e.g. below a score of `3.0` for 10 minutes), create a Cloud Monitoring Alert Policy (implemented in [create_quality_alert](https://github.com/jswortz/geap-tour/blob/main/src/eval/quality_alerts.py) within [quality_alerts.py](https://github.com/jswortz/geap-tour/blob/main/src/eval/quality_alerts.py)):
 
 ```python
 # snippet from src/eval/quality_alerts.py
@@ -257,7 +257,7 @@ When an alert fires, a notification is automatically dispatched to the configure
 
 ## 🏁 Summary of Resources Set Up
 
-- **Logging Sink**: `geap-agent-traces` -> BQ Dataset `geap_workshop_logs` (provisioned via [setup_logging_sink.sh](file:///usr/local/google/home/jwortz/geap-tour/scripts/setup_logging_sink.sh))
+- **Logging Sink**: `geap-agent-traces` -> BQ Dataset `geap_workshop_logs` (provisioned via [setup_logging_sink.sh](https://github.com/jswortz/geap-tour/blob/main/scripts/setup_logging_sink.sh))
 - **Online Evaluators**:
   - `GEAP Coordinator Online Evaluator` targeting agent `3532905132637290496` (resolved via Agent Registry URN `urn:endpoint:projects-679926387543:projects:679926387543:locations:global:agentregistry:services:coordinator-agent`)
   - `GEAP Router Online Evaluator` targeting agent `5972730230765256704` (resolved via Agent Registry URN `urn:endpoint:projects-679926387543:projects:679926387543:locations:global:agentregistry:services:router-agent`)

@@ -6,9 +6,13 @@ on:
     paths:
       - 'src/agents/**'
       - 'src/mcp_servers/**'
+      - '.github/workflows/**'
 
 jobs:
   simulated-eval:
+    # Requires GCP auth (deploys a temporary agent) — skip (don't fail) when WIF isn't
+    # configured, e.g. forks / repos without the WIF_PROVIDER + WIF_SERVICE_ACCOUNT repo variables.
+    if: ${{ vars.WIF_PROVIDER != '' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read

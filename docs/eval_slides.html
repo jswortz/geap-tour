@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evaluating Agents on GEAP</title>
+<style>
+  :root{
+    --blue:#1a73e8; --blue-d:#1967d2; --ink:#202124; --muted:#5f6368;
+    --line:#dadce0; --bg:#f8f9fa; --chip:#e8f0fe; --ok:#137333; --okbg:#e6f4ea;
+    --warn:#ea8600; --warnbg:#fef7e0;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{font-family:'Google Sans','Roboto',system-ui,sans-serif;color:var(--ink);background:#e9eef6}
+  .deck{scroll-snap-type:y mandatory;height:100vh;overflow-y:scroll}
+  .slide{scroll-snap-align:start;min-height:100vh;display:flex;flex-direction:column;
+         padding:0 0 24px;background:var(--bg);border-bottom:1px solid var(--line)}
+  /* top bar */
+  .bar{display:flex;align-items:center;gap:14px;height:52px;padding:0 40px;background:#fff;
+       border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+  .bar .logo{font-weight:500;font-size:15px;color:var(--ink)}
+  .bar .logo b{color:var(--blue)}
+  .bar .crumb{font-size:13px;color:var(--muted)}
+  .bar .no{margin-left:auto;font-size:12px;color:var(--muted);background:var(--chip);
+           color:var(--blue-d);padding:4px 12px;border-radius:12px;font-weight:500}
+  /* content */
+  .wrap{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:40px;padding:40px 48px;align-items:center;max-width:1500px;margin:0 auto;width:100%}
+  .wrap.solo{grid-template-columns:1fr;max-width:1100px;text-align:center}
+  h1{font-size:34px;font-weight:500;line-height:1.15;margin-bottom:10px}
+  h1 .accent{color:var(--blue)}
+  .sub{font-size:16px;color:var(--muted);margin-bottom:22px;line-height:1.5}
+  .phase{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;
+         color:var(--blue-d);background:var(--chip);padding:5px 12px;border-radius:14px;margin-bottom:16px}
+  ul{list-style:none;display:flex;flex-direction:column;gap:12px;margin-bottom:22px}
+  li{position:relative;padding-left:26px;font-size:15px;line-height:1.5;color:#3c4043}
+  li::before{content:"";position:absolute;left:2px;top:7px;width:9px;height:9px;border-radius:50%;
+             background:var(--blue)}
+  li b{color:var(--ink);font-weight:600}
+  .code-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+  .code-links a{font-family:'Roboto Mono',ui-monospace,monospace;font-size:12.5px;text-decoration:none;
+     color:var(--blue-d);background:#fff;border:1px solid var(--line);border-radius:6px;padding:6px 10px}
+  .code-links a:hover{background:var(--chip);border-color:var(--blue)}
+  .code-links a::before{content:"</> ";color:var(--muted)}
+  .doclink{display:inline-flex;align-items:center;gap:6px;font-size:13px;text-decoration:none;color:var(--blue);margin-top:4px}
+  .doclink::after{content:"↗";font-size:12px}
+  /* screenshot frame */
+  .shot{border:1px solid var(--line);border-radius:10px;overflow:hidden;box-shadow:0 6px 24px rgba(60,64,67,.15);background:#fff}
+  .shot .chrome{display:flex;align-items:center;gap:6px;height:30px;background:#f1f3f4;padding:0 12px;border-bottom:1px solid var(--line)}
+  .shot .chrome i{width:10px;height:10px;border-radius:50%;background:#dadce0;display:inline-block}
+  .shot .chrome .url{margin-left:10px;font-size:11px;color:var(--muted);font-family:'Roboto Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .shot img{display:block;width:100%}
+  .shot.stack img+.cap{margin-top:0}
+  .twoshot{display:flex;flex-direction:column;gap:16px}
+  .cap{font-size:12px;color:var(--muted);text-align:center;padding:6px}
+  /* flywheel chips */
+  .flyw{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:8px 0 20px}
+  .flyw span{font-size:13px;font-weight:500;color:var(--ink);background:#fff;border:1px solid var(--line);
+             border-radius:20px;padding:8px 16px}
+  .flyw span b{color:var(--blue)}
+  .run{font-family:'Roboto Mono',monospace;font-size:13px;background:#202124;color:#e8eaed;border-radius:8px;
+       padding:12px 16px;display:inline-block;margin-top:8px;text-align:left}
+  .run .p{color:#8ab4f8}
+  .foot{font-size:12px;color:var(--muted);padding:4px 48px;text-align:center}
+  .hint{position:fixed;right:16px;bottom:14px;font-size:12px;color:var(--muted);background:#fff;border:1px solid var(--line);
+        border-radius:20px;padding:6px 12px;z-index:9}
+  @media(max-width:900px){.wrap{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+  <!-- TITLE SLIDE -->
+  <section class="slide">
+    <div class="bar"><span class="logo">☁ <b>Google Cloud</b></span><span class="crumb">Gemini Enterprise Agent Platform › Optimize › Evaluation</span><span class="no">1 / 7</span></div>
+    <div class="wrap solo">
+      <div>
+        <span class="phase">Gemini Enterprise Agent Platform</span>
+        <h1 style="font-size:48px">Evaluating Agents on the <span class="accent">Agent Platform</span></h1>
+        <p class="sub" style="font-size:19px;max-width:820px;margin:14px auto 20px">The Quality Flywheel. Measure, monitor, and keep improving agent quality end to end. A hands-on walkthrough that covers everything in the Optimize / Evaluation docs, run against real deployed agents.</p>
+        <div class="flyw">
+          <span><b>1.</b> Design</span><span><b>2.</b> Execution</span><span><b>3.</b> Scoring</span><span><b>4.</b> Refinement</span>
+        </div>
+        <div class="run"><span class="p">$</span> uv run python -m src.eval.demo.full_eval_demo --agent-id $AGENT_ENGINE_ID</div>
+        <div style="margin-top:18px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
+          <a class="doclink" href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/agent-evaluation">Docs: Optimize / Evaluation</a>
+          <a class="doclink" href="https://github.com/jswortz/geap-tour/tree/main">github.com/jswortz/geap-tour</a>
+          <a class="doclink" href="https://github.com/jswortz/geap-tour/blob/main/docs/evaluation_demo.md">Demo walkthrough</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 1 -->
+  <section class="slide">
+    <div class="bar"><span class="logo">☁ <b>Google Cloud</b></span><span class="crumb">Gemini Enterprise Agent Platform › Optimize › Evaluation</span><span class="no">2 / 7</span></div>
+    <div class="wrap">
+      <div>
+        <span class="phase">The Quality Flywheel</span>
+        <h1>Evaluating agents on the <span class="accent">Agent Platform</span></h1>
+        <p class="sub">Turn "it seems to work" into something you can measure. Evaluation is a loop across four phases, and the platform gives you a place to do each one.</p>
+        <div class="flyw">
+          <span><b>1.</b> Design</span><span><b>2.</b> Execution</span><span><b>3.</b> Scoring</span><span><b>4.</b> Refinement</span>
+        </div>
+        <ul>
+          <li><b>Define</b> eval cases and metrics, <b>run</b> inferences to produce traces, <b>score</b> them with autoraters, then <b>analyze</b> and <b>optimize</b>. Repeat.</li>
+          <li>This repo covers <b>all 9 of the "Optimize / Evaluation" doc pages</b>, running against real deployed agents.</li>
+        </ul>
+        <div class="run"><span class="p">$</span> uv run python -m src.eval.demo.full_eval_demo --agent-id $AGENT_ENGINE_ID</div>
+        <div style="margin-top:14px">
+          <a class="doclink" href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/agent-evaluation">Docs: Agent evaluation overview</a>
+        </div>
+        <div class="code-links">
+          <a href="https://github.com/jswortz/geap-tour/blob/main/docs/evaluation_demo.md">docs/evaluation_demo.md</a>
+          <a href="https://github.com/jswortz/geap-tour/blob/main/docs/eval_operations.md">docs/eval_operations.md</a>
+          <a href="https://github.com/jswortz/geap-tour/blob/main/src/eval/demo/full_eval_demo.py">src/eval/demo/full_eval_demo.py</a>
+        </div>
+      </div>
+      <div class="shot">
+        <div class="chrome"><i></i><i></i><i></i><span class="url">…/agents › coordinator_agent › Traces</span></div>
+        <img src="screenshots/eval_console_agent_traces.png" alt="coordinator_agent traces: sessions with model calls, tool calls, and token usage">
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 2 -->
+  <section class="slide">
+    <div class="bar"><span class="logo">☁ <b>Google Cloud</b></span><span class="crumb">Phase 1 · Design</span><span class="no">3 / 7</span></div>
+    <div class="wrap">
+      <div>
+        <span class="phase">Define "good" · Metric Registry</span>
+        <h1>Pick a metric, or <span class="accent">write</span> your own</h1>
+        <p class="sub">Define a metric once and reuse it across offline runs and online monitors. There are three kinds, plus the split between reference-based and reference-free.</p>
+        <ul>
+          <li><b>Predefined rubric</b>: single-turn (Final Response Quality, Hallucination, Tool Use, Safety) and multi-turn (Task Success, Tool Use, Trajectory). <i>Adaptive</i> rubrics write their own criteria; <i>static</i> ones score 0 to 1.</li>
+          <li><b>Custom LLM-as-judge</b> (<code>types.LLMMetric</code>), like <code>GEAP Policy Compliance</code>.</li>
+          <li><b>Custom code</b> (<code>types.CodeExecutionMetric</code>): a deterministic <code>def evaluate(instance) -> float</code>.</li>
+          <li><b>Reference-based</b> Exact Match vs <b>reference-free</b> rubrics.</li>
+        </ul>
+        <a class="doclink" href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/manage-metrics">Docs: Manage evaluation metrics</a>
+        <div class="code-links">
+          <a href="https://github.com/jswortz/geap-tour/blob/main/src/eval/metric_registry.py">src/eval/metric_registry.py</a>
+          <a href="https://github.com/jswortz/geap-tour/blob/main/src/eval/agent_eval_configs.py">src/eval/agent_eval_configs.py</a>
+        </div>
+      </div>
+      <div class="shot">
+        <div class="chrome"><i></i><i></i><i></i><span class="url">…/agent-evaluation › Metrics</span></div>
+        <img src="screenshots/eval_console_metrics_tab.png" alt="Evaluation Metrics tab with predefined and GEAP custom metrics">
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 3 -->
+  <section class="slide">
+    <div class="bar"><span class="logo">☁ <b>Google Cloud</b></span><span class="crumb">Phase 2 · Execution</span><span class="no">4 / 7</span></div>
+    <div class="wrap">
+      <div>
+        <span class="phase">Generate traces</span>
+        <h1>Three ways to <span class="accent">exercise</span> the agent</h1>
+        <p class="sub">A <b>trace</b> is the record of one run: the model inputs, the responses, and the tool calls. Produce them whichever way fits the stage.</p>
+        <ul>
+          <li><b>Batch / test-case</b>: run inference over a fixed suite for regression testing in CI.</li>
+          <li><b>Simulated</b>: generate multi-turn scenarios and let an LLM play the user, grounded by <code>environment_context</code>. Inject mocked tools or 503s to test resilience.</li>
+          <li><b>Offline</b>: score traces and sessions you already recorded in Cloud Trace and BigQuery, with <b>no new inference</b>.</li>
+        </ul>
+        <div style="display:flex;gap:14px;flex-wrap:wrap">
+          <a class="doclink" href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-agents">Docs: Run evaluation</a>
+          <a class="doclink" href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-simulated">Simulate</a>
+          <a class="doclink" href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-offline">Offline</a>
+        </div>
+        <div class="code-links">
+          <a href="https://github.com/jswortz/geap-tour/blob/main/src/eval/multi_agent_batch_eval.py">multi_agent_batch_eval.py</a>
+          <a href="https://github.com/jswortz/geap-tour/blob/main/src/eval/simulated_eval.py">simulated_eval.py</a>
+          <a href="https://github.com/jswortz/geap-tour/blob/main/src/eval/env_simulation.py">env_simulation.py</a>
+          <a href="https://github.com/jswortz/geap-tour/blob/main/src/eval/offline_trace_eval.py">offline_trace_eval.py</a>
+        </div>
+      </div>
+      <div class="shot">
+        <div class="chrome"><i></i><i></i><i></i><span class="url">…/agents › Deployments (Telemetry: Enabled)</span></div>
+        <img src="screenshots/eval_console_agent_engines.png" alt="Deployed agents with telemetry enabled">
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 4 -->
+  <section class="slide">
+    <div class="bar"><span class="logo">☁ <b>Google Cloud</b></span><span class="crumb">Phase 3 · Scoring in production</span><span class="no">5 / 7</span></div>
+    <div class="wrap">
+      <div>
+        <span class="phase">Continuous eval &amp; guardrails</span>
+        <h1>Watch quality <span class="accent">in production</span></h1>
+        <p class="sub">Online Monitors score live traffic as it comes in and send the scores to Cloud Monitoring, so you catch <b>quality drift</b> before users do.</p>
+        <ul>
+          <li><b>Online Monitors</b>: a roughly 10-minute loop that queries traffic, evaluates it, and reports. Sampling is configurable, and results land in Logging and Monitoring.</li>
+          <li><b>Metrics Explorer and dashboards</b>: every score becomes a Cloud Monitoring metric (<code>agent_eval/*</code>, <code>online_evaluator/scores</code>), so you can chart it, compare it, and share it.</li>
+          <li><b>Quality-drift alerts</b>: a per-monitor policy, the dashboard's Recommended Alerts, or <code>gcloud</code> / <code>monitoring_v3</code>.</li>
+        </ul>
+        <div style="display:flex;gap:14px;flex-wrap:wrap">
+          <a class="doclink" href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-online">Docs: Online monitors</a>
+          <a class="doclink" href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/quality-alerts">Quality alerts</a>
+        </div>
+        <div class="code-links">
+          <a href="https://github.com/jswortz/geap-tour/blob/main/src/eval/setup_online_evaluators.py">setup_online_evaluators.py</a>
+          <a href="https://github.com/jswortz/geap-tour/blob/main/src/eval/publish_metrics.py">publish_metrics.py</a>
+          <a href="https://github.com/jswortz/geap-tour/blob/main/src/eval/quality_alerts.py">quality_alerts.py</a>
+          <a href="https://github.com/jswortz/geap-tour/blob/main/src/eval/policies/quality_drift_policy.yaml">policies/quality_drift_policy.yaml</a>
+        </div>
+      </div>
+      <div class="twoshot">
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="url">…/agent-evaluation › Online monitors</span></div>
+          <img src="screenshots/eval_console_online_monitors.png" alt="Active online monitors"></div>
+        <div class="shot"><div class="chrome"><i></i><i></i><i></i><span class="url">console.cloud.google.com/monitoring (GEAP quality dashboard)</span></div>
+          <img src="screenshots/eval_console_metrics_dashboard.png" alt="GEAP quality metrics dashboard showing drift"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 5 -->
+  <section class="slide">
+    <div class="bar"><span class="logo">☁ <b>Google Cloud</b></span><span class="crumb">Phase 4 · Refinement</span><span class="no">6 / 7</span></div>
+    <div class="wrap">
+      <div>
+        <span class="phase">Analyze, optimize, repeat</span>
+        <h1>Close the <span class="accent">flywheel</span></h1>
+        <p class="sub">Don't just learn <i>that</i> the agent failed. Learn <i>why</i>, then fix it.</p>
+        <ul>
+          <li><b>Optimize</b>: refine root instructions with <b>GEPA</b> or <b>SimplePromptOptimizer</b>, or drive the whole loop from an assistant with <code>agents-cli eval</code>.</li>
+          <li><b>Built clean</b>: current Google clients from PyPI, with 161 passing tests.</li>
+        </ul>
+        <div style="display:flex;gap:14px;flex-wrap:wrap">
+          <a class="doclink" href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/view-results">Docs: Analyze results</a>
+          <a class="doclink" href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/optimize-agent">Optimize agent</a>
+        </div>
+        <div class="code-links">
+          <a href="https://github.com/jswortz/geap-tour/blob/main/src/eval/sdk_optimize.py">sdk_optimize.py</a>
+          <a href="https://github.com/jswortz/geap-tour/blob/main/src/optimize/run_optimize.py">run_optimize.py</a>
+          <a href="https://github.com/jswortz/geap-tour/blob/main/src/eval/agents_cli_demo.sh">agents_cli_demo.sh</a>
+        </div>
+      </div>
+      <div class="shot">
+        <div class="chrome"><i></i><i></i><i></i><span class="url">console.cloud.google.com/bigquery (geap_workshop_logs)</span></div>
+        <img src="screenshots/eval_console_bigquery.png" alt="BigQuery eval log sink with eval_rubric_results">
+      </div>
+    </div>
+    <div class="foot">Run the full flywheel: <code>uv run python -m src.eval.demo.full_eval_demo --agent-id $AGENT_ENGINE_ID</code> · notebook: <code>src/eval/demo/evaluation_sdk_demo.ipynb</code></div>
+  </section>
+
+  <!-- SUMMARY SLIDE -->
+  <section class="slide">
+    <div class="bar"><span class="logo">☁ <b>Google Cloud</b></span><span class="crumb">Summary</span><span class="no">7 / 7</span></div>
+    <div class="wrap solo">
+      <div>
+        <span class="phase">The Quality Flywheel in one view</span>
+        <h1>From "seems to work" to <span class="accent">measured &amp; monitored</span></h1>
+        <ul style="max-width:920px;margin:18px auto 20px;text-align:left">
+          <li><b>Design</b>: a reusable Metric Registry with predefined rubrics, custom LLM-as-judge, custom code, and reference-based Exact Match.</li>
+          <li><b>Execution</b>: generate traces three ways, batch in CI, simulated (with user and environment simulation), and offline over historical traces.</li>
+          <li><b>Scoring</b>: Online Monitors export every score as a Cloud Monitoring metric, visible in Metrics Explorer, dashboards, and drift alerts.</li>
+          <li><b>Refinement</b>: optimize the agent's instructions with GEPA, SimplePromptOptimizer, or agents-cli, then re-evaluate. Repeat.</li>
+        </ul>
+        <p class="sub">Built clean: current Google clients from PyPI, with 161 passing tests.</p>
+        <div class="run"><span class="p">$</span> uv run python -m src.eval.demo.full_eval_demo --agent-id $AGENT_ENGINE_ID</div>
+        <div style="margin-top:18px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
+          <a class="doclink" href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/agent-evaluation">Docs: Optimize / Evaluation</a>
+          <a class="doclink" href="https://github.com/jswortz/geap-tour/blob/main/docs/eval_operations.md">Coverage matrix (§0)</a>
+          <a class="doclink" href="https://github.com/jswortz/geap-tour/blob/main/docs/evaluation_demo.md">Demo walkthrough</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+<div class="hint">↑ / ↓ or scroll to navigate · 7 slides</div>
+<script>
+  // Arrow-key navigation between slides.
+  const slides=[...document.querySelectorAll('.slide')];
+  let idx=0;
+  addEventListener('keydown',e=>{
+    if(e.key==='ArrowDown'||e.key==='PageDown'){e.preventDefault();idx=Math.min(idx+1,slides.length-1);slides[idx].scrollIntoView();}
+    if(e.key==='ArrowUp'||e.key==='PageUp'){e.preventDefault();idx=Math.max(idx-1,0);slides[idx].scrollIntoView();}
+  });
+  const deck=document.getElementById('deck');
+  deck.addEventListener('scroll',()=>{idx=Math.round(deck.scrollTop/innerHeight);},{passive:true});
+</script>
+</body>
+</html>

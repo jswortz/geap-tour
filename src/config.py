@@ -44,11 +44,19 @@ OTEL_ENV_VARS = {
     "OTEL_TRACES_SAMPLER_ARG": "1.0",
     "OTEL_SEMCONV_STABILITY_OPT_IN": "gen_ai_latest_experimental",
     "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "EVENT_ONLY",
+    # Multimodal media upload — required for offline evaluation over historical
+    # traces/sessions when inputs/outputs include images, audio, or video. The
+    # completion hook uploads message content to Cloud Storage (as JSONL) so the
+    # evaluation service can resolve it later. See:
+    # https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-offline
+    "OTEL_INSTRUMENTATION_GENAI_UPLOAD_FORMAT": "jsonl",
+    "OTEL_INSTRUMENTATION_GENAI_COMPLETION_HOOK": "upload",
+    "OTEL_INSTRUMENTATION_GENAI_UPLOAD_BASE_PATH": f"gs://{GCP_STAGING_BUCKET}/otel-genai",
 }
 
 AGENT_MODEL = os.environ.get("AGENT_MODEL", "gemini-3.5-flash")
 
-# Multi-model router (5-tier: lite → flash → pro → sonnet → opus)
+# Multi-model router (5-tier by ascending complexity: lite → flash → sonnet → pro → opus)
 LITE_MODEL = os.environ.get("LITE_MODEL", "gemini-3.1-flash-lite")
 FLASH_MODEL = os.environ.get("FLASH_MODEL", "gemini-3.5-flash")
 PRO_MODEL = os.environ.get("PRO_MODEL", "gemini-3.1-pro-preview")
@@ -60,5 +68,5 @@ CLASSIFIER_MODEL = os.environ.get("CLASSIFIER_MODEL", "gemini-3.1-flash-lite")
 # Evaluation
 EVAL_OUTPUT_DIR = os.environ.get("EVAL_OUTPUT_DIR", "eval_outputs")
 BQ_EVAL_DATASET = os.environ.get("BQ_EVAL_DATASET", "geap_workshop_logs")
-AGENT_ENGINE_ID = os.environ.get("AGENT_ENGINE_ID", "5598638991600517120")
-ROUTER_ENGINE_ID = os.environ.get("ROUTER_ENGINE_ID", "7261593154007072768")
+AGENT_ENGINE_ID = os.environ.get("AGENT_ENGINE_ID", "5895016748914049024")   # coordinator_agent (live)
+ROUTER_ENGINE_ID = os.environ.get("ROUTER_ENGINE_ID", "2985691389632708608")  # router_agent (live)
