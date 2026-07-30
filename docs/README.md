@@ -11,6 +11,13 @@ two **SDK-first notebooks** (build, then evaluate). Full project overview: [`../
 | [`../src/eval/demo/evaluation_sdk_demo.ipynb`](../src/eval/demo/evaluation_sdk_demo.ipynb) | **Evaluation** notebook (SDK-first): the Quality Flywheel end-to-end. |
 | [faq.md](faq.md) | What each platform component is and why it matters. |
 
+## Hands-on deep-dives (SDK-first notebooks)
+| Notebook | What it teaches |
+|----------|-----------------|
+| [`../src/deploy/demo/gateway_sdk_demo.ipynb`](../src/deploy/demo/gateway_sdk_demo.ipynb) | **Agent Gateway** — dual-mode (ingress/egress) config, create gateways, attach at deploy, and the three policy layers (IAM/CEL, Semantic Governance, IAP + Model Armor). |
+| [`../src/deploy/demo/registry_sdk_demo.ipynb`](../src/deploy/demo/registry_sdk_demo.ipynb) | **Agent Registry** — register/discover, bindings, and **cross-project hub-and-spoke** discovery via App Hub + `agent-registry agents search`. |
+| [`../src/mcp_servers/demo/mcp_sdk_demo.ipynb`](../src/mcp_servers/demo/mcp_sdk_demo.ipynb) | **MCP servers** — author a FastMCP tool, deploy, register, then monitor (Cloud Run metrics, logs, traces, alerts). |
+
 ## Evaluation
 | Doc | What it's for |
 |-----|----------------|

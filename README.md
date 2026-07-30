@@ -25,12 +25,15 @@ A hands-on workshop demonstrating the full Gemini Enterprise Agent Platform (GEA
 
 ## Documentation
 
-**Two ways in.** New to the platform? Follow the **[Workshop Guide](docs/workshop_guide.md)** (4 sessions). Prefer to learn by running code? Start with the two **SDK-first notebooks** — first [build & deploy](src/deploy/demo/platform_sdk_demo.ipynb), then [evaluate](src/eval/demo/evaluation_sdk_demo.ipynb). A [docs index](docs/README.md) maps everything else.
+**Two ways in.** New to the platform? Follow the **[Workshop Guide](docs/workshop_guide.md)** (4 sessions). Prefer to learn by running code? Start with the two **SDK-first notebooks** — first [build & deploy](src/deploy/demo/platform_sdk_demo.ipynb), then [evaluate](src/eval/demo/evaluation_sdk_demo.ipynb) — then go deeper with the **Gateway**, **Registry (hub-and-spoke)**, and **MCP create+monitor** deep-dive notebooks below. A [docs index](docs/README.md) maps everything else.
 
 | Document | Description |
 |----------|-------------|
 | ▶ **[Build → Deploy → Register Notebook](src/deploy/demo/platform_sdk_demo.ipynb)** | **Start here to build** — SDK-first companion: MCP tools → ADK agents → run → deploy to Agent Engine → register to Gemini Enterprise → multi-model routing & cost. Mutating steps are guarded (`GEAP_RUN_DEPLOY=1` / `GEAP_PUBLISH=1`). |
 | ▶ **[Interactive Evaluation Notebook](src/eval/demo/evaluation_sdk_demo.ipynb)** | **Start here for evals** — flat & **SDK-first**: every Quality-Flywheel phase calls `client.evals.*` / `vertexai.types.*` **inline** (custom code is explicitly called out), scored against the deployed agent. Headless: `python -m src.eval.demo.full_eval_demo` |
+| **Deep-dive: [Agent Gateway](src/deploy/demo/gateway_sdk_demo.ipynb)** | Govern traffic + attach policies — dual-mode config (live), create gateways, attach at deploy, and the 3 policy layers (IAM/CEL, Semantic Governance, IAP + Model Armor). Guarded via `GEAP_RUN_GATEWAY`. |
+| **Deep-dive: [Agent Registry (hub-and-spoke)](src/deploy/demo/registry_sdk_demo.ipynb)** | Register/discover + **cross-project hub-and-spoke** (App Hub boundary → `agent-registry agents search` across a spoke project), bindings, cross-project metrics scoping. Guarded via `GEAP_RUN_REGISTRY`. |
+| **Deep-dive: [MCP Server create + monitor](src/mcp_servers/demo/mcp_sdk_demo.ipynb)** | Author a FastMCP server (live), deploy, register, then monitor — Cloud Run request metrics (`monitoring_v3`), logs, trace spans, and a health alert. Guarded via `GEAP_RUN_DEPLOY`. |
 | [Workshop Guide](docs/workshop_guide.md) | Full 4-session hands-on walkthrough |
 | [Monitoring Guide](docs/monitoring_integration_guide.md) | Quality alerts and custom metrics bridge guide |
 | [Component FAQ](docs/faq.md) | What each component does and why it matters |
