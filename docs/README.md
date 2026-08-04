@@ -21,6 +21,7 @@ two **SDK-first notebooks** (build, then evaluate). Full project overview: [`../
 ## Evaluation
 | Doc | What it's for |
 |-----|----------------|
+| [`../src/eval/demo/multi_turn_eval_demo.ipynb`](../src/eval/demo/multi_turn_eval_demo.ipynb) | **Multi-turn** eval: score whole conversations with the `MULTI_TURN_*` rubric metrics (patch-free; requires `aiplatform ≥ 1.163`). |
 | [eval_operations.md](eval_operations.md) | Evaluation operations guide + the Optimize→Evaluation **coverage matrix**. |
 | [evaluation_demo.md](evaluation_demo.md) | Screenshot-backed Quality-Flywheel demo walkthrough. |
 | [eval_slides.html](eval_slides.html) / [eval_slides.pptx](eval_slides.pptx) | 7-slide teach-in on agent evaluation. |

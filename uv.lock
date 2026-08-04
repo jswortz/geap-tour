@@ -848,7 +848,7 @@ requires-dist = [
     { name = "a2a-sdk", specifier = "==0.3.26" },
     { name = "fastmcp", specifier = ">=2.0.0" },
     { name = "google-adk", extras = ["agent-identity", "eval"], specifier = ">=2.5.0" },
-    { name = "google-cloud-aiplatform", extras = ["adk", "agent-engines", "evaluation"], specifier = ">=1.162.0" },
+    { name = "google-cloud-aiplatform", extras = ["adk", "agent-engines", "evaluation"], specifier = ">=1.163.0,<2.0.0" },
     { name = "google-cloud-bigquery", specifier = ">=3.42.2" },
     { name = "google-cloud-monitoring", specifier = ">=2.31.0" },
     { name = "google-genai", specifier = ">=2.14.0" },
@@ -988,7 +988,7 @@ wheels = [
 
 [[package]]
 name = "google-cloud-aiplatform"
-version = "1.162.0"
+version = "1.163.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "certifi" },
@@ -1005,9 +1005,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ba/fa/20a86701f1d3bcbedfe03a965bd4ae000ba79863fb1c2b4b658965f1057d/google_cloud_aiplatform-1.162.0.tar.gz", hash = "sha256:2403f75e6e44e879aecc0eab2d8c26e972507e4b4414d873b31cd4f4b49c9edb", size = 11218765, upload-time = "2026-07-21T23:17:44.419Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6d/ea/257c5fc5d04bff5b237a10761c89564828e98c2c80aedb1531465c80bedb/google_cloud_aiplatform-1.163.0.tar.gz", hash = "sha256:b570d22b145504e66f3f50f4bdeeae3c818ba46f330276566e80a42937ff53ef", size = 11235221, upload-time = "2026-07-28T17:34:06.4Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d4/b8/6f10db46713d03d4e889d569b8b0e10e4334d2cab26b9f865c78b1e4e4d9/google_cloud_aiplatform-1.162.0-py2.py3-none-any.whl", hash = "sha256:07ac79932b8f7a683c3bec6dcc21dd05234b55d01636b5a622ec93c18aad15fd", size = 9391054, upload-time = "2026-07-21T23:17:41.173Z" },
+    { url = "https://files.pythonhosted.org/packages/33/4b/8e45c1b9e404d42c66bf231d62eae5236855fa428a0d5c6d02ac72dc4514/google_cloud_aiplatform-1.163.0-py2.py3-none-any.whl", hash = "sha256:23855d261aadcf949fa6102f94d0d0dbd9af879dc4e3f651e7f4e27296af8cca", size = 9401645, upload-time = "2026-07-28T17:34:02.71Z" },
 ]
 
 [package.optional-dependencies]

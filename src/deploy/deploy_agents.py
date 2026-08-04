@@ -44,7 +44,7 @@ from src.config import (
 )
 
 REQUIREMENTS = [
-    "google-cloud-aiplatform[adk,agent-engines,evaluation]>=1.162.0",
+    "google-cloud-aiplatform[adk,agent-engines,evaluation]>=1.163.0,<2.0.0",
     "google-genai>=2.14.0",
     "google-auth>=2.52.0",
     "google-adk[a2a,agent-identity]>=2.5.0",
