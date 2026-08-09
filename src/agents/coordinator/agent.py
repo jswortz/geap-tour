@@ -182,6 +182,13 @@ tools. If the request involves booking or submission, delegate to the appropriat
 specialist agent. Always provide the most direct and efficient assistance.""",
     tools=[
         _get_mcp_tools(SEARCH_MCP_SERVER),
+        # The instruction tells the coordinator to use check_expense_policy / get_user_expenses
+        # DIRECTLY, so it needs the expense toolset in hand (submission is still delegated to
+        # expense_agent). Without this the coordinator called a tool it didn't hold -> "Tool
+        # 'check_expense_policy' not found. Available tools: transfer_to_agent". Booking stays
+        # delegated to travel_agent per the instruction, so the booking toolset is intentionally not
+        # added here.
+        _get_mcp_tools(EXPENSE_MCP_SERVER),
         PreloadMemoryTool(),
     ],
     sub_agents=[travel_agent, expense_agent],
