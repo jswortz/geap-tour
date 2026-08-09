@@ -50,6 +50,18 @@ def _get_registry() -> AgentRegistry:
     return _registry
 
 def _get_mcp_tools(server_name: str):
+    # Opt-in (MCP_USE_DIRECT_URLS=1): connect straight to the MCP server's HTTP URL instead of going
+    # through the Agent Registry. The registry path requests mTLS, which isn't available in every
+    # environment (local dev, notebooks, the ADK optimizer's LocalEvalSampler) and otherwise fails at
+    # session time with "mTLS was requested but AsyncAuthorizedSession channel is not mTLS" -> the
+    # toolset loads empty and tool calls raise "Tool not found. Available tools: transfer_to_agent".
+    # URLs come from the *_MCP_URL env vars (see MCP_SERVER_URLS).
+    if os.environ.get("MCP_USE_DIRECT_URLS") == "1":
+        url = MCP_SERVER_URLS.get(server_name)
+        if url:
+            return McpToolset(connection_params=StreamableHTTPConnectionParams(
+                url=url, timeout=MCP_TIMEOUT_SECONDS, sse_read_timeout=MCP_READ_TIMEOUT_SECONDS
+            ))
     try:
         toolset = _get_registry().get_mcp_toolset(server_name)
         if hasattr(toolset, '_connection_params'):
@@ -170,6 +182,13 @@ tools. If the request involves booking or submission, delegate to the appropriat
 specialist agent. Always provide the most direct and efficient assistance.""",
     tools=[
         _get_mcp_tools(SEARCH_MCP_SERVER),
+        # The instruction tells the coordinator to use check_expense_policy / get_user_expenses
+        # DIRECTLY, so it needs the expense toolset in hand (submission is still delegated to
+        # expense_agent). Without this the coordinator called a tool it didn't hold -> "Tool
+        # 'check_expense_policy' not found. Available tools: transfer_to_agent". Booking stays
+        # delegated to travel_agent per the instruction, so the booking toolset is intentionally not
+        # added here.
+        _get_mcp_tools(EXPENSE_MCP_SERVER),
         PreloadMemoryTool(),
     ],
     sub_agents=[travel_agent, expense_agent],
