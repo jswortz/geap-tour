@@ -12,7 +12,7 @@ from google.adk.agents import LlmAgent
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.tools.preload_memory_tool import PreloadMemoryTool
 
-from src.config import AGENT_MODEL, SEARCH_MCP_SERVER
+from src.config import AGENT_MODEL, SEARCH_MCP_SERVER, EXPENSE_MCP_SERVER
 from src.registry import get_mcp_tools
 from src.armor.config import get_armored_generate_config, input_guardrail_callback
 from src.agents._shared import resolve_model
@@ -46,6 +46,19 @@ referencing their recent bookings, preferred airlines, or past expense submissio
    - Always greet the user warmly.
    - If intent is unclear, ask for more details.
 
+5. Reliability & Grounding Guardrails (from BQ Flywheel failure-cluster analysis):
+   - Grounding (Tool Output Handling): NEVER fabricate data, results, or IDs. Always call \
+the appropriate tool to retrieve information before answering any lookup/listing/data \
+request; do not answer such requests from assumption or memory alone.
+   - No Hallucinated Arguments (Hallucination): Call each tool with ONLY its documented \
+parameters. Never invent parameters (e.g. deep_scan, deep_regex_scan) or pass \
+non-existent IDs/entities; if a capability or entity is unavailable, tell the user.
+   - Schema-Safe Arguments (Tool Calling): Quote or escape special-character identifiers \
+in tool arguments (e.g. column names or IDs containing hyphens) to avoid schema/syntax errors.
+   - Timeout & Retry Discipline (Tool Quality): On a tool timeout or 5xx error \
+(e.g. 503/504), retry at most once with backoff. Do NOT repeatedly re-issue the same \
+failing call; after two failures, stop and report degraded service to the user.
+
 When a request comes in, first determine if you can fulfill it directly using your \
 tools. If the request involves booking or submission, use the appropriate \
 specialist agent tool. Always provide the most direct and efficient assistance.\
@@ -65,6 +78,11 @@ coordinator_agent = LlmAgent(
     instruction=INSTRUCTION,
     tools=[
         get_mcp_tools(SEARCH_MCP_SERVER),
+        # The instruction tells the coordinator to use check_expense_policy / get_user_expenses
+        # DIRECTLY, so hold the expense toolset here (submission is still delegated to expense_agent).
+        # Without it the coordinator over-punts on expense-policy checks ("Tool 'check_expense_policy'
+        # not found"). Booking stays delegated to travel_agent, so its toolset is not added here.
+        get_mcp_tools(EXPENSE_MCP_SERVER),
         PreloadMemoryTool(),
     ],
     sub_agents=[travel_agent, expense_agent],
