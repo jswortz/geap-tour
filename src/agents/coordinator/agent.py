@@ -17,6 +17,28 @@ from google.genai.types import Content, Part
 
 AGENT_MODEL = os.environ.get("AGENT_MODEL", "gemini-2.5-flash")
 
+
+def _resolve_model(model_str: str):
+    """Gemini 2.x / models/* pass through (regional). Gemini 3.x is global-only, so use the
+    NATIVE Gemini path pinned to global via client_kwargs (LiteLLM garbles Gemini-3 thought
+    signatures into bogus tool calls). Claude/other -> LiteLlm global. Mirrors
+    src/agents/_shared.resolve_model (this package is self-contained by design)."""
+    if model_str.startswith(("gemini-2", "models/")):
+        return model_str
+    if model_str.startswith("gemini-"):
+        from google.adk.models.google_llm import Gemini
+        client_kwargs = {"vertexai": True, "location": "global"}
+        # Prefer the module's resolved GCP_PROJECT_ID (from .env) over the ambient
+        # GOOGLE_CLOUD_PROJECT, which on some dev machines points at a different project.
+        proj = GCP_PROJECT_ID or os.environ.get("GOOGLE_CLOUD_PROJECT")
+        if proj:
+            client_kwargs["project"] = proj
+        return Gemini(model=model_str, client_kwargs=client_kwargs)
+    from google.adk.models.lite_llm import LiteLlm
+    if not model_str.startswith("vertex_ai/"):
+        model_str = f"vertex_ai/{model_str}"
+    return LiteLlm(model=model_str, vertex_location="global")
+
 GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "wortz-project-352116")
 GCP_REGION = os.environ.get("GCP_REGION", "us-central1")
 AGENT_ENGINE_ID = os.environ.get("AGENT_ENGINE_ID", "2479350891879071744")
@@ -152,7 +174,7 @@ def input_guardrail_callback(callback_context=None, **kwargs):
 
 
 travel_agent = LlmAgent(
-    model=AGENT_MODEL,
+    model=_resolve_model(AGENT_MODEL),
     name="travel_agent",
     instruction="""\
 You are a corporate travel assistant. Help employees search for and book flights and hotels.
@@ -168,7 +190,7 @@ If the user asks about expenses, let them know to ask the expense assistant.""",
 )
 
 expense_agent = LlmAgent(
-    model=AGENT_MODEL,
+    model=_resolve_model(AGENT_MODEL),
     name="expense_agent",
     instruction="""\
 You are a corporate expense management assistant. Help employees submit expense reports and check policies.
@@ -192,7 +214,7 @@ async def save_memories_callback(callback_context: CallbackContext = None, **kwa
 
 
 root_agent = LlmAgent(
-    model=AGENT_MODEL,
+    model=_resolve_model(AGENT_MODEL),
     name="coordinator_agent",
     instruction="""\
 You are a corporate assistant coordinator. Your primary role is to efficiently \
