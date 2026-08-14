@@ -41,6 +41,53 @@ MCP_SERVER_URLS = {
 MCP_TIMEOUT_SECONDS = 60.0
 MCP_READ_TIMEOUT_SECONDS = 90.0
 
+# Authenticated access to private Cloud Run MCP servers (org Domain-Restricted Sharing blocks
+# allUsers). Mint an OIDC ID token for the service root URL via the ambient SA and inject it as a
+# Bearer header at session/tool-call time. Mirrors src/registry.py; grant the caller SA run.invoker.
+import threading as _threading
+import time as _time
+from urllib.parse import urlsplit as _urlsplit
+
+_id_token_cache: dict = {}
+_id_token_lock = _threading.Lock()
+
+
+def _mint_id_token(audience: str) -> str:
+    now = _time.time()
+    with _id_token_lock:
+        tok, exp = _id_token_cache.get(audience, (None, 0.0))
+        if tok and exp - now > 300:
+            return tok
+    import google.oauth2.id_token as _idt
+    from google.auth.transport.requests import Request as _AuthRequest
+    token = _idt.fetch_id_token(_AuthRequest(), audience)
+    with _id_token_lock:
+        _id_token_cache[audience] = (token, now + 3000)
+    return token
+
+
+def _bearer_header_provider(url: str):
+    parts = _urlsplit(url)
+    audience = f"{parts.scheme}://{parts.netloc}"
+
+    def _provider(_ctx=None):
+        try:
+            return {"Authorization": f"Bearer {_mint_id_token(audience)}"}
+        except Exception:
+            return {}
+
+    return _provider
+
+
+def _direct_toolset(url: str) -> McpToolset:
+    return McpToolset(
+        connection_params=StreamableHTTPConnectionParams(
+            url=url, timeout=MCP_TIMEOUT_SECONDS, sse_read_timeout=MCP_READ_TIMEOUT_SECONDS
+        ),
+        header_provider=_bearer_header_provider(url),
+    )
+
+
 _registry = None
 
 def _get_registry() -> AgentRegistry:
@@ -59,9 +106,7 @@ def _get_mcp_tools(server_name: str):
     if os.environ.get("MCP_USE_DIRECT_URLS") == "1":
         url = MCP_SERVER_URLS.get(server_name)
         if url:
-            return McpToolset(connection_params=StreamableHTTPConnectionParams(
-                url=url, timeout=MCP_TIMEOUT_SECONDS, sse_read_timeout=MCP_READ_TIMEOUT_SECONDS
-            ))
+            return _direct_toolset(url)
     try:
         toolset = _get_registry().get_mcp_toolset(server_name)
         if hasattr(toolset, '_connection_params'):
@@ -74,9 +119,7 @@ def _get_mcp_tools(server_name: str):
         url = MCP_SERVER_URLS.get(server_name)
         if not url:
             raise
-        return McpToolset(connection_params=StreamableHTTPConnectionParams(
-            url=url, timeout=MCP_TIMEOUT_SECONDS, sse_read_timeout=MCP_READ_TIMEOUT_SECONDS
-        ))
+        return _direct_toolset(url)
 
 
 MAX_INPUT_LENGTH = 4000

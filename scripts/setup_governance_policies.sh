@@ -94,7 +94,14 @@ EFFECTIVE_IDENTITY=$(curl -s -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   | python3 -c "import sys,json; r=json.load(sys.stdin); engines=r.get('reasoningEngines',[]); print(next((e.get('spec',{}).get('effectiveIdentity','') for e in engines if 'coordinator' in e.get('displayName','').lower()), '') if engines else '')" 2>/dev/null)
 
 if [[ -n "$EFFECTIVE_IDENTITY" ]]; then
-    AGENT_PRINCIPAL="principal://${EFFECTIVE_IDENTITY}"
+    # A service-account effectiveIdentity (agents deployed without AGENT_IDENTITY run as the
+    # Reasoning Engine SA) needs the serviceAccount: member prefix; only SPIFFE/WIF identities
+    # use principal://. Prefixing principal:// onto an SA email -> "unknown member type".
+    if [[ "$EFFECTIVE_IDENTITY" == *"gserviceaccount.com" ]]; then
+        AGENT_PRINCIPAL="serviceAccount:${EFFECTIVE_IDENTITY}"
+    else
+        AGENT_PRINCIPAL="principal://${EFFECTIVE_IDENTITY}"
+    fi
 elif [[ -n "$ORG_ID" && "$ORG_ID" =~ ^[0-9]+$ ]]; then
     AGENT_PRINCIPAL="principalSet://agents.global.org-${ORG_ID}.system.id.goog/attribute.platformContainer/aiplatform/projects/${PROJECT_NUMBER}"
 else
