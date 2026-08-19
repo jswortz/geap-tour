@@ -88,14 +88,19 @@ class TestAgentConfigE2E:
         assert "travel_agent" in sub_names
         assert "expense_agent" in sub_names
 
-    def test_all_agents_have_model_armor(self):
+    def test_all_agents_have_guardrails(self):
+        # Client-side guardrail is always on; server-side Model Armor applies only to regional
+        # (Gemini 2.x) models — Model Armor has no `global` endpoint for Gemini 3.x.
         from src.agents.travel_agent import travel_agent
         from src.agents.expense_agent import expense_agent
         from src.agents.coordinator_agent import coordinator_agent
+        from src.config import AGENT_MODEL
+        armor_expected = AGENT_MODEL.startswith(("gemini-2", "models/"))
         for agent in [travel_agent, expense_agent, coordinator_agent]:
             assert agent.generate_content_config is not None
-            assert agent.generate_content_config.model_armor_config is not None
             assert agent.before_agent_callback is not None
+            has_armor = agent.generate_content_config.model_armor_config is not None
+            assert has_armor == armor_expected
 
 
 # --- Agent Armor E2E ---

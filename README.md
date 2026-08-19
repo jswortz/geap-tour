@@ -25,7 +25,7 @@ A hands-on workshop demonstrating the full Gemini Enterprise Agent Platform (GEA
 
 ## 📓 Interactive Notebooks
 
-Five SDK-first notebooks — flat, L1-SDK-native, with mutating/infra steps guarded behind `GEAP_RUN_*` env flags (they run clean end-to-end with guards off):
+Six SDK-first notebooks — flat, L1-SDK-native, with mutating/infra steps guarded behind `GEAP_RUN_*` env flags (they run clean end-to-end with guards off):
 
 | Notebook | What you'll run |
 |----------|-----------------|
@@ -34,6 +34,7 @@ Five SDK-first notebooks — flat, L1-SDK-native, with mutating/infra steps guar
 | [Agent Gateway](src/deploy/demo/gateway_sdk_demo.ipynb) | Dual-mode (ingress/egress) config, create gateways, attach at deploy, and the three policy layers (IAM/CEL, Semantic Governance, IAP + Model Armor). |
 | [Agent Registry — hub & spoke](src/deploy/demo/registry_sdk_demo.ipynb) | Register/discover, bindings, and **cross-project hub-and-spoke** discovery via App Hub + `agent-registry agents search`. |
 | [MCP — create & monitor](src/mcp_servers/demo/mcp_sdk_demo.ipynb) | Author a FastMCP tool, deploy, register, then monitor with Cloud Run metrics, logs, traces, and alerts. |
+| [Agent Identity, Memory & Sessions](src/deploy/demo/agent_identity_memory_demo.ipynb) | A simple **Gemini 3.7** agent → deploy with **Agent Identity (SPIFFE)** → **gateway attach config** → **session service** (multi-turn) → **user-scoped Memory Bank** (one user recalls, another can't). |
 
 ## Documentation
 
@@ -46,6 +47,7 @@ Five SDK-first notebooks — flat, L1-SDK-native, with mutating/infra steps guar
 | **Deep-dive: [Agent Gateway](src/deploy/demo/gateway_sdk_demo.ipynb)** | Govern traffic + attach policies — dual-mode config (live), create gateways, attach at deploy, and the 3 policy layers (IAM/CEL, Semantic Governance, IAP + Model Armor). Guarded via `GEAP_RUN_GATEWAY`. |
 | **Deep-dive: [Agent Registry (hub-and-spoke)](src/deploy/demo/registry_sdk_demo.ipynb)** | Register/discover + **cross-project hub-and-spoke** (App Hub boundary → `agent-registry agents search` across a spoke project), bindings, cross-project metrics scoping. Guarded via `GEAP_RUN_REGISTRY`. |
 | **Deep-dive: [MCP Server create + monitor](src/mcp_servers/demo/mcp_sdk_demo.ipynb)** | Author a FastMCP server (live), deploy, register, then monitor — Cloud Run request metrics (`monitoring_v3`), logs, trace spans, and a health alert. Guarded via `GEAP_RUN_DEPLOY`. |
+| **[Agent Identity, Memory & Sessions](src/deploy/demo/agent_identity_memory_demo.ipynb)** | Platform tour on **Gemini 3.7**: a simple agent deployed to Agent Engine with **Agent Identity (SPIFFE)**, the ingress/egress **gateway attach config** (shown + explained; attach is Private-Preview gated), the **session service** (multi-turn), and **user-scoped Memory Bank** (Alice recalls; Bob sees nothing). Runs e2e; deployed engine `simple_time_agent`. |
 | [Workshop Guide](docs/workshop_guide.md) | Full 4-session hands-on walkthrough |
 | [Monitoring Guide](docs/monitoring_integration_guide.md) | Quality alerts and custom metrics bridge guide |
 | [Component FAQ](docs/faq.md) | What each component does and why it matters |

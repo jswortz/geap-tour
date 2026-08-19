@@ -31,7 +31,18 @@ def get_model_armor_config() -> ModelArmorConfig:
 
 
 def get_armored_generate_config() -> GenerateContentConfig:
-    """Build a GenerateContentConfig with Model Armor enabled."""
+    """Build a GenerateContentConfig with Model Armor enabled.
+
+    Model Armor templates are REGIONAL (e.g. us-central1); Model Armor has no `global`
+    location. Gemini 3.x models are served only on the global endpoint, so a request that
+    references a regional Model Armor template fails there ("template not found" / "not
+    supported in 'global' location"). For such models we omit the server-side Model Armor
+    config (the client-side input_guardrail_callback still runs). Regional Gemini 2.x models
+    keep full Model Armor screening.
+    """
+    model = os.environ.get("AGENT_MODEL", "")
+    if model and not model.startswith(("gemini-2", "models/")):
+        return GenerateContentConfig()
     return GenerateContentConfig(
         model_armor_config=get_model_armor_config(),
     )
