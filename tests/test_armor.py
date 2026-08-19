@@ -75,26 +75,45 @@ class TestModelArmorConfig:
         assert "templates/" in config.prompt_template_name
         assert "templates/" in config.response_template_name
 
-    def test_armored_generate_config(self):
-        config = get_armored_generate_config()
-        assert config.model_armor_config is not None
+    def test_armored_generate_config_regional(self, monkeypatch):
+        # Regional Gemini 2.x models keep server-side Model Armor.
+        monkeypatch.setenv("AGENT_MODEL", "gemini-2.5-flash")
+        assert get_armored_generate_config().model_armor_config is not None
+
+    def test_armored_generate_config_global_omits_armor(self, monkeypatch):
+        # Model Armor has no `global` location; Gemini 3.x is global-only, so server-side armor is
+        # omitted (the client-side input_guardrail_callback still runs).
+        monkeypatch.setenv("AGENT_MODEL", "gemini-3.7-flash")
+        assert get_armored_generate_config().model_armor_config is None
+
+
+def _armor_expected() -> bool:
+    """Server-side Model Armor applies only to regional (Gemini 2.x) models."""
+    from src.config import AGENT_MODEL
+    return AGENT_MODEL.startswith(("gemini-2", "models/"))
 
 
 class TestAgentsHaveArmor:
-    def test_travel_agent_has_armor(self):
+    """Every agent always has the client-side guardrail; server-side Model Armor is present only for
+    regional (Gemini 2.x) models (Model Armor has no `global` endpoint for Gemini 3.x)."""
+
+    def test_travel_agent_has_guardrails(self):
         from src.agents.travel_agent import travel_agent
         assert travel_agent.generate_content_config is not None
-        assert travel_agent.generate_content_config.model_armor_config is not None
         assert travel_agent.before_agent_callback is not None
+        has_armor = travel_agent.generate_content_config.model_armor_config is not None
+        assert has_armor == _armor_expected()
 
-    def test_expense_agent_has_armor(self):
+    def test_expense_agent_has_guardrails(self):
         from src.agents.expense_agent import expense_agent
         assert expense_agent.generate_content_config is not None
-        assert expense_agent.generate_content_config.model_armor_config is not None
         assert expense_agent.before_agent_callback is not None
+        has_armor = expense_agent.generate_content_config.model_armor_config is not None
+        assert has_armor == _armor_expected()
 
-    def test_coordinator_agent_has_armor(self):
+    def test_coordinator_agent_has_guardrails(self):
         from src.agents.coordinator_agent import coordinator_agent
         assert coordinator_agent.generate_content_config is not None
-        assert coordinator_agent.generate_content_config.model_armor_config is not None
         assert coordinator_agent.before_agent_callback is not None
+        has_armor = coordinator_agent.generate_content_config.model_armor_config is not None
+        assert has_armor == _armor_expected()
